@@ -147,65 +147,44 @@ for R1 in $INPUT_DIR/*_1_val_1.fq; do
         | samtools view -bF 4 - > $OUTPUT_DIR/${BASE}_mapped.bam
 done
 ```    
-## 3d. Sort the mapped BAM files
+## 3d. Sort the mapped SAM files
 ```bash
-# Change directory to where the T2T reference is stored.
-cd /scratch/bistbs/4_Aligning_BWA/Alignment_output/ 
-
-
-# Number of threads (matches ntasks-per-node)
-THREADS=24
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-# Load Dependencies and Setup Environment   #
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-
-# Load Java (Picard requires Java)
+# Load Java
 module load java-20
 
 # Directories
 INPUT_DIR=/scratch/bistbs/4_Aligning_BWA/Alignment_output
 OUTPUT_DIR=/scratch/bistbs/4_Aligning_BWA/Alignment_output/5_Sort_Bam
-REFERENCE=/scratch/bistbs/Dama_gazelle_hifiasm-ULONT_primary.fasta
 SCRATCH=/scratch/bistbs/tmp
+PICARD=/scratch/bistbs/4_Aligning_BWA/Alignment_output/picard.jar   # path to picard.jar
 
-# Create output and temp directories if not exist
-## mkdir -p "$OUTPUT_DIR" ##It already exists.
+# Create output and scratch directories if needed
+mkdir -p "$OUTPUT_DIR"
 mkdir -p "$SCRATCH"
 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-# Merge BAM Files                           #
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-
+# Check input directory
 cd "$INPUT_DIR" || { echo "Error: Input directory not found."; exit 1; }
 
-# List all BAM files to be merged
-bam_files=($(ls *_mapped.bam))
-if [ ${#bam_files[@]} -eq 0 ]; then
-    echo "No BAM files found in $INPUT_DIR"
-    exit 1
-fi
+# Loop over each BAM and sort it individually
+for bam in *_mapped.bam; do
+    if [ ! -f "$bam" ]; then
+        echo "No BAM files found."
+        exit 1
+    fi
 
-# Prepare Picard input argument list
-bamlist=""
-for f in "${bam_files[@]}"; do
-    bamlist+="I=$INPUT_DIR/$f "
+    BASE=$(basename "$bam" .bam)
+    OUTPUT_BAM="$OUTPUT_DIR/${BASE}_sorted.bam"
+
+    echo "Sorting $bam -> $OUTPUT_BAM"
+# Sorting the SAM files.
+    java -Xmx4g -jar "$PICARD" SortSam \
+        I="$INPUT_DIR/$bam" \
+        O="$OUTPUT_BAM" \
+        SORT_ORDER=coordinate \
+        TMP_DIR="$SCRATCH" \
+        CREATE_INDEX=true \
+        VALIDATION_STRINGENCY=SILENT
 done
-
-# Define output merged BAM name
-OUTPUT_BAM=$OUTPUT_DIR/All_samples_merged.bam
-
-# Run Picard MergeSamFiles
-java -Xmx60g -jar /scratch/bistbs/4_Aligning_BWA/Alignment_output/picard.jar MergeSamFiles \
-    $bamlist \
-    O="$OUTPUT_BAM" \
-    USE_THREADING=true \
-    TMP_DIR="$SCRATCH" \
-    SORT_ORDER=coordinate \
-    CREATE_INDEX=true \
-    VALIDATION_STRINGENCY=SILENT
-
-echo "Merge complete. Output written to: $OUTPUT_BAM"
 
 ```
 
