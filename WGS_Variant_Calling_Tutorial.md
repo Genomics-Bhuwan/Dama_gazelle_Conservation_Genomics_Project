@@ -76,7 +76,7 @@ module load samtools-1.22.1
 module load bwa-mem
 module load bwa-0.7.17
 
-REFERENCE=/shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Dama_gazelle_sequences/dama_fastq/3_Indexing/Dama_gazelle_hifiasm-ULONT_primary.fasta.gz
+REFERENCE=/shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Dama_gazelle_sequences/dama_fastq/3_Indexing/Dama_gazelle_hifiasm-ULONT_primary.fasta
 
 samtools faidx $REFERENCE
 bwa index $REFERENCE
@@ -85,52 +85,71 @@ bwa index $REFERENCE
 ## 3b. Align reads and process BAMs
 
 ```bash
-cd /shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Dama_gazelle_sequences/dama_fastq/4_aligning_with_BWA_Mem/
+# Change directory to where the T2T reference is stored.
+cd /scratch/bistbs/   
 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# Load required modules                     #
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 module load samtools-1.22.1
 module load bwa-mem
-module load bwa-0.7.17
+module load bwa-0.7.17 
 
-INPUT_DIR=/shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Dama_gazelle_sequences/dama_fastq/4_aligning_with_BWA_Mem
-OUTPUT_DIR=/shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Dama_gazelle_sequences/dama_fastq/4_aligning_with_BWA_Mem/aligning_out
-REFERENCE=$INPUT_DIR/Dama_gazelle_hifiasm-ULONT_primary.fasta.gz
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# T2T consertium generated reference assembly#
+# Indexing with samtools and BWA             #
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
+REFERENCE=/scratch/bistbs/Dama_gazelle_hifiasm-ULONT_primary.fasta
+
+# Index with samtools (for downstream use)
+samtools faidx $REFERENCE
+
+# Index with BWA (for mapping)
+bwa index $REFERENCE
+
+
+## 3C. Align reads and process BAMs using BWA-MEM
+
+# Change directory to where the T2T reference is stored.
+cd /scratch/bistbs/  
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# Load required modules                     #
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+module load samtools-1.22.1
+module load bwa-mem
+module load bwa-0.7.17 
+
+# Directories
+INPUT_DIR=/scratch/bistbs/
+OUTPUT_DIR=/scratch/bistbs/4_Aligning_BWA/Alignment_output
+REFERENCE=/scratch/bistbs/Dama_gazelle_hifiasm-ULONT_primary.fasta
+
+# Make output directory if it doesn't exist
 mkdir -p $OUTPUT_DIR
+
+# Number of threads (matches ntasks-per-node)
 THREADS=24
 
+# Loop through all paired-end files
 for R1 in $INPUT_DIR/*_1_val_1.fq; do
     BASE=$(basename $R1 _1_val_1.fq)
     R2="${INPUT_DIR}/${BASE}_2_val_2.fq"
     
     echo "Processing sample: $BASE"
+    echo "Read1: $R1"
+    echo "Read2: $R2"
     
+# Align reads with BWA-MEM and output BAM (mapped only) and Process and filter unmapped reads with samtools
+#bF 4-binary format and remove reads that are 4. 4 means reads are unmapped.
     bwa mem -t $THREADS $REFERENCE $R1 $R2 \
         | samtools view -bF 4 - > $OUTPUT_DIR/${BASE}_mapped.bam
-
-    samtools fixmate -m $OUTPUT_DIR/${BASE}_mapped.bam $OUTPUT_DIR/${BASE}.fixmate.bam
-    samtools sort $OUTPUT_DIR/${BASE}.fixmate.bam -o $OUTPUT_DIR/${BASE}.sorted.bam
-
-    picard AddOrReplaceReadGroups \
-        I=$OUTPUT_DIR/${BASE}.sorted.bam \
-        O=$OUTPUT_DIR/${BASE}.rg.bam \
-        RGID=$BASE RGLB=lib1 RGPL=illumina RGPU=unit1 RGSM=$BASE
-
-    picard MarkDuplicates \
-        I=$OUTPUT_DIR/${BASE}.rg.bam \
-        O=$OUTPUT_DIR/${BASE}.dedup.bam \
-        M=$OUTPUT_DIR/${BASE}.dedup.metrics
-
-    samtools index $OUTPUT_DIR/${BASE}.dedup.bam
-
-    gatk --java-options "-Xmx4g" RealignerTargetCreator \
-        -R $REFERENCE -I $OUTPUT_DIR/${BASE}.dedup.bam \
-        -O $OUTPUT_DIR/${BASE}.intervals
-
-    gatk --java-options "-Xmx4g" IndelRealigner \
-        -R $REFERENCE -I $OUTPUT_DIR/${BASE}.dedup.bam \
-        -targetIntervals $OUTPUT_DIR/${BASE}.intervals \
-        -O $OUTPUT_DIR/${BASE}.realigned.bam
 done
+    
+
+    
+
 ```
 
 ## 4. Variant calling (multi-sample)
