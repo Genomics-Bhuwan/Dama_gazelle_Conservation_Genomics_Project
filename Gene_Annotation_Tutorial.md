@@ -79,7 +79,3 @@ python3 ui/egapx.py input_Dama.yaml \
 
 - `-o dama_output` : Output folder
 - `-w .../workdir` : Working directory for temporary files
-
----
-
-### Author: Bhuwan Singh Bist, Jezkova lab
