@@ -1,40 +1,30 @@
----
-title: "Assignment_750A"
-author: "Bhuwan"
-editor: source
----
-
 # Dama Gazelle Whole-Genome Sequencing (WGS) Variant Calling Pipeline Tutorial
 
-**Author:** Bhuwan Singh Bist\
+**Author:** Bhuwan Singh Bist
+**Affiliation:** Jezkova lab
 **Date:** 2025-10-03
 
-###This tutorial demonstrates a complete workflow for WGS variant calling in the Dama gazelle. The pipeline includes:
+This tutorial demonstrates a complete workflow for WGS variant calling in the Dama gazelle. The pipeline includes:
 
-###1. Quality control (FastQC)\
-###2. Adapter trimming (Trim Galore + Cutadapt)\
-###3. Mapping reads to a haplotype-resolved reference genome\
-###4. BAM processing (Picard & Samtools)\
-###5. Variant calling and filtering (GATK & VCFtools)
+1. Quality control (FastQC)
+2. Adapter trimming (Trim Galore + Cutadapt)
+3. Mapping reads to a haplotype-resolved reference genome
+4. BAM processing (Picard & Samtools)
+5. Variant calling and filtering (GATK & VCFtools)
 
-###\> **Note:** All code blocks are for **demonstration purposes only** and are not ##executed in this document.
+> **Note:** All code blocks are for **demonstration purposes only** and are not executed in this document.
 
 ---
+
 # Dama Gazelle WGS Variant Calling Pipeline
 
-#This tutorial demonstrates the workflow for whole-genome sequencing (WGS) variant calling in the Dama gazelle. Each step includes the commands in a copyable code block.
----
+This tutorial demonstrates the workflow for whole-genome sequencing (WGS) variant calling in the Dama gazelle. Each step includes the commands in a copyable code block.
 
 ---
-title: "Dama Gazelle WGS Variant Calling Pipeline"
-author: "Bhuwan Singh Bist"
-date: "2025-10-03"
-format: html
----
 
-# 1. Quality control using FastQC
+## 1. Quality control using FastQC
 
-```{bash}
+```bash
 #!/bin/bash -l
 #SBATCH --time=240:00:00
 #SBATCH --nodes=1
@@ -55,9 +45,9 @@ cd $INDIR
 fastqc *_1.fastq *_2.fastq -o $OUTDIR -t $THREADS
 ```
 
-2.  Adapter trimming with Trim Galore
+## 2. Adapter trimming with Trim Galore
 
-```{bash}
+```bash
 module load trimgalore-0.6.7
 # Ensure cutadapt v5.1 is available
 
@@ -75,9 +65,9 @@ for R1 in *_1.fastq; do
 done
 ```
 
-3.  Mapping reads to the Dama Gazelle reference 3a. Index the reference
+## 3a. Index the reference
 
-```{bash}
+```bash
 cd /shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Dama_gazelle_sequences/dama_fastq/3_Indexing/
 
 module load samtools-1.22.1
@@ -90,9 +80,9 @@ samtools faidx $REFERENCE
 bwa index $REFERENCE
 ```
 
-3b. Align reads and process BAMs
+## 3b. Align reads and process BAMs
 
-```{bash}
+```bash
 cd /shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Dama_gazelle_sequences/dama_fastq/4_aligning_with_BWA_Mem/
 
 module load samtools-1.22.1
@@ -141,9 +131,9 @@ for R1 in $INPUT_DIR/*_1_val_1.fq; do
 done
 ```
 
-4.  Variant calling (multi-sample)
+## 4. Variant calling (multi-sample)
 
-```{bash}
+```bash
 BAM_LIST=$(ls $OUTPUT_DIR/*.realigned.bam | tr '\n' ' ')
 
 gatk --java-options "-Xmx8g" HaplotypeCaller \
@@ -152,9 +142,9 @@ gatk --java-options "-Xmx8g" HaplotypeCaller \
     -O $OUTPUT_DIR/dama_raw.vcf
 ```
 
-5.  Variant filtering
+## 5. Variant filtering
 
-```{bash}
+```bash
 vcftools --vcf $OUTPUT_DIR/dama_raw.vcf \
          --remove-indels \
          --minQ 30 \
