@@ -110,7 +110,7 @@ bwa index $REFERENCE
 
 
 ## 3C. Align reads and process BAMs using BWA-MEM
-
+```bash
 # Change directory to where the T2T reference is stored.
 cd /scratch/bistbs/  
 
@@ -146,7 +146,7 @@ for R1 in $INPUT_DIR/*_1_val_1.fq; do
     bwa mem -t $THREADS $REFERENCE $R1 $R2 \
         | samtools view -bF 4 - > $OUTPUT_DIR/${BASE}_mapped.bam
 done
-    
+```    
 
     
 
