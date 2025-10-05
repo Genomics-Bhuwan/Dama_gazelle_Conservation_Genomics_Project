@@ -37,7 +37,7 @@ pip install -r requirements.txt                   # Install dependencies
 
 ```yaml
 genome: /shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Genome_Annotation/Dama_gazelle_hifiasm-ULONT_primary.fasta.gz
-taxid: 9805
+taxid: 4123718 
 short_reads:
   - /shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Genome_Annotation/SRR5647654.fastq.gz
 locus_tag_prefix: damaga
