@@ -1,7 +1,9 @@
-# Dama Gazelle Whole-Genome Sequencing (WGS) Variant Calling Pipeline Tutorial
+# Dama gazelle Whole-Genome Resequencing (WGS) Variant Calling Pipeline Tutorial
 
 **Author:** Bhuwan Singh Bist  
+
 **Affiliation:** Jezkova lab  
+
 **Date:** 2025-10-03
 
 This tutorial demonstrates a complete workflow for WGS variant calling in the Dama gazelle. The pipeline includes:
@@ -16,7 +18,7 @@ This tutorial demonstrates a complete workflow for WGS variant calling in the Da
 
 ---
 
-# Dama Gazelle WGS Variant Calling Pipeline
+# Dama gazelle WGS Variant Calling Pipeline
 
 This tutorial demonstrates the workflow for whole-genome sequencing (WGS) variant calling in the Dama gazelle. Each step includes the commands in a copyable code block.
 
