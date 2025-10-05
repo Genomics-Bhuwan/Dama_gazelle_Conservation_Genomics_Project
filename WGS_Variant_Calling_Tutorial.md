@@ -1,14 +1,16 @@
-# Dama Gazelle Whole-Genome Sequencing (WGS) Variant Calling Pipeline Tutorial
+# Dama Gazelle Whole-Genome Resequencing (WGS) Variant Calling Pipeline Tutorial
 
 **Author:** Bhuwan Singh Bist
+
 **Affiliation:** Jezkova lab
+
 **Date:** 2025-10-03
 
 This tutorial demonstrates a complete workflow for WGS variant calling in the Dama gazelle. The pipeline includes:
 
 1. Quality control (FastQC)
 2. Adapter trimming (Trim Galore + Cutadapt)
-3. Mapping reads to a haplotype-resolved reference genome
+3. Mapping reads to a haplotype-resolved Ruminant Telomere-to-Telomere(T2T)reference genome assembly of Dama gazelle(Nanger dama)
 4. BAM processing (Picard & Samtools)
 5. Variant calling and filtering (GATK & VCFtools)
 
