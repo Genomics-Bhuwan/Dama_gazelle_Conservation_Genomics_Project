@@ -217,15 +217,69 @@ fi
 
 ```
 
-## 4. Variant calling (multi-sample)
+## 4. Add or Replace Groups
 
 ```bash
-BAM_LIST=$(ls $OUTPUT_DIR/*.realigned.bam | tr '\n' ' ')
+#!/bin/bash -l
+#SBATCH --job-name=AddReadGroups
+#SBATCH --time=300:00:00
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --mem=60G
+#SBATCH --partition=batch
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=bistbs@miamioh.edu
+#SBATCH --output=logs/AddRG_%A_%a.out
+#SBATCH --error=logs/AddRG_%A_%a.err
+#SBATCH --array=1-5   # <-- One job per BAM file
 
-gatk --java-options "-Xmx8g" HaplotypeCaller \
-    -R $REFERENCE \
-    -I $BAM_LIST \
-    -O $OUTPUT_DIR/dama_raw.vcf
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#         Load modules and variables        #
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+module load java-20
+
+PICARD_JAR="/scratch/bistbs_new/4_aligning_with_BWA_Mem_Final_1/picard.jar"
+INPUT_DIR="/scratch/bistbs_new/4_aligning_with_BWA_Mem_Final_1/Sorted_BAMs"
+OUTPUT_DIR="/scratch/bistbs_new/4_aligning_with_BWA_Mem_Final_1/ReadGroups"
+SCRATCH="/scratch/bistbs_new/tmp_addRG"
+
+mkdir -p "$OUTPUT_DIR" "$SCRATCH" logs
+
+# Get all BAM files
+bam_list=(${INPUT_DIR}/*_mapped_sorted.bam)
+this_bam=${bam_list[$((SLURM_ARRAY_TASK_ID-1))]}
+
+# Safety check
+if [ ! -f "$this_bam" ]; then
+    echo "❌ No BAM file found for SLURM_ARRAY_TASK_ID=${SLURM_ARRAY_TASK_ID}"
+    exit 1
+fi
+
+base=$(basename "$this_bam" .bam)
+
+# Extract sample info from filename
+# Example: SRR17129394_mapped_sorted.bam → RGID=17129394, RGSM=SRR17129394
+RGSM=$(echo "$base" | cut -d'_' -f1)
+RGID=$(echo "$base" | cut -d'_' -f1)
+RGPU="${RGSM}_unit1"
+
+echo "📂 Processing: $this_bam"
+echo "🧬 RGID=$RGID, RGPU=$RGPU, RGSM=$RGSM"
+
+# Run Picard AddOrReplaceReadGroups
+java -Xmx12g -jar "$PICARD_JAR" AddOrReplaceReadGroups \
+    I="$this_bam" \
+    O="${OUTPUT_DIR}/${base}_RG.bam" \
+    RGID="$RGID" \
+    RGLB="lib1" \
+    RGPL="illumina" \
+    RGPU="$RGPU" \
+    RGSM="$RGSM" \
+    SORT_ORDER=coordinate \
+    VALIDATION_STRINGENCY=SILENT \
+    TMP_DIR="$SCRATCH"
+
+echo "✅ Finished adding read groups to ${base}.bam"
 ```
 
 ## 5. Variant filtering
