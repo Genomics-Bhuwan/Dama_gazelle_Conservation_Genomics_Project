@@ -149,42 +149,71 @@ done
 ```    
 ## 3d. Sort the mapped SAM files
 ```bash
+#!/bin/bash -l
+#SBATCH --job-name=Sort_SAM
+#SBATCH --time=300:00:00
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --mem=64G
+#SBATCH --partition=batch
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=bistbs@miamioh.edu
+#SBATCH --output=/scratch/bistbs_new/4_aligning_with_BWA_Mem_Final_1/logs/SortSAM_%A_%a.out
+#SBATCH --error=/scratch/bistbs_new/4_aligning_with_BWA_Mem_Final_1/logs/SortSAM_%A_%a.err
+#SBATCH --array=1-5
+
 # Load Java
 module load java-20
 
-# Directories
-INPUT_DIR=/scratch/bistbs/4_Aligning_BWA/Alignment_output
-OUTPUT_DIR=/scratch/bistbs/4_Aligning_BWA/Alignment_output/5_Sort_Bam
-SCRATCH=/scratch/bistbs/tmp
-PICARD=/scratch/bistbs/4_Aligning_BWA/Alignment_output/picard.jar   # path to picard.jar
+# Paths
+PICARD_JAR="/scratch/bistbs_new/4_aligning_with_BWA_Mem_Final_1/picard.jar"
+INPUT_DIR="/scratch/bistbs_new/4_aligning_with_BWA_Mem_Final_1"
+OUTPUT_DIR="${INPUT_DIR}/Sorted_BAMs"
+SCRATCH="/scratch/bistbs_new/tmp_sortbam"
+LOG_DIR="${INPUT_DIR}/logs"
 
-# Create output and scratch directories if needed
-mkdir -p "$OUTPUT_DIR"
-mkdir -p "$SCRATCH"
+# Create directories (must exist before job submission)
+mkdir -p "$OUTPUT_DIR" "$SCRATCH" "$LOG_DIR"
 
-# Check input directory
-cd "$INPUT_DIR" || { echo "Error: Input directory not found."; exit 1; }
+# List all BAM files
+bam_files=($(ls -1 "${INPUT_DIR}"/*mapped.bam))
+NUM_BAMS=${#bam_files[@]}
 
-# Loop over each BAM and sort it individually
-for bam in *_mapped.bam; do
-    if [ ! -f "$bam" ]; then
-        echo "No BAM files found."
-        exit 1
-    fi
+# Check array index
+if [ $SLURM_ARRAY_TASK_ID -gt $NUM_BAMS ] || [ $SLURM_ARRAY_TASK_ID -lt 1 ]; then
+    echo "❌ SLURM_ARRAY_TASK_ID ${SLURM_ARRAY_TASK_ID} is out of range (1-$NUM_BAMS)"
+    exit 1
+fi
 
-    BASE=$(basename "$bam" .bam)
-    OUTPUT_BAM="$OUTPUT_DIR/${BASE}_sorted.bam"
+# Pick the BAM for this task
+this_bam="${bam_files[$((SLURM_ARRAY_TASK_ID-1))]}"
+base=$(basename "$this_bam" .bam)
 
-    echo "Sorting $bam -> $OUTPUT_BAM"
-# Sorting the SAM files.
-    java -Xmx4g -jar "$PICARD" SortSam \
-        I="$INPUT_DIR/$bam" \
-        O="$OUTPUT_BAM" \
-        SORT_ORDER=coordinate \
-        TMP_DIR="$SCRATCH" \
-        CREATE_INDEX=true \
-        VALIDATION_STRINGENCY=SILENT
-done
+# Unique TMP per task
+TASK_TMP="${SCRATCH}/job_${SLURM_ARRAY_JOB_ID}_task_${SLURM_ARRAY_TASK_ID}"
+mkdir -p "$TASK_TMP"
+
+echo "📂 Processing BAM: $this_bam"
+echo "🏷 Output BAM: ${OUTPUT_DIR}/${base}_sorted.bam"
+echo "🖥 Host: $HOSTNAME"
+echo "🗂 TMP_DIR: $TASK_TMP"
+
+# Run Picard SortSam
+java -Xmx12g -jar "$PICARD_JAR" SortSam \
+    I="$this_bam" \
+    O="${OUTPUT_DIR}/${base}_sorted.bam" \
+    SORT_ORDER=coordinate \
+    CREATE_INDEX=true \
+    VALIDATION_STRINGENCY=SILENT \
+    TMP_DIR="$TASK_TMP"
+
+# Check success
+if [ $? -eq 0 ]; then
+    echo "✅ Finished sorting ${base}.bam"
+else
+    echo "❌ Error sorting ${base}.bam"
+    exit 1
+fi
 
 ```
 
