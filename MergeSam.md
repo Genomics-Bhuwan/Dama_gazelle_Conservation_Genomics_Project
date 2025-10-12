@@ -1,4 +1,4 @@
-# SLURM Script: Merge RG BAMs
+# Merge RG BAMs
 
 This script merges all BAM files with read groups (`_RG.bam`) into a single coordinate-sorted BAM using Picard `MergeSamFiles`.
 
