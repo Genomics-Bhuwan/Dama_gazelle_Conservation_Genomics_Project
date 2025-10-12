@@ -199,7 +199,7 @@ echo "🖥 Host: $HOSTNAME"
 echo "🗂 TMP_DIR: $TASK_TMP"
 
 # Run Picard SortSam
-java -Xmx12g -jar "$PICARD_JAR" SortSam \
+java -Xmx120g -jar "$PICARD_JAR" SortSam \
     I="$this_bam" \
     O="${OUTPUT_DIR}/${base}_sorted.bam" \
     SORT_ORDER=coordinate \
