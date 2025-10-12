@@ -6,21 +6,14 @@
 
 **Date:** 2025-10-11
 
-This tutorial demonstrates a complete workflow for homology based gene prediction. The pipeline includes:
-
-1. Quality control (FastQC)
-2. Adapter trimming (Trim Galore + Cutadapt)
-3. Mapping reads to a haplotype-resolved Ruminant Telomere-to-Telomere(T2T)reference genome assembly of Dama gazelle(Nanger dama)
-4. BAM processing (Picard & Samtools)
-5. Variant calling and filtering (GATK & VCFtools)
 
 > **Note:** All code blocks are for **demonstration purposes only** and are not executed in this document.
 
 ---
 
-# Dama Gazelle WGS Variant Calling Pipeline
+# Dama Gazelle WGS synteny analysis
 
-This tutorial demonstrates the workflow for whole-genome sequencing (WGS) variant calling in the Dama gazelle. Each step includes the commands in a copyable code block.
+This tutorial demonstrates the workflow for whole-genome sequencing (WGS) synteny analysis in the Dama gazelle. Each step includes the commands in a copyable code block.
 
 ---
 
