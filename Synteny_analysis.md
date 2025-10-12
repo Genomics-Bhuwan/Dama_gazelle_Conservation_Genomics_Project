@@ -1,4 +1,4 @@
-# Genome Annotation of Dama gazelle using homology based gene prediction
+# Synteny analysis for Dama gazelle(Addra gazelle & Mohrr gazelle)
 
 **Author:** Bhuwan Singh Bist
 
