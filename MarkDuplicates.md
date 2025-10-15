@@ -5,11 +5,12 @@
 ```bash
 #!/bin/bash -l
 #SBATCH --job-name=MarkDuplicates
-#SBATCH --time=300:00:00
+#SBATCH --time=48:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=8
 #SBATCH --mem=120G
 #SBATCH --partition=batch
+#SBATCH --nodelist=mualhpcp36.mpi          # force run on node 36
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=bistbs@miamioh.edu
 #SBATCH --output=logs/MarkDup_%A.out
@@ -20,11 +21,12 @@
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 module load java-20
 
-PICARD_JAR="/scratch/bistbs_new/4_aligning_with_BWA_Mem_Final_1/picard.jar"
-INPUT_BAM="/scratch/bistbs_new/4_aligning_with_BWA_Mem_Final_1/5_Sorted_BAMs/6_ReadGroups/7_MergeSam/all_samples_merged.bam"
-OUTPUT_DIR="/scratch/bistbs_new/4_aligning_with_BWA_Mem_Final_1/5_Sorted_BAMs/6_ReadGroups/8_MarkDuplicates"
-SCRATCH="/scratch/bistbs_new/tmp_MarkDuplicates"
+PICARD_JAR="/localscratch/bistbs/4_aligning_with_BWA_Mem_Final_1/picard.jar"
+INPUT_BAM="/localscratch/bistbs/4_aligning_with_BWA_Mem_Final_1/5_Sorted_BAMs/6_ReadGroups/7_MergeSam/all_samples_merged.bam"
+OUTPUT_DIR="/localscratch/bistbs/4_aligning_with_BWA_Mem_Final_1/5_Sorted_BAMs/6_ReadGroups/7_MergeSam/8_MarkDuplicates"
+SCRATCH="/localscratch/bistbs/4_aligning_with_BWA_Mem_Final_1/5_Sorted_BAMs/6_ReadGroups/7_MergeSam/tmp_MarkDuplicates"
 
+# Create directories if missing
 mkdir -p "$OUTPUT_DIR" "$SCRATCH" logs
 
 # Output files
@@ -49,5 +51,6 @@ java -Xmx100g -jar "$PICARD_JAR" MarkDuplicates \
 
 echo "✅ Finished MarkDuplicates"
 echo "Output written to: $MARKED_BAM"
+
 ```
 ---
