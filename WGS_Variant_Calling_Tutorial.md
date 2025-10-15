@@ -281,15 +281,4 @@ java -Xmx12g -jar "$PICARD_JAR" AddOrReplaceReadGroups \
 
 echo "✅ Finished adding read groups to ${base}.bam"
 ```
-
-## 5. Variant filtering
-
-```bash
-vcftools --vcf $OUTPUT_DIR/dama_raw.vcf \
-         --remove-indels \
-         --minQ 30 \
-         --recode --recode-INFO-all \
-         --out $OUTPUT_DIR/dama_filtered
-
-echo "Pipeline complete. Filtered VCF is at $OUTPUT_DIR/dama_filtered.recode.vcf"
-```
+---
