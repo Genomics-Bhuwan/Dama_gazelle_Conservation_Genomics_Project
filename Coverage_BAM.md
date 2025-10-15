@@ -18,10 +18,11 @@
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 #        Load dependencies and set paths   #
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-module load roslin/samtools/1.10
+module load samtools-1.22.1
+
 
 # Path to your merged BAM
-BAM="/scratch/bistbs_new/4_aligning_with_BWA_Mem_Final_1/5_Sorted_BAMs/6_ReadGroups/8_MarkDuplicates/all_samples_merged_rmdup.bam"
+BAM="/localscratch/bistbs/4_aligning_with_BWA_Mem_Final_1/5_Sorted_BAMs/6_ReadGroups/7_MergeSam/8_MarkDuplicates/all_samples_merged_rmdup.bam"
 
 # Output coverage file
 OUTPUT="${BAM%.bam}_coverage.gz"
@@ -35,7 +36,7 @@ mkdir -p logs
 echo "Calculating coverage for $BAM ..."
 samtools coverage "$BAM" | gzip > "$OUTPUT"
 
-echo "✅ Coverage stats saved to $OUTPUT"
+echo "✅ Coverage stats saved to $OUTPUT" Where is the output being saved 
 
 ```
 ---
