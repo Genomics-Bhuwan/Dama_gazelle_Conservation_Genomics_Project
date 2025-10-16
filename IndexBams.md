@@ -1,4 +1,4 @@
-## Find out the coverage of your five BAM files.
+## Index your downsampled BAMS.
 
 
 ----
