@@ -15,7 +15,7 @@
 #SBATCH --error=logs/Seq_Dict_%A.err
 
 # Load Java
-module load java
+module load java-20 
 
 # Paths
 PICARD_PATH=/localscratch/bistbs/4_aligning_with_BWA_Mem_Final_1/picard.jar
