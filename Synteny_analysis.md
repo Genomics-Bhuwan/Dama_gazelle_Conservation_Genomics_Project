@@ -2,8 +2,6 @@
 
 **Author:** Bhuwan Singh Bist
 
-**Affiliation:** Jezkova lab
-
 **Date:** 2025-10-11
 
 
@@ -18,6 +16,11 @@ This tutorial demonstrates the workflow for whole-genome sequencing (WGS) synten
 ---
 
 ## 1. The code is using GeMoMa for gene annotation.
+### I have Addra gazelle T2T reference genome assembly sequenced (Dama_gazelle_hifiasm-ULONT_primary.fasta.gz) using Oxford Nanopore Technology(ONT).I used RNAseq (NCBI SRA (SRR5647654) data for gene annotation using EGAPx pipeline(I have my pipeline for this in the same github page from where you are seeing it). 
+### I have Mohrr gazelle scaffol-level genome assemlby (GCA_917880005.1.fna) downloaded from NCBI sequenced using ONT. I am also used RNAseq (NCBI SRA (SRR5647654) data for gene annotation using EGAPx pipeline for this sub-species.
+
+### I generated the output files from these two sub-species from Genome Annotation pipepline to be used in the below analysis of "Synteny Analysis".
+### I am using the pipleine of MCScanX: Multiple Collinearity Scan toolkit X version. The most popular synteny analysis tool in the world:https://github.com/wyp1125/MCScanX
 
 ```bash
 #!/bin/bash -l
