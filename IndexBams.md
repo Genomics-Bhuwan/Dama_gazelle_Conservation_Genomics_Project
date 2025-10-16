@@ -4,50 +4,40 @@
 ----
 ```bash
 #!/bin/bash -l
-#SBATCH --job-name=BAM_Coverage
-#SBATCH --time=12:00:00
+#SBATCH --job-name=BAM_Index
+#SBATCH --time=01:00:00
 #SBATCH --nodes=1
-#SBATCH --ntasks=8
-#SBATCH --mem=50G
+#SBATCH --ntasks=1
+#SBATCH --mem=10G
 #SBATCH --partition=batch
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=bistbs@miamioh.edu
-#SBATCH --output=logs/Coverage_%A.out
-#SBATCH --error=logs/Coverage_%A.err
+#SBATCH --output=logs/BAM_Index_%A.out
+#SBATCH --error=logs/BAM_Index_%A.err
 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-#        Load dependencies and set paths   #
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-# Load Dependencies and setup env variables #
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# Load samtools
+module load samtools-1.22.1
 
-# Initialise the Modules environment
-. /etc/profile.d/modules.sh
+# Set working directory
+WORKDIR=/localscratch/bistbs/4_aligning_with_BWA_Mem_Final_1/5_Sorted_BAMs/6_ReadGroups/7_MergeSam/8_MarkDuplicates
+cd $WORKDIR
 
-# Load java
-module add roslin/samtools/1.9
+# Reference genome
+REF_GENOME=Dama_gazelle_hifiasm-ULONT_primary.fasta.gz
 
-# Specify some paths
+# BAM file
+BAM_FILE=all_samples_merged_rmdup.bam
 
-#TARGET_DIR=/exports/cmvm/eddie/eb/groups/ogden_grp/emily/SHO_reseq_2022/data/out/0.1_bwa/HS
-#TARGET_DIR=/exports/cmvm/eddie/eb/groups/ogden_grp/emily/SHO_reseq_2022/data/out/0.1_bwa/NS
-TARGET_DIR=/exports/cmvm/eddie/eb/groups/ogden_grp/emily/SHO_reseq_2022/data/out/0.1_bwa/HS/downsample
+# Create output directory for indexing
+INDEX_DIR=9_Indexing
+mkdir -p $INDEX_DIR
 
-# Get list of files in target directory
+# Index the BAM into the new folder
+OUTPUT_BAI="$INDEX_DIR/${BAM_FILE}.bai"
+echo "Indexing BAM: $BAM_FILE using reference: $REF_GENOME ..."
+samtools index -o $OUTPUT_BAI $BAM_FILE
 
-#bam=$(ls -1 ${TARGET_DIR}/*rmdup.bam)
-bam=$(ls -1 ${TARGET_DIR}/*downsample.bam)
-
-# Get the file to be processed by *this* task
-# Extract the Nth file in the list of files, $bam, where N == $SGE_TASK_ID
-
-this_bam=$(echo "${bam}" | sed -n ${SGE_TASK_ID}p)
-echo Processing file: ${this_bam} on $HOSTNAME
-
-# index bams
-
-samtools index ${this_bam}
+echo "✅ BAM indexing completed. Index saved to $OUTPUT_BAI"
 
 ```
 ---
