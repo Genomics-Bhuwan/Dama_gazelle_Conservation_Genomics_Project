@@ -29,39 +29,69 @@ This tutorial demonstrates a complete workflow for variant calling using GATK. T
 ###### Step 1. Haplotype Caller
 ###### Aligned BAM file(reads mapped to reference genome) and call all possible variants(SNPs and indels) from the samples.
 ###### Generates Genomic VCF(GVCF) which contains both variants and non-variants.
+###### Since, my deduplicated bam file consists of five samples. I want to know the name of the samples.
 
 ```bash
+samtools view -H all_samples_merged_rmdup.bam | grep '^@RG' | awk '{for(i=1;i<=NF;i++) if($i ~ /^SM:/) print $i}' | sed 's/SM://'
+```
+
+### Run the batch script 
+### Run all samples in parallel (fast and efficient)
+```bash
 #!/bin/bash -l
-#SBATCH --job-name=HaplotypeCaller
+#SBATCH --job-name=HaplotypeCaller_parallel
 #SBATCH --time=300:00:00
 #SBATCH --nodes=1
-#SBATCH --ntasks=1
-#SBATCH --mem=128
-#SBATCH --partition=batch
+#SBATCH --ntasks=5
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=128G
+#SBATCH --partition=bigmem
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=bistbs@miamioh.edu
 #SBATCH --output=logs/HaplotypeCaller_%A.out
 #SBATCH --error=logs/HaplotypeCaller_%A.err
 
-# Load GATK
-module load gatk-4.1.2.0 
+# -------------------------------
+# Load modules
+# -------------------------------
+module load gatk-4.1.2.0
+module load samtools-1.22.1
 
-# Input BAM and reference
+# -------------------------------
+# Input/output paths
+# -------------------------------
 BAM=/localscratch/bistbs/4_aligning_with_BWA_Mem_Final_1/5_Sorted_BAMs/6_ReadGroups/7_MergeSam/8_MarkDuplicates/all_samples_merged_rmdup.bam
 REFERENCE=/localscratch/bistbs/4_aligning_with_BWA_Mem_Final_1/5_Sorted_BAMs/6_ReadGroups/7_MergeSam/8_MarkDuplicates/Dama_gazelle_hifiasm-ULONT_primary.fasta
-
-# Output folder
 GVCF_DIR=/localscratch/bistbs/4_aligning_with_BWA_Mem_Final_1/5_Sorted_BAMs/6_ReadGroups/7_MergeSam/8_MarkDuplicates/GVCFs
+
 mkdir -p $GVCF_DIR
 
-# Run HaplotypeCaller
-gatk HaplotypeCaller \
-    -R $REFERENCE \
-    -I $BAM \
-    -O $GVCF_DIR/all_samples.g.vcf.gz \
-    -ERC GVCF \
-  
-echo "✅ HaplotypeCaller finished. Output: $GVCF_DIR/all_samples.g.vcf.gz"
+# -------------------------------
+# Extract sample names
+# -------------------------------
+samples=$(samtools view -H $BAM | grep '^@RG' | awk '{for(i=1;i<=NF;i++) if($i ~ /^SM:/) print $i}' | sed 's/SM://')
+
+# -------------------------------
+# Run HaplotypeCaller for each sample in parallel
+# -------------------------------
+for sample in $samples; do
+  echo "🚀 Launching HaplotypeCaller for: $sample"
+
+  gatk --java-options "-Xmx16g" HaplotypeCaller \
+      -R $REFERENCE \
+      -I $BAM \
+      -O $GVCF_DIR/${sample}.g.vcf.gz \
+      -ERC GVCF \
+      --sample-name $sample \
+      --native-pair-hmm-threads 8 \
+      > $GVCF_DIR/${sample}.log 2>&1 &
+
+done
+
+# Wait for all background processes to complete
+wait
+
+echo "✅ All parallel HaplotypeCaller jobs finished successfully."
 ```
 
 
