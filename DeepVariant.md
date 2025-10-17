@@ -3,51 +3,49 @@
 ##### DeepVariant is a deep learning-based variant caller that takes aligned reads (in BAM or CRAM format), produces pileup image tensors from them, classifies each tensor using a convolutional neural network, and finally reports the results in a standard VCF or gVCF file.
 
 ```bash
-#!/bin/sh
+#!/bin/bash
 # ----------------Parameters---------------------- #
-#$ -S /bin/sh
+#$ -S /bin/bash
 #$ -q sThC.q
-#$ -l mres=10G,h_data=5G,h_vmem=5G
+#$ -l mres=20G,h_data=10G,h_vmem=10G
 #$ -cwd
 #$ -j y
 #$ -N DeepVariant
-#$ -o deepvariant_$JOB_ID.log
+#$ -o deepvariant.log
 
-# ----------------Modules------------------------- #
-module load docker
+# ----------------Modules / Paths----------------- #
+APPTAINER=/usr/bin/apptainer
+DEEPVARIANT_IMAGE=docker://google/deepvariant:1.9.0
 
-# ----------------Input/Output Paths---------------- #
-INPUT_DIR=/localscratch/bistbs/DeepVariant/input
-OUTPUT_DIR=/localscratch/bistbs/DeepVariant/output
+# ----------------User Variables------------------ #
+INPUT_DIR=/localscratch/bistbs
+OUTPUT_DIR=/scratch/bistbs/DeepVariant_output
+REF_GENOME=YOUR_REFERENCE.fasta        # <-- Replace with your reference genome
+BAM_FILE=YOUR_SAMPLE.bam               # <-- Replace with your BAM file
 
-BAM=${INPUT_DIR}/merged_rmdup.bam
-REF=${INPUT_DIR}/Dama_gazelle_hifiasm-ULONT_primary.fasta
-VCF_OUTPUT=${OUTPUT_DIR}/deepvariant_output.vcf.gz
-GVCF_OUTPUT=${OUTPUT_DIR}/deepvariant_output.g.vcf.gz
-LOG_DIR=${OUTPUT_DIR}/logs
+# Make output directories if they don't exist
+mkdir -p ${OUTPUT_DIR}
+mkdir -p ${OUTPUT_DIR}/logs
 
-mkdir -p ${OUTPUT_DIR} ${LOG_DIR}
+# ----------------Run DeepVariant---------------- #
+echo "Starting DeepVariant at $(date)"
 
-# ----------------Run DeepVariant------------------ #
-BIN_VERSION="1.9.0"
+$APPTAINER run \
+  -B ${INPUT_DIR}:/input \
+  -B ${OUTPUT_DIR}:/output \
+  ${DEEPVARIANT_IMAGE} \
+  /opt/deepvariant/bin/run_deepvariant \
+    --model_type=WGS \
+    --ref=/input/${REF_GENOME} \
+    --reads=/input/${BAM_FILE} \
+    --output_vcf=/output/${BAM_FILE%.bam}.dv.vcf \
+    --output_gvcf=/output/${BAM_FILE%.bam}.dv.g.vcf \
+    --num_shards=$(nproc) \
+    --vcf_stats_report=true \
+    --disable_small_model=true \
+    --logging_dir=/output/logs
 
-echo "🚀 Starting DeepVariant job on $HOSTNAME at $(date)"
+echo "DeepVariant finished at $(date)"
 
-docker run -v "${INPUT_DIR}":"/input" \
-           -v "${OUTPUT_DIR}":"/output" \
-           google/deepvariant:${BIN_VERSION} \
-           /opt/deepvariant/bin/run_deepvariant \
-           --model_type=WGS \
-           --ref=/input/$(basename ${REF}) \
-           --reads=/input/$(basename ${BAM}) \
-           --output_vcf=/output/$(basename ${VCF_OUTPUT}) \
-           --output_gvcf=/output/$(basename ${GVCF_OUTPUT}) \
-           --num_shards=24 \
-           --vcf_stats_report=true \
-           --disable_small_model=true \
-           --logging_dir=/output/logs \
-           --dry_run=false
-
-echo "✅ DeepVariant finished at $(date)"
 ```
 
