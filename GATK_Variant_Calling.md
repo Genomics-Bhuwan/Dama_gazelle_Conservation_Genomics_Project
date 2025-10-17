@@ -83,7 +83,7 @@ for sample in $samples; do
       -O $GVCF_DIR/${sample}.g.vcf.gz \
       -ERC GVCF \
       --sample-name $sample \
-      --native-pair-hmm-threads 8 \
+      --native-pair-hmm-threads 4 \
       > $GVCF_DIR/${sample}.log 2>&1 &
 
 done
