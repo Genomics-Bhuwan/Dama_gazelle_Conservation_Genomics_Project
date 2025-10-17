@@ -183,6 +183,30 @@ gatk VariantFiltration \
    -O $FILTERED_VCF
 ```
 
+#### Step 4. VCF Filtering for Population Genomics
+```bash
+
+module load vcf-tools
+RAW_VCF=/localscratch/bistbs/4_aligning_with_BWA_Mem_Final_1/5_Sorted_BAMs/6_ReadGroups/7_MergeSam/8_MarkDuplicates/GVCFs/all_samples_joint_filtered.vcf.gz
+VCFTOOLS_OUT=/localscratch/bistbs/4_aligning_with_BWA_Mem_Final_1/5_Sorted_BAMs/6_ReadGroups/7_MergeSam/8_MarkDuplicates/GVCFs/vcftools_filtered
+
+# ------------------------------
+# Filter with VCFtools
+# ------------------------------
+vcftools --gzvcf $RAW_VCF \                # Input VCF (can be gzipped)
+         --minQ 30 \                        # Keep only sites with minimum quality score of 30 (high confidence genotypes)
+         --remove-indels \                  # Remove insertions/deletions (INDELs), keep only SNPs.
+         --recode --recode-INFO-all \       # Produce a new VCF keeping all INFO fields
+         --out $VCFTOOLS_OUT                # Output prefix
+
+# ------------------------------
+# Check missingness per individual
+# ------------------------------
+vcftools --vcf ${VCFTOOLS_OUT}.recode.vcf \
+         --missing-indv                    # Reports fraction of missing genotypes per sample
+
+# This will produce 'out.miss' file with % missing genotypes per individual
+# Individuals with very high missingness can be removed in later filtering steps
 
 
 
