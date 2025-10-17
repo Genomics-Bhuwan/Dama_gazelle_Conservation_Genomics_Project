@@ -121,4 +121,69 @@ gatk --java-options "-Xmx32g" GenotypeGVCFs \
 echo "✅ Multi-sample VCF generated at: $OUT_VCF"
 ```
 
+#### Step 3. Variant Filtration
+```bash
+# -------------------------------
+# Load GATK module
+# -------------------------------
+module load gatk-4.1.2.0
+
+# -------------------------------
+# Input/output paths
+# -------------------------------
+RAW_VCF=/localscratch/bistbs/4_aligning_with_BWA_Mem_Final_1/5_Sorted_BAMs/6_ReadGroups/7_MergeSam/8_MarkDuplicates/GVCFs/all_samples_joint.vcf.gz
+FILTERED_VCF=/localscratch/bistbs/4_aligning_with_BWA_Mem_Final_1/5_Sorted_BAMs/6_ReadGroups/7_MergeSam/8_MarkDuplicates/GVCFs/all_samples_joint_filtered.vcf.gz
+
+# -------------------------------
+# Run VariantFiltration
+# -------------------------------
+gatk VariantFiltration \
+   -V $RAW_VCF \
+   
+   # -------------------------------
+   # Filter sites with extremely high depth
+   # DP < 1800: remove sites where coverage is unusually high
+   # High depth can indicate collapsed repeats or duplicated regions
+   # -------------------------------
+   -filter "DP < 1800" --filter-name "DP1800" \
+   
+   # -------------------------------
+   # Strand bias filters
+   # FS > 60.0: Fisher Strand test; removes sites with strong strand bias
+   # SOR > 3.0: Strand Odds Ratio; another measure of strand bias
+   # Sites failing these filters are likely sequencing/mapping artifacts
+   # -------------------------------
+   -filter "FS > 60.0" --filter-name "FS60" \
+   -filter "SOR > 3.0" --filter-name "SOR3" \
+   
+   # -------------------------------
+   # Mapping quality filter
+   # MQ < 40.0: remove sites where reads are poorly aligned
+   # Poorly mapped reads can introduce false variants
+   # -------------------------------
+   -filter "MQ < 40.0" --filter-name "MQ40" \
+   
+   # -------------------------------
+   # Mapping quality rank sum test
+   # MQRankSum < -12.5: tests if alternate alleles have lower mapping quality than reference
+   # Extreme negative values indicate alignment bias against alternate alleles
+   # -------------------------------
+   -filter "MQRankSum < -12.5" --filter-name "MQRankSum-12.5" \
+   
+   # -------------------------------
+   # Read position rank sum test
+   # ReadPosRankSum < -8.0: tests if alternate alleles occur at biased positions in reads
+   # Negative values indicate alt alleles mostly at read ends, often errors
+   # -------------------------------
+   -filter "ReadPosRankSum < -8.0" --filter-name "ReadPosRankSum-8" \
+   
+   # -------------------------------
+   # Output filtered VCF
+   # -------------------------------
+   -O $FILTERED_VCF
+```
+
+
+
+
 
