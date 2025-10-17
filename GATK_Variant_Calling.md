@@ -9,6 +9,7 @@ Designed to analyze human genetic data and all its pipelines are optimized for t
 **Date:** 2025-10-16
 
 This tutorial demonstrates a complete workflow for variant calling using GATK. The pipeline includes:
+<img width="2639" height="2056" alt="image" src="https://github.com/user-attachments/assets/9ddc14d2-a8bd-4131-a78f-af4f038267f2" />
 
 ```bash
 <img width="2639" height="2056" alt="image" src="https://github.com/user-attachments/assets/943c8046-d4a3-440a-a8d5-8711f430c16c" />
