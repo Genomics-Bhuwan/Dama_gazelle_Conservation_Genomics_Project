@@ -207,7 +207,7 @@ vcftools --vcf ${VCFTOOLS_OUT}.recode.vcf \
 
 # This will produce 'out.miss' file with % missing genotypes per individual
 # Individuals with very high missingness can be removed in later filtering steps
-
+```
 #### Step 4.B Keep indel if you want to do SNpeff and VEP
 ```bash
 module load vcf-tools
