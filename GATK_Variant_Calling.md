@@ -95,6 +95,30 @@ echo "✅ All parallel HaplotypeCaller jobs finished successfully."
 ```
 
 
+#### Step 2. Joint Genotyping
+```bash
+# -------------------------------
+# Load modules
+# -------------------------------
+module load gatk-4.1.2.0
+module load samtools-1.22.1
 
+# -------------------------------
+# Input/output paths
+# -------------------------------
+GVCF_DIR=/localscratch/bistbs/4_aligning_with_BWA_Mem_Final_1/5_Sorted_BAMs/6_ReadGroups/7_MergeSam/8_MarkDuplicates/GVCFs
+REFERENCE=/localscratch/bistbs/4_aligning_with_BWA_Mem_Final_1/5_Sorted_BAMs/6_ReadGroups/7_MergeSam/8_MarkDuplicates/Dama_gazelle_hifiasm-ULONT_primary.fasta
+OUT_VCF=/localscratch/bistbs/4_aligning_with_BWA_Mem_Final_1/5_Sorted_BAMs/6_ReadGroups/7_MergeSam/8_MarkDuplicates/all_samples_raw.vcf.gz
+
+# -------------------------------
+# Run joint genotyping
+# -------------------------------
+gatk --java-options "-Xmx32g" GenotypeGVCFs \
+    -R $REFERENCE \
+    $(for f in $GVCF_DIR/*.g.vcf.gz; do echo "-V $f "; done) \
+    -O $OUT_VCF
+
+echo "✅ Multi-sample VCF generated at: $OUT_VCF"
+```
 
 
