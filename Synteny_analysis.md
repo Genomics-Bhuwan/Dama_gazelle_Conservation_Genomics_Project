@@ -168,7 +168,7 @@ blastp -query Addra_complete.proteins.faa \
        -max_target_seqs 5 \
        -num_threads 24
 ```
- ## Run BLASTP for Mohrr gazelle
+ ## Run BLASTP for Mohrr gazelle.
 ```bash
 blastp -query Mohrr_complete.proteins.faa \
        -db trembl_db \
