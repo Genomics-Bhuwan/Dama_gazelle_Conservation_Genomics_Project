@@ -157,35 +157,94 @@ InterProScan Gene Annotation
 
 
 Step 1. Download InterProScan
+```bash
 cd /scratch/bistbs/Synteny_Analysis/InterProScan_Annotation
 wget ftp://ftp.ebi.ac.uk/pub/software/unix/iprscan/5/5.50-84.0/interproscan-5.50-84.0-64-bit.tar.gz
 ## Extract the package.
 tar -zxvf interproscan-5.50-84.0-64-bit.tar.gz
+```
 
 ## Change the directory
+```bash
 cd interproscan-5.50-84.0
-export PATH=$PWD:$PATH
+module load hmmer-3.3.2
+cd /scratch/bistbs/Synteny_Analysis/InterProScan_Annotation/interproscan-5.50-84.0/data/panther/15.0
+hmmpress panther.hmm
+```
 
 ## Run the interproscan for Addra
-##load the java
+```bash
+#!/bin/bash -l
+# Submit with: sbatch slurm_Addra.sh
+#SBATCH --time=300:00:00          # Maximum runtime (5 days)
+#SBATCH --nodes=1                 
+#SBATCH --ntasks-per-node=16      
+#SBATCH --mem=128G                
+#SBATCH --partition=batch         
+#SBATCH --mail-type=BEGIN,END     
+#SBATCH --mail-user=bistbs@miamioh.edu
+#SBATCH --job-name=Addra_InterProScan
+
+# Load Java 
 module load java-20
-./interproscan.sh -i /scratch/bistbs/Synteny_Analysis/InterProScan_Annotation/Addra_complete.proteins.faa \
-                  -f tsv,xml \
-                  -dp \
-                  -goterms \
-                  -pa \
-                  -cpu 8 \
-                  -o Addra_interproscan.out
+
+# Set InterProScan directory
+IPR_DIR=/scratch/bistbs/Synteny_Analysis/InterProScan_Annotation/interproscan-5.50-84.0
+
+# Input protein file
+ADDRA_PROT=/scratch/bistbs/Synteny_Analysis/InterProScan_Annotation/Addra_complete.proteins.faa
+
+# Output directory
+ADDRA_OUT=/scratch/bistbs/Synteny_Analysis/InterProScan_Annotation/Addra_output
+mkdir -p $ADDRA_OUT
+
+# Run InterProScan
+$IPR_DIR/interproscan.sh -i $ADDRA_PROT \
+                         -f tsv \
+                         -dp \
+                         -goterms \
+                         -pa \
+                         -cpu 16 \
+                         -o $ADDRA_OUT/Addra_interproscan.out
+
+```
+
  ## Run the interproscan for Mohrr gazelle
- 
-module load java-20
-./interproscan.sh -i /scratch/bistbs/Synteny_Analysis/InterProScan_Annotation/Mohrr_complete.proteins.faa \
-                  -f tsv,xml \
-                  -dp \
-                  -goterms \
-                  -pa \
-                  -cpu 8 \
-                  -o Mohrr_interproscan.out
+```bash 
+#!/bin/bash -l
+# Submit with: sbatch slurm_Mohrr.sh
+#SBATCH --time=300:00:00          # Maximum runtime (5 days)
+#SBATCH --nodes=1                 
+#SBATCH --ntasks-per-node=16      
+#SBATCH --mem=128G                
+#SBATCH --partition=batch         
+#SBATCH --mail-type=BEGIN,END     
+#SBATCH --mail-user=bistbs@miamioh.edu
+#SBATCH --job-name=Mohrr_InterProScan
+
+# Load Java if needed (InterProScan requires Java 11+)
+# module load java/11.0.2
+
+# Set InterProScan directory
+IPR_DIR=/scratch/bistbs/Synteny_Analysis/InterProScan_Annotation/interproscan-5.50-84.0
+
+# Input protein file
+MOHRR_PROT=/scratch/bistbs/Synteny_Analysis/InterProScan_Annotation/Mohrr_complete.proteins.faa
+
+# Output directory
+MOHRR_OUT=/scratch/bistbs/Synteny_Analysis/InterProScan_Annotation/Mohrr_output
+mkdir -p $MOHRR_OUT
+
+# Run InterProScan
+$IPR_DIR/interproscan.sh -i $MOHRR_PROT \
+                         -f tsv \
+                         -dp \
+                         -goterms \
+                         -pa \
+                         -cpu 16 \
+                         -o $MOHRR_OUT/Mohrr_interproscan.out
+
+```
 
 
 
