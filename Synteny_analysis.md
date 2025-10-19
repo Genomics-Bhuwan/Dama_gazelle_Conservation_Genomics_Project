@@ -37,5 +37,56 @@ This tutorial demonstrates the workflow for whole-genome sequencing (WGS) synten
 #SBATCH --output=GeMoMa_Dama_gazelle_%j.out
 #SBATCH --error=GeMoMa_Dama_gazelle_%j.err
 
-```
+```bash
+# Step 1. Downloading the MCScanX
+# Go to your working directory
+cd /scratch/bistbs/Synteny_Analysis
+# Download it
+# Unzip and compile
+unzip MCScanX.zip
+cd MCScanX
+module load gcc-9.2.0 
+make
+
+# Step 2. Input files
+It needs two input files:
+a. Addra_Mohrr.blast and Addra_Mohrr.gff or .bed
+
+# Step 3. Create a combined BLAST database and run BLASTP
+a. Combined both protein files and make a BLAST database.
+cat Addra_complete.proteins.faa Mohrr_complete.proteins.faa > Addra_Mohrr_combined.faa
+
+b. Make BLAST database
+makeblastdb -in Addra_Mohrr_combined.faa -dbtype prot
+
+c.Run BLASTP (Limit to top 5 hits per gene as MCScanX recommends);
+## This produces the BLAST output file in the required m8 format.
+blastp -query Addra_Mohrr_combined.faa \
+       -db Addra_Mohrr_combined.faa \
+       -evalue 1e-10 -num_threads 16 -outfmt 6 -max_target_seqs 5 \
+       -out Addra_Mohrr.blast
+
+
+# Step 4. Generate the .gff or .bed file for MCScanX.
+# The software needs a tab-delimited file with gene locations as shown below.
+chrID    start_position    end_position    gene_id
+# Generate this from your GFF files using awk
+You can generate this from your GFF files using awk:
+
+# 4.a. For Addra gazelle
+awk '$3=="gene" {split($9,a,";"); for(i in a){if(a[i]~/ID=/){split(a[i],b,"="); print "Ad" $1, $4, $5, b[2]}}}' Addra_complete.genomic.gff > Addra.gff
+
+# 4.b. For Mohrr gazelle
+awk '$3=="gene" {split($9,a,";"); for(i in a){if(a[i]~/ID=/){split(a[i],b,"="); print "Mh" $1, $4, $5, b[2]}}}' Mohrr_complete.genomic.gff > Mohrr.gff
+
+# 4.c. Combined both files
+cat Addra.gff Mohrr.gff > Addra_Mohrr.gff
+
+#Make sure the chromosome IDs have unique prefixes like Ad1, Ad2, Mh1, Mh2, etc. (MCScanX uses these prefixes to distinguish species).
+
+
+# 5. Run MCScanX
+# This will use Addra_Mohrr.blast and Addra_Mohrr.gff and will produce teh Addra_Mohrr.collinearity(syntenic block file) as well as the Addra_Mohrr.html(visualization files).
+
+./MCScanX Addra_Mohrr
 ---
