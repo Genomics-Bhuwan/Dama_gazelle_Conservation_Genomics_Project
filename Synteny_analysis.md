@@ -112,7 +112,8 @@ cat Addra.gff Mohrr.gff > Addra_Mohrr.gff
 
 #########################################################################################################################
 #########################################################################################################################
-## For Gene Annotation for both sub-species.
+## Gene Annotation Using "UniProt or SwissProt) for both sub-species.
+#########################################################################################################################
 Step 1. Module load
 module load blast-2.13.0+
 which blastp
@@ -129,34 +130,67 @@ makeblastdb -in uniprot_sprot.fasta -dbtype prot -out swissprot_db
 # Addra gazelle
 blastp -query Addra_complete.proteins.faa \
        -db swissprot_db \
-       -evalue 1e-6 \
+       -evalue 1e-5 \
        -out Addra_vs_swissprot.tsv \
        -outfmt 6 \
        -max_target_seqs 5 \
-       -num_threads 8
+       -num_threads 24
 
 # Mohrr gazelle
 blastp -query Mohrr_complete.proteins.faa \
        -db swissprot_db \
-       -evalue 1e-6 \
+       -evalue 1e-5 \
        -out Mohrr_vs_swissprot.tsv \
        -outfmt 6 \
        -max_target_seqs 5 \
-       -num_threads 8
+       -num_threads 24
 
 
+#########################################################################################################################
+#########################################################################################################################
+## Gene Annotation Using "TrEMBL) for both sub-species.
+#########################################################################################################################
+
+## Download the TrEMBL database
+wget ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_trembl.fasta.gz
+gunzip uniprot_trembl.fasta.gz
+
+## Make blast database using TrEMBL
+makeblastdb -in uniprot_trembl.fasta -dbtype prot -out trembl_db
+
+## Run BLASTP for Addra gazelle
+```bash
+blastp -query Addra_complete.proteins.faa \
+       -db trembl_db \
+       -evalue 1e-5 \
+       -out Addra_vs_trembl.tsv \
+       -outfmt 6 \
+       -max_target_seqs 5 \
+       -num_threads 24
+```
+ ## Run BLASTP for Mohrr gazelle
+```bash
+blastp -query Mohrr_complete.proteins.faa \
+       -db trembl_db \
+       -evalue 1e-5 \
+       -out Mohrr_vs_trembl.tsv \
+       -outfmt 6 \
+       -max_target_seqs 5 \
+       -num_threads 24
+```
+ 
 
 
-
-
-###############################################
-InterProScan Gene Annotation
+#########################################################################################################################
+#########################################################################################################################
+## Gene Annotation Using "InterProScan for both sub-species.
+#########################################################################################################################
 ## It is a database integrating the predictive information about proteins function from a number of partner resources proving overview of the families that a protein belongs to and the domains and sites it contains. 
 ## If you have a protein fasta file and want to functionally characterize can use this software to run the scanning algorithms from the InterPro database.
 ## Since, our protein sequences data is in fasta from and the matches  are then calcualted against all of the required member databases signatures and the results are then output in variety of format. 
 
 
-Step 1. Download InterProScan
+## Step 1. Download InterProScan
 ```bash
 cd /scratch/bistbs/Synteny_Analysis/InterProScan_Annotation
 wget ftp://ftp.ebi.ac.uk/pub/software/unix/iprscan/5/5.50-84.0/interproscan-5.50-84.0-64-bit.tar.gz
@@ -164,7 +198,7 @@ wget ftp://ftp.ebi.ac.uk/pub/software/unix/iprscan/5/5.50-84.0/interproscan-5.50
 tar -zxvf interproscan-5.50-84.0-64-bit.tar.gz
 ```
 
-## Change the directory
+## Step 2. Change the directory
 ```bash
 cd interproscan-5.50-84.0
 module load hmmer-3.3.2
@@ -172,13 +206,13 @@ cd /scratch/bistbs/Synteny_Analysis/InterProScan_Annotation/interproscan-5.50-84
 hmmpress panther.hmm
 ```
 
-## Run the interproscan for Addra
+## Step 3. Run the interproscan for Addra
 ```bash
 #!/bin/bash -l
 # Submit with: sbatch slurm_Addra.sh
 #SBATCH --time=300:00:00          # Maximum runtime (5 days)
 #SBATCH --nodes=1                 
-#SBATCH --ntasks-per-node=16      
+#SBATCH --ntasks-per-node=24      
 #SBATCH --mem=128G                
 #SBATCH --partition=batch         
 #SBATCH --mail-type=BEGIN,END     
@@ -204,7 +238,7 @@ $IPR_DIR/interproscan.sh -i $ADDRA_PROT \
                          -dp \
                          -goterms \
                          -pa \
-                         -cpu 16 \
+                         -cpu 24 \
                          -o $ADDRA_OUT/Addra_interproscan.out
 
 ```
@@ -215,7 +249,7 @@ $IPR_DIR/interproscan.sh -i $ADDRA_PROT \
 # Submit with: sbatch slurm_Mohrr.sh
 #SBATCH --time=300:00:00          # Maximum runtime (5 days)
 #SBATCH --nodes=1                 
-#SBATCH --ntasks-per-node=16      
+#SBATCH --ntasks-per-node=24      
 #SBATCH --mem=128G                
 #SBATCH --partition=batch         
 #SBATCH --mail-type=BEGIN,END     
@@ -223,7 +257,7 @@ $IPR_DIR/interproscan.sh -i $ADDRA_PROT \
 #SBATCH --job-name=Mohrr_InterProScan
 
 # Load Java if needed (InterProScan requires Java 11+)
-# module load java/11.0.2
+# module load java-20
 
 # Set InterProScan directory
 IPR_DIR=/scratch/bistbs/Synteny_Analysis/InterProScan_Annotation/interproscan-5.50-84.0
@@ -241,7 +275,7 @@ $IPR_DIR/interproscan.sh -i $MOHRR_PROT \
                          -dp \
                          -goterms \
                          -pa \
-                         -cpu 16 \
+                         -cpu 24 \
                          -o $MOHRR_OUT/Mohrr_interproscan.out
 
 ```
@@ -254,6 +288,7 @@ $IPR_DIR/interproscan.sh -i $MOHRR_PROT \
 ###################################################################################
 ###################################################################################
 #### Genome Annotation Summary for both species using .gff file as input
+###################################################################################
 # 1. Addra gazelle
 ```bash
    grep -v "^#" Addra_complete.genomic.gff | awk '{print $3}' | sort | uniq -c
