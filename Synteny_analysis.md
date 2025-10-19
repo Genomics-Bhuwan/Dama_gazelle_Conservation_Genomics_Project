@@ -248,3 +248,19 @@ $IPR_DIR/interproscan.sh -i $MOHRR_PROT \
 
 
 
+
+
+
+###################################################################################
+###################################################################################
+#### Genome Annotation Summary for both species using .gff file as input
+# 1. Addra gazelle
+```bash
+   grep -v "^#" Addra_complete.genomic.gff | awk '{print $3}' | sort | uniq -c
+```
+
+# 2. Mohrr gazelle
+   ```bash
+grep -v "^#" Mohrr_complete.genomic.gff | awk '{print $3}' | sort | uniq -c
+```
+
