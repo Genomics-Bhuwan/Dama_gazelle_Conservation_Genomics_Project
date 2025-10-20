@@ -245,9 +245,9 @@ blastp -query Mohrr_complete.proteins.faa \
 #########################################################################################################################
 ## Gene Annotation Using "InterProScan for both sub-species.
 #########################################################################################################################
-## It is a database integrating the predictive information about proteins function from a number of partner resources proving overview of the families that a protein belongs to and the domains and sites it contains. 
-## If you have a protein fasta file and want to functionally characterize can use this software to run the scanning algorithms from the InterPro database.
-## Since, our protein sequences data is in fasta from and the matches  are then calcualted against all of the required member databases signatures and the results are then output in variety of format. 
+##### It is a database integrating the predictive information about proteins function from a number of partner resources proving overview of the families that a protein belongs to and the domains and sites it contains. 
+##### If you have a protein fasta file and want to functionally characterize can use this software to run the scanning algorithms from the InterPro database.
+##### Since, our protein sequences data is in fasta from and the matches  are then calcualted against all of the required member databases signatures and the results are then output in variety of format. 
 
 
 ## Step 1. Download InterProScan
@@ -359,3 +359,57 @@ $IPR_DIR/interproscan.sh -i $MOHRR_PROT \
 grep -v "^#" Mohrr_complete.genomic.gff | awk '{print $3}' | sort | uniq -c
 ```
 
+
+###################################################################################
+###################################################################################
+#### Gene Annotation Summary Statistics using multiple databases
+###################################################################################
+
+## Step 1. Number of Predicted Genes
+```bash
+# Addra
+grep -v "^#" Addra_complete.genomic.gff | awk '$3=="gene"{count++} END{print count}'
+
+# Mohrr
+grep -v "^#" Mohrr_complete.genomic.gff | awk '$3=="gene"{count++} END{print count}'
+```
+
+## Step 2. Median Gene Length
+## Calculate lengths of all genes and then get the median:
+```bash
+# Addra
+awk '$3=="gene"{print $5-$4+1}' Addra_complete.genomic.gff | sort -n | awk '{a[NR]=$1} END{if(NR%2){print a[(NR+1)/2]}else{print (a[NR/2]+a[NR/2+1])/2}}'
+
+# Mohrr
+awk '$3=="gene"{print $5-$4+1}' Mohrr_complete.genomic.gff | sort -n | awk '{a[NR]=$1} END{if(NR%2){print a[(NR+1)/2]}else{print (a[NR/2]+a[NR/2+1])/2}}'
+```
+## Step 3. InterProScan Functional Annotation
+Count the proteins annotated and with at least one GO term:
+```bash
+# Addra
+awk -F"\t" '{print $1}' Addra_output/Addra_interproscan.out | sort -u | wc -l
+awk -F"\t" '$5!=""{print $1}' Addra_output/Addra_interproscan.out | sort -u | wc -l
+
+# Mohrr
+awk -F"\t" '{print $1}' Mohrr_output/Mohrr_interproscan.out | sort -u | wc -l
+awk -F"\t" '$5!=""{print $1}' Mohrr_output/Mohrr_interproscan.out | sort -u | wc -l
+```
+## Step 4. Swiss-Prot Annotation
+Count proteins with at least one Swiss-Prot hit:
+```bash
+# Addra
+cut -f1 Addra_output/Addra_vs_swissprot.tsv | sort -u | wc -l
+
+# Mohrr
+cut -f1 Mohrr_output/Mohrr_vs_swissprot.tsv | sort -u | wc -l
+```
+
+##############################################################################
+############### KEGG PATHWAY FUNCTIONAL ANNOTATION############################
+```bash
+## Step 1: Go the the link of KAAS given below.
+a. https://www.genome.jp/kaas-bin/kaas_main
+b. Select the protein fasta /scratch/bistbs/Synteny_Analysis/KEGG_Pathways/Addra_complete.proteins.faa. I uploaded this.
+c. Rename the query with Addra_KEGG
+d. I selected the representative gene set for related species for this Addra species: i.e. Cow, Goat and Sheep in even-toed Artiodactyla. I repeated the same for the Mohrr species.
+```
