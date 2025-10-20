@@ -268,39 +268,64 @@ hmmpress panther.hmm
 
 ## Step 3. Run the interproscan for Addra
 ```bash
-#!/bin/bash -l
-# Submit with: sbatch slurm_Addra.sh
-#SBATCH --time=300:00:00          # Maximum runtime (5 days)
-#SBATCH --nodes=1                 
-#SBATCH --ntasks-per-node=24      
-#SBATCH --mem=128G                
-#SBATCH --partition=batch         
-#SBATCH --mail-type=BEGIN,END     
-#SBATCH --mail-user=bistbs@miamioh.edu
-#SBATCH --job-name=Addra_InterProScan
-
-# Load Java 
 module load java-20
 
-# Set InterProScan directory
+# -------------------------------
+# Input / Output paths
+# -------------------------------
+INPUT=/scratch/bistbs/Synteny_Analysis/InterProScan_Annotation/Addra_complete.proteins.faa
+SPLIT_DIR=/scratch/bistbs/Synteny_Analysis/InterProScan_Annotation/Addra_split_files
 IPR_DIR=/scratch/bistbs/Synteny_Analysis/InterProScan_Annotation/interproscan-5.50-84.0
+IPR_OUT_DIR=/scratch/bistbs/Synteny_Analysis/InterProScan_Annotation/Addra_IPR_chunks
+FINAL_OUTPUT=/scratch/bistbs/Synteny_Analysis/InterProScan_Annotation/Addra_output/Addra_interproscan_combined.out
 
-# Input protein file
-ADDRA_PROT=/scratch/bistbs/Synteny_Analysis/InterProScan_Annotation/Addra_complete.proteins.faa
+mkdir -p $SPLIT_DIR
+mkdir -p $IPR_OUT_DIR
+mkdir -p $(dirname $FINAL_OUTPUT)
+cd $SPLIT_DIR
 
-# Output directory
-ADDRA_OUT=/scratch/bistbs/Synteny_Analysis/InterProScan_Annotation/Addra_output
-mkdir -p $ADDRA_OUT
+# -------------------------------
+# 1️⃣ Split the FASTA into chunks
+# -------------------------------
+awk -v prefix="Addra_chunk_" -v chunk_size=5000 '
+BEGIN {n_seq=0; file_index=1;}
+/^>/ {
+  if (n_seq % chunk_size == 0) {
+    if (out) close(out);
+    out = sprintf("%s%03d.faa", prefix, file_index++);
+  }
+  n_seq++;
+}
+{ print >> out }
+' $INPUT
 
-# Run InterProScan
-$IPR_DIR/interproscan.sh -i $ADDRA_PROT \
-                         -f tsv \
-                         -dp \
-                         -goterms \
-                         -pa \
-                         -cpu 24 \
-                         -o $ADDRA_OUT/Addra_interproscan.out
+echo "✅ Splitting complete! Files are in $SPLIT_DIR"
 
+# -------------------------------
+# 2️⃣ Run InterProScan on each chunk sequentially
+# -------------------------------
+for chunk in $SPLIT_DIR/Addra_chunk_*.faa
+do
+    BASENAME=$(basename $chunk .faa)
+    echo "Running InterProScan for $chunk ..."
+    
+    $IPR_DIR/interproscan.sh -i $chunk \
+                             -f tsv \
+                             -dp \
+                             -goterms \
+                             -pa \
+                             -cpu 12 \
+                             -o $IPR_OUT_DIR/${BASENAME}_interproscan.out
+
+    echo "✅ Done: $BASENAME"
+done
+```
+# -------------------------------
+# 3️⃣ Combine all chunk outputs into a single file
+# -------------------------------
+echo "Combining all chunk outputs into $FINAL_OUTPUT ..."
+cat $IPR_OUT_DIR/*_interproscan.out > $FINAL_OUTPUT
+echo "✅ Combined InterProScan output created at $FINAL_OUTPUT"
 ```
 
  ## Run the interproscan for Mohrr gazelle
