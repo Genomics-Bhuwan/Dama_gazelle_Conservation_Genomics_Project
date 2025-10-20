@@ -128,23 +128,83 @@ makeblastdb -in uniprot_sprot.fasta -dbtype prot -out swissprot_db
 
 ## Step 3. Run Blast for both sub-species.
 # Addra gazelle
-blastp -query Addra_complete.proteins.faa \
-       -db swissprot_db \
+```bash
+#!/bin/bash -l
+# Submit with: sbatch slurm_Addra.sh
+#SBATCH --time=150:00:00          # Maximum runtime (5 days)
+#SBATCH --nodes=1                 
+#SBATCH --ntasks-per-node=10   
+#SBATCH --mem=128G                
+#SBATCH --partition=batch         
+#SBATCH --mail-type=BEGIN,END     
+#SBATCH --mail-user=bistbs@miamioh.edu
+#SBATCH --job-name=Addra_SwissProt
+#SBATCH --output=/scratch/bistbs/Synteny_Analysis/Gene_Annotation_SwissProt/Addra_blastp_%j.log
+#SBATCH --error=/scratch/bistbs/Synteny_Analysis/Gene_Annotation_SwissProt/Addra_blastp_%j.err
+
+# Load Java 
+module load java-20
+module load blast/2.13.0+
+
+
+# Set InterProScan directory
+IPR_DIR=/scratch/bistbs/Synteny_Analysis/Gene_Annotation_SwissProt
+
+# Input protein file
+ADDRA_PROT=$IPR_DIR/Addra_complete.proteins.faa
+
+# Output directory
+ADDRA_OUT=$IPR_DIR/Addra_output
+mkdir -p $ADDRA_OUT
+
+# Run SwissProt Database
+blastp -query $ADDRA_PROT \
+       -db $IPR_DIR/swissprot_db \
        -evalue 1e-5 \
-       -out Addra_vs_swissprot.tsv \
+       -out $ADDRA_OUT/Addra_vs_swissprot.tsv \
        -outfmt 6 \
        -max_target_seqs 5 \
-       -num_threads 24
+       -num_threads 10
 
+```
 # Mohrr gazelle
-blastp -query Mohrr_complete.proteins.faa \
-       -db swissprot_db \
+```bash
+#!/bin/bash -l
+# Submit with: sbatch slurm_Mohrr.sh
+#SBATCH --time=150:00:00          # Maximum runtime (5 days)
+#SBATCH --nodes=1                 
+#SBATCH --ntasks-per-node=10   
+#SBATCH --mem=128G                
+#SBATCH --partition=batch         
+#SBATCH --mail-type=BEGIN,END     
+#SBATCH --mail-user=bistbs@miamioh.edu
+#SBATCH --job-name=MOHRR_SwissProt
+#SBATCH --output=/scratch/bistbs/Synteny_Analysis/Gene_Annotation_SwissProt/Mohrr_blastp_%j.log
+#SBATCH --error=/scratch/bistbs/Synteny_Analysis/Gene_Annotation_SwissProt/Mohrr_blastp_%j.err
+
+# Load Java and BLAST
+module load java-20
+module load blast/2.13.0+
+
+# Set InterProScan directory
+IPR_DIR=/scratch/bistbs/Synteny_Analysis/Gene_Annotation_SwissProt
+
+# Input protein file
+MOHRR_PROT=$IPR_DIR/Mohrr_complete.proteins.faa
+
+# Output directory
+MOHRR_OUT=$IPR_DIR/Mohrr_output
+mkdir -p $MOHRR_OUT
+
+# Run SwissProt Database
+blastp -query $MOHRR_PROT \
+       -db $IPR_DIR/swissprot_db \
        -evalue 1e-5 \
-       -out Mohrr_vs_swissprot.tsv \
+       -out $MOHRR_OUT/Mohrr_vs_swissprot.tsv \
        -outfmt 6 \
        -max_target_seqs 5 \
-       -num_threads 24
-
+       -num_threads 10
+```
 
 #########################################################################################################################
 #########################################################################################################################
