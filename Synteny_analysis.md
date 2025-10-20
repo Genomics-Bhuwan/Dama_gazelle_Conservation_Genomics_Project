@@ -411,5 +411,5 @@ cut -f1 Mohrr_output/Mohrr_vs_swissprot.tsv | sort -u | wc -l
 a. https://www.genome.jp/kaas-bin/kaas_main
 b. Select the protein fasta /scratch/bistbs/Synteny_Analysis/KEGG_Pathways/Addra_complete.proteins.faa. I uploaded this.
 c. Rename the query with Addra_KEGG
-d. I selected the representative gene set for related species for this Addra species: i.e. hsa, rno, bta, bom, biu, bbub, chx, oas, ssc, cfr, cdk, bacu, lve, oor, dle, pcad, ecb, epz, eai in even-toed Artiodactyla. I repeated the same for the Mohrr species.
+d. I selected the representative gene set for related species for this Addra species: i.e. hsa, rno, bta, bom, biu, bbub, chx, oas, ssc, cfr, cdk, bacu, lve, oor, dle, pcad, pcad, ecb, epz, eai in even-toed Artiodactyla. I repeated the same for the Mohrr species.
 ```
