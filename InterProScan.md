@@ -53,6 +53,7 @@ comm -13 <(sort Addra_Reactome_terms.txt) <(sort Mohrr_Reactome_terms.txt) > Moh
 ```
 
 ### B: GO pathways
+```bash
 cut -d' ' -f2 Addra_GO_counts.txt > Addra_GO_terms.txt
 cut -d' ' -f2 Mohrr_GO_counts.txt > Mohrr_GO_terms.txt
 
@@ -64,9 +65,10 @@ comm -23 <(sort Addra_GO_terms.txt) <(sort Mohrr_GO_terms.txt) > Addra_unique_GO
 
 #### Unique to Mohrr
 comm -13 <(sort Addra_GO_terms.txt) <(sort Mohrr_GO_terms.txt) > Mohrr_unique_GO.txt
+```
 
-
-#### KEGG pathways
+### C. KEGG pathways
+```bash
 cut -d' ' -f2 Addra_KEGG_counts.txt > Addra_KEGG_terms.txt
 cut -d' ' -f2 Mohrr_KEGG_counts.txt > Mohrr_KEGG_terms.txt
 
@@ -78,7 +80,5 @@ comm -23 <(sort Addra_KEGG_terms.txt) <(sort Mohrr_KEGG_terms.txt) > Addra_uniqu
 
 #### Unique to Mohrr
 comm -13 <(sort Addra_KEGG_terms.txt) <(sort Mohrr_KEGG_terms.txt) > Mohrr_unique_KEGG.txt
-
-
 ```
 ---
