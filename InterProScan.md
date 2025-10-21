@@ -1,51 +1,83 @@
-## Find out the coverage downsampling.
-
-
-----
+## InterProScan
+   Change directory to the output file of InterProScan.
 ```bash
-#!/bin/bash -l
-#SBATCH --job-name=BAM_Coverage_DS
-#SBATCH --time=12:00:00
-#SBATCH --nodes=1
-#SBATCH --ntasks=8
-#SBATCH --mem=50G
-#SBATCH --partition=batch
-#SBATCH --mail-type=BEGIN,END,FAIL
-#SBATCH --mail-user=bistbs@miamioh.edu
-#SBATCH --output=logs/CoverageDS_%A.out
-#SBATCH --error=logs/CoverageDS_%A.err
+cd /scratch/bistbs/Synteny_Analysis/InterProScan_Annotation/InterProScan_output_for_both
+```
+----
+### Step 1: Extract GO, KEGG, MetaCyc, and Reactome terms for each species
+#### This will give you 4 summary files per species showing how many proteins are linked to each functional term.
+```bash
+🦌 For Addra
+# GO terms
+grep -o 'GO:[0-9]*' Addra_interproscan_combined.out | sort | uniq -c | sort -nr > Addra_GO_counts.txt
 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-#         Load modules / dependencies       #
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# KEGG pathways
+grep -o 'KEGG:[^|]*' Addra_interproscan_combined.out | sort | uniq -c | sort -nr > Addra_KEGG_counts.txt
 
-module load samtools-1.22.1
-module load RStudio-2025.05.1
+# MetaCyc pathways
+grep -o 'MetaCyc:[^|]*' Addra_interproscan_combined.out | sort | uniq -c | sort -nr > Addra_MetaCyc_counts.txt
+
+# Reactome pathways
+grep -o 'Reactome:[^|]*' Addra_interproscan_combined.out | sort | uniq -c | sort -nr > Addra_Reactome_counts.txt
+```
+
+```bash
+🐐 For Mohrr
+# GO terms
+grep -o 'GO:[0-9]*' Mohrr_interproscan.out | sort | uniq -c | sort -nr > Mohrr_GO_counts.txt
+
+# KEGG pathways
+grep -o 'KEGG:[^|]*' Mohrr_interproscan.out | sort | uniq -c | sort -nr > Mohrr_KEGG_counts.txt
+
+# MetaCyc pathways
+grep -o 'MetaCyc:[^|]*' Mohrr_interproscan.out | sort | uniq -c | sort -nr > Mohrr_MetaCyc_counts.txt
+
+# Reactome pathways
+grep -o 'Reactome:[^|]*' Mohrr_interproscan.out | sort | uniq -c | sort -nr > Mohrr_Reactome_counts.txt
+```
+
+### 🧠 Step 3: Compare the results between species
+#### A. Compare the counts between Addra and Mohrr to see which reactome pathways are unique or shared.
+```bash
+cut -d' ' -f2 Addra_Reactome_counts.txt > Addra_Reactome_terms.txt
+cut -d' ' -f2 Mohrr_Reactome_counts.txt > Mohrr_Reactome_terms.txt
+
+##### Shared Reactome pathways
+comm -12 <(sort Addra_Reactome_terms.txt) <(sort Mohrr_Reactome_terms.txt) > Shared_Reactome.txt
+
+##### Unique to Addra
+comm -23 <(sort Addra_Reactome_terms.txt) <(sort Mohrr_Reactome_terms.txt) > Addra_unique_Reactome.txt
+
+##### Unique to Mohrr
+comm -13 <(sort Addra_Reactome_terms.txt) <(sort Mohrr_Reactome_terms.txt) > Mohrr_unique_Reactome.txt
+```
+
+### B: GO pathways
+cut -d' ' -f2 Addra_GO_counts.txt > Addra_GO_terms.txt
+cut -d' ' -f2 Mohrr_GO_counts.txt > Mohrr_GO_terms.txt
+
+#### Shared GO terms
+comm -12 <(sort Addra_GO_terms.txt) <(sort Mohrr_GO_terms.txt) > Shared_GO.txt
+
+#### Unique to Addra
+comm -23 <(sort Addra_GO_terms.txt) <(sort Mohrr_GO_terms.txt) > Addra_unique_GO.txt
+
+#### Unique to Mohrr
+comm -13 <(sort Addra_GO_terms.txt) <(sort Mohrr_GO_terms.txt) > Mohrr_unique_GO.txt
 
 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-#         Paths and filenames               #
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-BAM="/scratch/bistbs_new/4_aligning_with_BWA_Mem_Final_1/5_Sorted_BAMs/6_ReadGroups/8_MarkDuplicates/all_samples_merged_rmdup.bam"
-COVERAGE_FILE="${BAM%.bam}_coverage.gz"
-R_SCRIPT="scripts/bam_cov_DS.R"
+#### KEGG pathways
+cut -d' ' -f2 Addra_KEGG_counts.txt > Addra_KEGG_terms.txt
+cut -d' ' -f2 Mohrr_KEGG_counts.txt > Mohrr_KEGG_terms.txt
 
-# Create logs directory
-mkdir -p logs
+#### Shared KEGG pathways
+comm -12 <(sort Addra_KEGG_terms.txt) <(sort Mohrr_KEGG_terms.txt) > Shared_KEGG.txt
 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-#        Step 1: Compute coverage           #
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-echo "🔹 Calculating coverage for $BAM ..."
-samtools coverage "$BAM" | gzip > "$COVERAGE_FILE"
-echo "✅ Coverage stats saved to $COVERAGE_FILE"
+#### Unique to Addra
+comm -23 <(sort Addra_KEGG_terms.txt) <(sort Mohrr_KEGG_terms.txt) > Addra_unique_KEGG.txt
 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-#       Step 2: Run R script for DS        #
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-echo "🔹 Running R script for downsampling proportions ..."
-Rscript "$R_SCRIPT"
-echo "✅ R downsampling script finished"
+#### Unique to Mohrr
+comm -13 <(sort Addra_KEGG_terms.txt) <(sort Mohrr_KEGG_terms.txt) > Mohrr_unique_KEGG.txt
 
 
 ```
