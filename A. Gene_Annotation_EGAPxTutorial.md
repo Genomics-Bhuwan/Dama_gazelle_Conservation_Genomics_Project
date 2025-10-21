@@ -132,3 +132,76 @@ python3 ui/egapx.py input_Dama.yaml \
 
 - `-o dama_output` : Output folder
 - `-w .../workdir` : Working directory for temporary files
+
+
+### Some fun coding for the outputs
+```bash
+GFF=/scratch/bistbs/Addra_Genome_Annotation/Addra_complete.genomic.gff
+
+echo "=== Addra gazelle ==="
+echo "Total genes:" 
+grep -v "^#" $GFF | grep -P "\tgene\t" | wc -l
+
+echo "Genes with assigned names/functions:" 
+grep -v "^#" $GFF | grep -P "\tgene\t" | grep -i "Name=" | wc -l
+
+echo "Total mRNA transcripts:" 
+grep -v "^#" $GFF | grep -P "\tmRNA\t" | wc -l
+
+echo "Total CDS:" 
+grep -v "^#" $GFF | grep -P "\tCDS\t" | wc -l
+
+echo "Total exons:" 
+grep -v "^#" $GFF | grep -P "\texon\t" | wc -l
+
+echo "Long non-coding RNAs (lncRNA):" 
+grep -v "^#" $GFF | grep -P "\tlnc_RNA\t" | wc -l
+
+echo "Pseudogenes:" 
+grep -v "^#" $GFF | grep -P "\tpseudogene\t" | wc -l
+
+echo "Other transcripts:" 
+grep -v "^#" $GFF | grep -P "\ttranscript\t" | wc -l
+
+echo "C_gene_segments:" 
+grep -v "^#" $GFF | grep -P "\tC_gene_segment\t" | wc -l
+
+echo "V_gene_segments:" 
+grep -v "^#" $GFF | grep -P "\tV_gene_segment\t" | wc -l
+```
+
+## For Mohrr gazelle
+```bash
+GFF=/scratch/bistbs/Mohrr_Genome_Annotation/dama_output/Mohrr_complete.genomic.gff
+
+echo "=== Mohrr gazelle ==="
+echo "Total genes:" 
+grep -v "^#" $GFF | grep -P "\tgene\t" | wc -l
+
+echo "Genes with assigned names/functions:" 
+grep -v "^#" $GFF | grep -P "\tgene\t" | grep -i "Name=" | wc -l
+
+echo "Total mRNA transcripts:" 
+grep -v "^#" $GFF | grep -P "\tmRNA\t" | wc -l
+
+echo "Total CDS:" 
+grep -v "^#" $GFF | grep -P "\tCDS\t" | wc -l
+
+echo "Total exons:" 
+grep -v "^#" $GFF | grep -P "\texon\t" | wc -l
+
+echo "Long non-coding RNAs (lncRNA):" 
+grep -v "^#" $GFF | grep -P "\tlnc_RNA\t" | wc -l
+
+echo "Pseudogenes:" 
+grep -v "^#" $GFF | grep -P "\tpseudogene\t" | wc -l
+
+echo "Other transcripts:" 
+grep -v "^#" $GFF | grep -P "\ttranscript\t" | wc -l
+
+echo "C_gene_segments:" 
+grep -v "^#" $GFF | grep -P "\tC_gene_segment\t" | wc -l
+
+echo "V_gene_segments:" 
+grep -v "^#" $GFF | grep -P "\tV_gene_segment\t" | wc -l
+```
