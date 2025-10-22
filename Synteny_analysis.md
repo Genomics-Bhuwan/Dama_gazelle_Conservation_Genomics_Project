@@ -22,36 +22,14 @@ This tutorial demonstrates the workflow for whole-genome sequencing (WGS) synten
 #### I generated the output files from these two sub-species from Genome Annotation pipepline to be used in the below analysis of "Synteny Analysis".
 #### I am using the pipleine of MCScanX: Multiple Collinearity Scan toolkit X version. The most popular synteny analysis tool in the world: https://github.com/wyp1125/MCScanX
 
-```bash
-#!/bin/bash -l
-# To be submitted by: sbatch gemoma_Dama_gazelle.slurm
-
-#SBATCH --time=300:00:00
-#SBATCH --nodes=1
-#SBATCH --ntasks-per-node=24
-#SBATCH --mem=256G
-#SBATCH --partition=batch
-#SBATCH --mail-type=BEGIN,END
-#SBATCH --mail-user=bistbs@miamioh.edu
-#SBATCH --job-name=GeMoMa_Dama_gazelle
-#SBATCH --output=GeMoMa_Dama_gazelle_%j.out
-#SBATCH --error=GeMoMa_Dama_gazelle_%j.err
-
-```bash
-# Step 1. Downloading the MCScanX
-# Go to your working directory
-cd /scratch/bistbs/Synteny_Analysis
-# Download it
-# Unzip and compile
-unzip MCScanX.zip
-cd MCScanX
-module load gcc-9.2.0 
-make
-```
-
 # Step 2. Input files
+### Input to be used:
+a) See these are the proteins fasta file generated from genome annotation using EGAPx for both sub-species
+b) We also need two .gff file one for each sub-species generated from genome annotation using EGAPx for both sub-species.
+
 a. .GFF file for both species
 The gff file of each species has alot of heading and data. MCScanX needs only four columns: Scafold, GeneID, Start and End. Since, the .gff file consits of many headers. Remove them for both sub-species.
+
 ```bash
 i. For Addra:
 awk -F'\t' 'BEGIN{OFS="\t"} $3=="gene"{
@@ -67,47 +45,143 @@ awk -F'\t' 'BEGIN{OFS="\t"} $3=="gene"{
   print $1, id, $4, $5
 }' Mohrr_complete.genomic.gff > Mohrr_genes_minimal.gff
 ```
-# Step 3. Input files
-It needs two input files:
-a. Addra_Mohrr.blast and Addra_Mohrr.gff or .bed
 
-# Step 3. Create a combined BLAST database and run BLASTP
-a. Combined both protein files and make a BLAST database.
+### Step 3. Copy these four files to the MCScanX folder.
+```bash
+cp /scratch/bistbs/Synteny_Analysis/InterProScan_Annotation/Addra_complete.proteins.faa .
+cp /scratch/bistbs/Synteny_Analysis/InterProScan_Annotation/Mohrr_complete.proteins.faa .
+cp /scratch/bistbs/Synteny_Analysis/GFF_editing_for_Synteny/Addra_genes_minimal.gff .
+cp /scratch/bistbs/Synteny_Analysis/GFF_editing_for_Synteny/Mohrr_genes_minimal.gff .
+```
+
+### Step 4. Combine your files
+# Why combine the two files ?
+## MCScanX is designed to detect the synteny(collinear blocks) between or within genomes. But, it only takes one pair of files as input.
+a. A single .gff file(gene locations).
+b. A single .blast file(protein similarities).
+## So, if you want to compare two species(Addra and Mohrr), MCScanX must "see" both genomes together in a single combined dataset, else it cannot find matches between them.
+
+```bash
 cat Addra_complete.proteins.faa Mohrr_complete.proteins.faa > Addra_Mohrr_combined.faa
+cat Addra_genes_minimal.gff Mohrr_genes_minimal.gff > Addra_Mohrr.gff
+```
 
-b. Make BLAST database
-makeblastdb -in Addra_Mohrr_combined.faa -dbtype prot
+### Step 5. Run BLASTP all-vs-all
+#### MCScanX cannot directly compare DNA or genomes rather it compares genes based on protein similarity or homology. 
+### To find out the synteny(shared gene order), MCScanX first needs to know:
+### a. Which genes in Addra have similar copies(homologs) in Mohrr -or even within Addra itself?
+### It takes every protein from both sub-species and compares it against all others. 
 
-c.Run BLASTP (Limit to top 5 hits per gene as MCScanX recommends);
-## This produces the BLAST output file in the required m8 format.
+```bash
+makeblastdb -in Addra_Mohrr_combined.faa -dbtype prot -out Addra_Mohrr_db
+
 blastp -query Addra_Mohrr_combined.faa \
-       -db Addra_Mohrr_combined.faa \
-       -evalue 1e-10 -num_threads 24 -outfmt 6 -max_target_seqs 5 \
+       -db Addra_Mohrr_db \
+       -evalue 1e-5 \
+       -outfmt 6 \
+       -num_threads 20 \
+       -max_target_seqs 5 \
        -out Addra_Mohrr.blast
+```
 
-
-# Step 4. Generate the .gff or .bed file for MCScanX.
-# The software needs a tab-delimited file with gene locations as shown below.
-chrID    start_position    end_position    gene_id
-# Generate this from your GFF files using awk
-You can generate this from your GFF files using awk:
-
-# 4.a. For Addra gazelle
-awk '$3=="gene" {split($9,a,";"); for(i in a){if(a[i]~/ID=/){split(a[i],b,"="); print "Ad" $1, $4, $5, b[2]}}}' Addra_complete.genomic.gff > Addra.gff
-
-# 4.b. For Mohrr gazelle
-awk '$3=="gene" {split($9,a,";"); for(i in a){if(a[i]~/ID=/){split(a[i],b,"="); print "Mh" $1, $4, $5, b[2]}}}' Mohrr_complete.genomic.gff > Mohrr.gff
-
-# 4.c. Combined both files
-cat Addra.gff Mohrr.gff > Addra_Mohrr.gff
-
-#Make sure the chromosome IDs have unique prefixes like Ad1, Ad2, Mh1, Mh2, etc. (MCScanX uses these prefixes to distinguish species).
-
-# 5. Run MCScanX
-# This will use Addra_Mohrr.blast and Addra_Mohrr.gff and will produce teh Addra_Mohrr.collinearity(syntenic block file) as well as the Addra_Mohrr.html(visualization files).
-
+### Step 5. Run MCSCanX.
+```bash
 ./MCScanX Addra_Mohrr
----
+```
+```bash
+Step 4: Duplicate Gene Classifier
+# Run duplicate gene classifier
+./duplicate_gene_classifier ./Addra_Mohrr
+
+
+Input: Addra_Mohrr.gff + Addra_Mohrr.synteny (generated by MCScanX)
+
+Output: Addra_Mohrr.gene_type
+
+Classifies genes into singleton, dispersed, proximal, tandem, segmental.
+
+Step 5: Downstream Analyses
+5.1 Detect Syntenic Tandem Arrays
+./detect_syntenic_tandem_arrays -g Addra_Mohrr.gff -b Addra_Mohrr.blast -s Addra_Mohrr.synteny -o Addra_Mohrr_tandem.sy
+
+
+Input: GFF + BLAST + synteny
+
+Output: Addra_Mohrr_tandem.sy → synteny with tandem duplicates simplified
+
+5.2 Dissect Multiple Alignment
+./dissect_multiple_alignment -g Addra_Mohrr.gff -s Addra_Mohrr.synteny -o Addra_Mohrr_multiple_alignment.txt
+
+
+Output: number of intra-species and inter-species syntenic blocks per gene
+
+5.3 Dot Plot (Java)
+java -jar dot_plotter.jar -g Addra_Mohrr.gff -s Addra_Mohrr.synteny -c dot.ctl -o Addra_Mohrr_dotplot.png
+
+
+dot.ctl → control file specifying chromosome IDs & plot dimensions
+
+5.4 Dual Synteny Plot
+java -jar dual_synteny_plotter.jar -g Addra_Mohrr.gff -s Addra_Mohrr.synteny -c dual.ctl -o Addra_Mohrr_dualplot.png
+
+
+dual.ctl → left/right chromosomes & plot dimensions
+
+5.5 Circle Plot
+java -jar circle_plotter.jar -g Addra_Mohrr.gff -s Addra_Mohrr.synteny -c circle.ctl -o Addra_Mohrr_circleplot.png
+
+
+circle.ctl → chromosome order & plot dimensions
+
+5.6 Bar Plot
+java -jar bar_plotter.jar -g Addra_Mohrr.gff -s Addra_Mohrr.synteny -c bar.ctl -o Addra_Mohrr_barplot.png
+
+
+bar.ctl → reference & target chromosomes + dimensions
+
+5.7 Ka/Ks Calculation
+perl add_kaks_to_synteny.pl -i Addra_Mohrr.synteny -d Addra_Mohrr_cds.fasta -o Addra_Mohrr_kaks.txt
+
+
+Input: .synteny file + coding sequences in FASTA format
+
+Output: Ka/Ks values for each syntenic gene pair
+
+5.8 Group Collinear Genes
+perl group_collinear_genes.pl -i Addra_Mohrr.synteny -o Addra_Mohrr_collinear_groups.txt
+
+5.9 Detect Collinearity Within Gene Families
+perl detect_collinearity_within_gene_families.pl -i Addra_Mohrr.synteny -f gene_family_file.txt -o Addra_Mohrr_family_collinearity.txt
+
+
+gene_family_file.txt → tab-delimited gene families
+
+5.10 Family Circle Plot
+java -jar family_circle_plotter.jar -g Addra_Mohrr.gff -s Addra_Mohrr.synteny -c family.ctl -f gene_family_file.txt -o Addra_Mohrr_family_circle.jpeg
+
+
+Plots synteny within a gene family
+
+5.11 Family Tree Plot
+javac family_tree_plotter.java
+java family_tree_plotter -t gene_family_tree.nwk -s Addra_Mohrr.synteny -o Addra_Mohrr_family_tree.png
+
+
+Optional: include -d tandem_pair_file.txt to show tandem duplicates
+
+5.12 Origin Enrichment Analysis
+perl origin_enrichment_analysis.pl -i gene_family_file.txt -d Addra_Mohrr.gene_type -o Addra_Mohrr_origin_enrichment.txt
+
+
+Input: gene families + gene type
+
+Output: p-values of enrichment of duplicate origins
+```
+
+
+
+
+
 
 
 #########################################################################################################################
