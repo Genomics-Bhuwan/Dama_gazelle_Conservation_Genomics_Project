@@ -94,31 +94,98 @@ wait
 echo "✅ All parallel HaplotypeCaller jobs finished successfully."
 ```
 
+#### I should do it Chromosome by Chromosome for structural variants and genomic islands.
+#### List of chromosomes (contigs) with a file named chromosomes_list.txt:
+
+```bash
+grep "^>" Dama_gazelle_hifiasm-ULONT_primary.fasta | sed 's/>//' > chromosomes_list.txt
+
+```
+#### Create a text file named sample_map.txt mapping sample names to their gVCF paths.
+```bash
+Sample1   /path/to/GVCFs/Sample1.g.vcf.gz
+Sample2   /path/to/GVCFs/Sample2.g.vcf.gz
+Sample3   /path/to/GVCFs/Sample3.g.vcf.gz
+Sample4   /path/to/GVCFs/Sample4.g.vcf.gz
+Sample5   /path/to/GVCFs/Sample5.g.vcf.gz
+```
+#### Get Genomics Database by Chromosomes.
+```bash
+#!/bin/bash -l
+#SBATCH --job-name=GenomicsDBImport
+#SBATCH --time=48:00:00
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=64G
+#SBATCH --array=1-68%10    # adjust to the number of chromosomes and concurrent tasks
+#SBATCH --partition=bigmem
+#SBATCH --output=logs/GenomicsDBImport_%A_%a.out
+#SBATCH --error=logs/GenomicsDBImport_%A_%a.err
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=bistbs@miamioh.edu
+
+# Load GATK
+module load gatk-4.1.2.0
+
+# Directories
+REF=/localscratch/bistbs/.../Dama_gazelle_hifiasm-ULONT_primary.fasta
+SAMPLEMAP=/localscratch/bistbs/.../sample_map.txt
+CHROM_LIST=/localscratch/bistbs/.../chromosomes_list.txt
+OUTDIR=/localscratch/bistbs/.../GenomeImport
+TMPDIR=/localscratch/bistbs/.../GenomeImport_tmp
+
+mkdir -p $OUTDIR $TMPDIR logs
+
+# Get chromosome for this array task
+CHR=$(sed -n "${SLURM_ARRAY_TASK_ID}p" $CHROM_LIST)
+
+echo "Processing chromosome: $CHR"
+
+gatk --java-options "-Xmx16g" GenomicsDBImport \
+  --genomicsdb-workspace-path ${OUTDIR}/${CHR}_gvcf_db \
+  --sample-name-map ${SAMPLEMAP} \
+  --batch-size 50 \
+  -L ${CHR} \
+  --tmp-dir ${TMPDIR}
+
+echo "✅ Finished chromosome ${CHR}"
+```
 
 #### Step 2. Joint Genotyping
 ```bash
-# -------------------------------
-# Load modules
-# -------------------------------
+#!/bin/bash -l
+#SBATCH --job-name=GenotypeGVCFs
+#SBATCH --time=48:00:00
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=64G
+#SBATCH --array=1-68%10
+#SBATCH --partition=bigmem
+#SBATCH --output=logs/GenotypeGVCFs_%A_%a.out
+#SBATCH --error=logs/GenotypeGVCFs_%A_%a.err
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=bistbs@miamioh.edu
+
 module load gatk-4.1.2.0
-module load samtools-1.22.1
 
-# -------------------------------
-# Input/output paths
-# -------------------------------
-GVCF_DIR=/localscratch/bistbs/4_aligning_with_BWA_Mem_Final_1/5_Sorted_BAMs/6_ReadGroups/7_MergeSam/8_MarkDuplicates/GVCFs
-REFERENCE=/localscratch/bistbs/4_aligning_with_BWA_Mem_Final_1/5_Sorted_BAMs/6_ReadGroups/7_MergeSam/8_MarkDuplicates/Dama_gazelle_hifiasm-ULONT_primary.fasta
-OUT_VCF=/localscratch/bistbs/4_aligning_with_BWA_Mem_Final_1/5_Sorted_BAMs/6_ReadGroups/7_MergeSam/8_MarkDuplicates/all_samples_raw.vcf.gz
+REF=/localscratch/bistbs/.../Dama_gazelle_hifiasm-ULONT_primary.fasta
+CHROM_LIST=/localscratch/bistbs/.../chromosomes_list.txt
+DBDIR=/localscratch/bistbs/.../GenomeImport
+OUTDIR=/localscratch/bistbs/.../JointGenotyping
+TMPDIR=/localscratch/bistbs/.../JointGenotyping_tmp
 
-# -------------------------------
-# Run joint genotyping
-# -------------------------------
-gatk --java-options "-Xmx32g" GenotypeGVCFs \
-    -R $REFERENCE \
-    $(for f in $GVCF_DIR/*.g.vcf.gz; do echo "-V $f "; done) \
-    -O $OUT_VCF
+mkdir -p $OUTDIR $TMPDIR logs
 
-echo "✅ Multi-sample VCF generated at: $OUT_VCF"
+CHR=$(sed -n "${SLURM_ARRAY_TASK_ID}p" $CHROM_LIST)
+
+echo "Running GenotypeGVCFs for $CHR"
+
+gatk --java-options "-Xmx16g" GenotypeGVCFs \
+  -R ${REF} \
+  -V gendb://${DBDIR}/${CHR}_gvcf_db \
+  -O ${OUTDIR}/${CHR}_joint.vcf.gz \
+  --tmp-dir ${TMPDIR}
+
+echo "✅ Finished chromosome ${CHR}"
+
 ```
 
 #### Step 3. Variant Filtration
