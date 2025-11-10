@@ -42,3 +42,72 @@ echo "DeepVariant finished at $(date)"
 
 ```
 
+#### Since,  I have one merged deduplicated .bam contatining five samples. But deepvariant is asking for individual .bam for each sample. Therefore, I am splitting the bam samplewise with below code.
+
+#### Step 1. Extracting the BAMs.
+```bash
+cd /scratch/bistbs/DeepVariant
+
+# Create a directory to store individual BAMs
+mkdir -p per_sample_BAMs
+
+# Extract BAMs per sample
+samtools view -b -r SRR17129394 all_samples_merged_rmdup.bam > per_sample_BAMs/SRR17129394.bam
+samtools view -b -r SRR17134085 all_samples_merged_rmdup.bam > per_sample_BAMs/SRR17134085.bam
+samtools view -b -r SRR17134086 all_samples_merged_rmdup.bam > per_sample_BAMs/SRR17134086.bam
+samtools view -b -r SRR17134087 all_samples_merged_rmdup.bam > per_sample_BAMs/SRR17134087.bam
+samtools view -b -r SRR17134088 all_samples_merged_rmdup.bam > per_sample_BAMs/SRR17134088.bam
+```
+
+#### Step 2. Sort and Index them.
+```bash
+for bam in per_sample_BAMs/*.bam; do
+    samtools sort -o ${bam%.bam}_sorted.bam $bam
+    samtools index ${bam%.bam}_sorted.bam
+done
+```
+
+#### Step 3. Run DeepVariant for each .bam or each sample
+```bash
+#!/bin/bash -l
+#SBATCH --time=250:00:00
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=24
+#SBATCH --partition=batch
+#SBATCH --mail-type=BEGIN,END
+#SBATCH --mail-user=bistbs@miamioh.edu
+#SBATCH --job-name=DeepVariant
+
+APPTAINER=/usr/bin/apptainer
+DEEPVARIANT_IMAGE=docker://google/deepvariant:1.9.0
+
+# ----------------User Variables------------------ #
+INPUT_DIR=/scratch/bistbs/DeepVariant
+OUTPUT_DIR=/scratch/bistbs/DeepVariant/DeepVariant_Results
+REF_GENOME=Dama_gazelle_primary.fasta
+BAM_FILE=all_samples_merged_rmdup.bam
+
+# ----------------Create output directories------------------ #
+mkdir -p ${OUTPUT_DIR}/logs
+
+# ----------------Run DeepVariant---------------- #
+echo "Starting DeepVariant at $(date)"
+
+$APPTAINER run \
+  -B ${INPUT_DIR}:/input \
+  -B ${OUTPUT_DIR}:/output \
+  ${DEEPVARIANT_IMAGE} \
+  /opt/deepvariant/bin/run_deepvariant \
+    --model_type=WGS \
+    --ref=/input/${REF_GENOME} \
+    --reads=/input/${BAM_FILE} \
+    --output_vcf=/output/${BAM_FILE%.bam}.dv.vcf \
+    --output_gvcf=/output/${BAM_FILE%.bam}.dv.g.vcf \
+    --num_shards=$(nproc) \
+    --vcf_stats_report=true \
+    --disable_small_model=true \
+    --logging_dir=/output/logs
+
+echo "DeepVariant finished at $(date)"
+```
+
