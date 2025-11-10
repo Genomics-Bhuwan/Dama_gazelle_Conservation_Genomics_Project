@@ -4,17 +4,18 @@
 
 ```bash
 #!/bin/bash
+
 # ----------------Modules / Paths----------------- #
 APPTAINER=/usr/bin/apptainer
 DEEPVARIANT_IMAGE=docker://google/deepvariant:1.9.0
 
 # ----------------User Variables------------------ #
-INPUT_DIR=/localscratch/bistbs
+INPUT_DIR=/localscratch/bistbs/4_aligning_with_BWA_Mem_Final_1/5_Sorted_BAMs/6_ReadGroups/7_MergeSam/8_MarkDuplicates
 OUTPUT_DIR=/localscratch/bistbs/DeepVariant
 REF_GENOME=Dama_gazelle_hifiasm-ULONT_primary.fasta
 BAM_FILE=all_samples_merged_rmdup.bam
 
-# Make output directories if they don't exist
+# ----------------Create output directories------------------ #
 mkdir -p ${OUTPUT_DIR}/logs
 
 # ----------------Run DeepVariant---------------- #
