@@ -37,6 +37,7 @@ samtools view -H all_samples_merged_rmdup.bam | grep '^@RG' | awk '{for(i=1;i<=N
 
 ### Run the batch script 
 ### Run all samples in parallel (fast and efficient)
+#### I would have run GenomicsdbImport rather than this if I had more than 20 samples or higher number of chromosomes in my dataset to optimize the resources and time.
 ```bash
 #!/bin/bash -l
 #SBATCH --job-name=HaplotypeCaller_parallel
@@ -94,97 +95,47 @@ wait
 echo "✅ All parallel HaplotypeCaller jobs finished successfully."
 ```
 
-#### I should do it Chromosome by Chromosome for structural variants and genomic islands.
-#### List of chromosomes (contigs) with a file named chromosomes_list.txt:
-
-```bash
-grep "^>" Dama_gazelle_hifiasm-ULONT_primary.fasta | sed 's/>//' > chromosomes_list.txt
-
-```
-#### Create a text file named sample_map.txt mapping sample names to their gVCF paths.
-```bash
-Sample1   /path/to/GVCFs/Sample1.g.vcf.gz
-Sample2   /path/to/GVCFs/Sample2.g.vcf.gz
-Sample3   /path/to/GVCFs/Sample3.g.vcf.gz
-Sample4   /path/to/GVCFs/Sample4.g.vcf.gz
-Sample5   /path/to/GVCFs/Sample5.g.vcf.gz
-```
-#### Get Genomics Database by Chromosomes.
-```bash
-#!/bin/bash -l
-#SBATCH --job-name=GenomicsDBImport
-#SBATCH --time=48:00:00
-#SBATCH --cpus-per-task=8
-#SBATCH --mem=64G
-#SBATCH --array=1-68%10    # adjust to the number of chromosomes and concurrent tasks
-#SBATCH --partition=bigmem
-#SBATCH --output=logs/GenomicsDBImport_%A_%a.out
-#SBATCH --error=logs/GenomicsDBImport_%A_%a.err
-#SBATCH --mail-type=END,FAIL
-#SBATCH --mail-user=bistbs@miamioh.edu
-
-# Load GATK
-module load gatk-4.1.2.0
-
-# Directories
-REF=/localscratch/bistbs/.../Dama_gazelle_hifiasm-ULONT_primary.fasta
-SAMPLEMAP=/localscratch/bistbs/.../sample_map.txt
-CHROM_LIST=/localscratch/bistbs/.../chromosomes_list.txt
-OUTDIR=/localscratch/bistbs/.../GenomeImport
-TMPDIR=/localscratch/bistbs/.../GenomeImport_tmp
-
-mkdir -p $OUTDIR $TMPDIR logs
-
-# Get chromosome for this array task
-CHR=$(sed -n "${SLURM_ARRAY_TASK_ID}p" $CHROM_LIST)
-
-echo "Processing chromosome: $CHR"
-
-gatk --java-options "-Xmx16g" GenomicsDBImport \
-  --genomicsdb-workspace-path ${OUTDIR}/${CHR}_gvcf_db \
-  --sample-name-map ${SAMPLEMAP} \
-  --batch-size 50 \
-  -L ${CHR} \
-  --tmp-dir ${TMPDIR}
-
-echo "✅ Finished chromosome ${CHR}"
-```
-
 #### Step 2. Joint Genotyping
 ```bash
 #!/bin/bash -l
-#SBATCH --job-name=GenotypeGVCFs
-#SBATCH --time=48:00:00
-#SBATCH --cpus-per-task=8
-#SBATCH --mem=64G
-#SBATCH --array=1-68%10
-#SBATCH --partition=bigmem
-#SBATCH --output=logs/GenotypeGVCFs_%A_%a.out
-#SBATCH --error=logs/GenotypeGVCFs_%A_%a.err
+#SBATCH --job-name=CombineGVCFs
+#SBATCH --time=300:00:00
+#SBATCH --cpus-per-task=16
+#SBATCH --mem=128G
+#SBATCH --partition=batch
+#SBATCH --output=logs/CombineGVCFs_%A.out
+#SBATCH --error=logs/CombineGVCFs_%A.err
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=bistbs@miamioh.edu
 
+# -------------------------------
+# Load modules
+# -------------------------------
 module load gatk-4.1.2.0
 
-REF=/localscratch/bistbs/.../Dama_gazelle_hifiasm-ULONT_primary.fasta
-CHROM_LIST=/localscratch/bistbs/.../chromosomes_list.txt
-DBDIR=/localscratch/bistbs/.../GenomeImport
-OUTDIR=/localscratch/bistbs/.../JointGenotyping
-TMPDIR=/localscratch/bistbs/.../JointGenotyping_tmp
+# -------------------------------
+# Define paths
+# -------------------------------
+WORKDIR=/scratch/bistbs/GATK_Variant_Calling
+REF=${WORKDIR}/Dama_gazelle_hifiasm-ULONT_primary.fasta.gz 
+OUTDIR=${WORKDIR}/Combined_GVCF
 
-mkdir -p $OUTDIR $TMPDIR logs
+# -------------------------------
+# Combine per-sample GVCFs
+# -------------------------------
+gatk --java-options "-Xmx120G" CombineGVCFs \
+   -R ${REF} \
+   --variant ${WORKDIR}/SRR17129394.g.vcf.gz \
+   --variant ${WORKDIR}/SRR17134085.g.vcf.gz \
+   --variant ${WORKDIR}/SRR17134086.g.vcf.gz \
+   --variant ${WORKDIR}/SRR17134087.g.vcf.gz \
+   --variant ${WORKDIR}/SRR17134088.g.vcf.gz \
+   -O ${OUTDIR}/all_samples_combined.g.vcf.gz
 
-CHR=$(sed -n "${SLURM_ARRAY_TASK_ID}p" $CHROM_LIST)
-
-echo "Running GenotypeGVCFs for $CHR"
-
-gatk --java-options "-Xmx16g" GenotypeGVCFs \
-  -R ${REF} \
-  -V gendb://${DBDIR}/${CHR}_gvcf_db \
-  -O ${OUTDIR}/${CHR}_joint.vcf.gz \
-  --tmp-dir ${TMPDIR}
-
-echo "✅ Finished chromosome ${CHR}"
+# -------------------------------
+# Completion message
+# -------------------------------
+echo "✅ CombineGVCFs job finished successfully at $(date)"
 
 ```
 
