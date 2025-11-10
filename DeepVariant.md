@@ -4,27 +4,17 @@
 
 ```bash
 #!/bin/bash
-# ----------------Parameters---------------------- #
-#$ -S /bin/bash
-#$ -q sThC.q
-#$ -l mres=20G,h_data=10G,h_vmem=10G
-#$ -cwd
-#$ -j y
-#$ -N DeepVariant
-#$ -o deepvariant.log
-
 # ----------------Modules / Paths----------------- #
 APPTAINER=/usr/bin/apptainer
 DEEPVARIANT_IMAGE=docker://google/deepvariant:1.9.0
 
 # ----------------User Variables------------------ #
 INPUT_DIR=/localscratch/bistbs
-OUTPUT_DIR=/scratch/bistbs/DeepVariant_output
-REF_GENOME=YOUR_REFERENCE.fasta        # <-- Replace with your reference genome
-BAM_FILE=YOUR_SAMPLE.bam               # <-- Replace with your BAM file
+OUTPUT_DIR=/localscratch/bistbs/DeepVariant
+REF_GENOME=Dama_gazelle_hifiasm-ULONT_primary.fasta
+BAM_FILE=all_samples_merged_rmdup.bam
 
 # Make output directories if they don't exist
-mkdir -p ${OUTPUT_DIR}
 mkdir -p ${OUTPUT_DIR}/logs
 
 # ----------------Run DeepVariant---------------- #
