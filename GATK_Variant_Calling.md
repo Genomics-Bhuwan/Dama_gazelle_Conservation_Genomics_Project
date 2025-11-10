@@ -95,7 +95,7 @@ wait
 echo "✅ All parallel HaplotypeCaller jobs finished successfully."
 ```
 
-#### Step 2. Joint Genotyping
+#### Step 2. Combine Gentopyes.Joint Genotyping
 ```bash
 #!/bin/bash -l
 #SBATCH --job-name=CombineGVCFs
@@ -117,7 +117,7 @@ module load gatk-4.1.2.0
 # Define paths
 # -------------------------------
 WORKDIR=/scratch/bistbs/GATK_Variant_Calling
-REF=${WORKDIR}/Dama_gazelle_hifiasm-ULONT_primary.fasta.gz 
+REF=${WORKDIR}/Dama_gazelle_hifiasm-ULONT_primary.fasta 
 OUTDIR=${WORKDIR}/Combined_GVCF
 
 # -------------------------------
@@ -139,7 +139,15 @@ echo "✅ CombineGVCFs job finished successfully at $(date)"
 
 ```
 
-#### Step 3. Variant Filtration
+#### Step 3. Run Joint Genotyping in CombinedGVCFs.
+```bash
+gatk --java-options "-Xmx120G" GenotypeGVCFs \
+   -R $REF \
+   --variant /scratch/bistbs/GATK_Variant_Calling/Combined_GVCF/all_samples_combined.g.vcf.gz \
+   -O /scratch/bistbs/GATK_Variant_Calling/Genotyped_VCF/all_samples_genotyped.vcf.gz
+```
+
+#### Step 4. Variant Filtration
 ```bash
 # -------------------------------
 # Load GATK module
@@ -201,7 +209,7 @@ gatk VariantFiltration \
    -O $FILTERED_VCF
 ```
 
-#### Step 4.A VCF Filtering for Population Genomics
+#### Step 5.A VCF Filtering for Population Genomics
 ```bash
 
 module load vcf-tools
@@ -226,7 +234,7 @@ vcftools --vcf ${VCFTOOLS_OUT}.recode.vcf \
 # This will produce 'out.miss' file with % missing genotypes per individual
 # Individuals with very high missingness can be removed in later filtering steps
 ```
-#### Step 4.B Keep indel if you want to do SNpeff and VEP
+#### Step 5.B Keep indel if you want to do SNpeff and VEP
 ```bash
 module load vcf-tools
 RAW_VCF=/localscratch/bistbs/4_aligning_with_BWA_Mem_Final_1/5_Sorted_BAMs/6_ReadGroups/7_MergeSam/8_MarkDuplicates/GVCFs/all_samples_joint_filtered.vcf.gz
