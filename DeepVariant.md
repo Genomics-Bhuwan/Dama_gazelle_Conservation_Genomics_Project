@@ -2,6 +2,8 @@
 
 ##### DeepVariant is a deep learning-based variant caller that takes aligned reads (in BAM or CRAM format), produces pileup image tensors from them, classifies each tensor using a convolutional neural network, and finally reports the results in a standard VCF or gVCF file.
 
+#### My rmdup_.bam file holds five samples in it but DeepVariant runs for one bam for each sample at a time. Therefore, I am firstly seperating all the five samples and making 5 .bam files. Then will be running DeepVariant.
+
 ```bash
 #!/bin/bash
 
