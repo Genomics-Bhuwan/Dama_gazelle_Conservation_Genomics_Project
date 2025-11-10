@@ -44,27 +44,44 @@ echo "DeepVariant finished at $(date)"
 
 #### Since,  I have one merged deduplicated .bam contatining five samples. But deepvariant is asking for individual .bam for each sample. Therefore, I am splitting the bam samplewise with below code.
 
-#### Step 1. Extracting the BAMs.
+##### Split the files
 ```bash
 cd /scratch/bistbs/DeepVariant
 
-# Create a directory to store individual BAMs
-mkdir -p per_sample_BAMs
+samtools split -f "%!.bam" all_samples_merged_rmdup.bam
+```
+#### Step 1. Extracting the BAMs.
+```bash
+# Load samtools
+module load samtools
 
-# Extract BAMs per sample
-samtools view -b -r SRR17129394 all_samples_merged_rmdup.bam > per_sample_BAMs/SRR17129394.bam
-samtools view -b -r SRR17134085 all_samples_merged_rmdup.bam > per_sample_BAMs/SRR17134085.bam
-samtools view -b -r SRR17134086 all_samples_merged_rmdup.bam > per_sample_BAMs/SRR17134086.bam
-samtools view -b -r SRR17134087 all_samples_merged_rmdup.bam > per_sample_BAMs/SRR17134087.bam
-samtools view -b -r SRR17134088 all_samples_merged_rmdup.bam > per_sample_BAMs/SRR17134088.bam
+# Move to your working directory
+cd /scratch/bistbs/DeepVariant
+
+# Create output folder
+mkdir -p per_sample_BAMs logs
+
+# Extract BAMs per sample in parallel (16 threads each)
+samtools view -@ 16 -b -r SRR17129394 all_samples_merged_rmdup.bam > per_sample_BAMs/SRR17129394.bam &
+samtools view -@ 16 -b -r SRR17134085 all_samples_merged_rmdup.bam > per_sample_BAMs/SRR17134085.bam &
+samtools view -@ 16 -b -r SRR17134086 all_samples_merged_rmdup.bam > per_sample_BAMs/SRR17134086.bam &
+samtools view -@ 16 -b -r SRR17134087 all_samples_merged_rmdup.bam > per_sample_BAMs/SRR17134087.bam &
+samtools view -@ 16 -b -r SRR17134088 all_samples_merged_rmdup.bam > per_sample_BAMs/SRR17134088.bam &
+
+# Wait for all background jobs to finish
+wait
+
 ```
 
 #### Step 2. Sort and Index them.
 ```bash
+# Index all BAMs (recommended before DeepVariant)
 for bam in per_sample_BAMs/*.bam; do
-    samtools sort -o ${bam%.bam}_sorted.bam $bam
-    samtools index ${bam%.bam}_sorted.bam
+    samtools index -@ 16 "$bam" &
 done
+wait
+
+echo "✅ All sample BAMs extracted and indexed successfully!"
 ```
 
 #### Step 3. Run DeepVariant for each .bam or each sample
