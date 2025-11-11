@@ -209,50 +209,55 @@ gatk VariantFiltration \
    -O $FILTERED_VCF
 ```
 
-#### Step 5.A VCF Filtering for Population Genomics
+#### Step 5.A VCF Filtering for Population Genomics. We only keep SNPs for Population Genomics Analysis.
 ```bash
+module load vcftools
 
-module load vcf-tools
-RAW_VCF=/localscratch/bistbs/4_aligning_with_BWA_Mem_Final_1/5_Sorted_BAMs/6_ReadGroups/7_MergeSam/8_MarkDuplicates/GVCFs/all_samples_joint_filtered.vcf.gz
-VCFTOOLS_OUT=/localscratch/bistbs/4_aligning_with_BWA_Mem_Final_1/5_Sorted_BAMs/6_ReadGroups/7_MergeSam/8_MarkDuplicates/GVCFs/vcftools_filtered
+RAW_VCF=/scratch/bistbs/GATK_Variant_Calling/Combined_GVCF/Genotyped_VCF/all_samples_genotyped_gatkfiltered.vcf.gz
+VCFTOOLS_OUT=/scratch/bistbs/GATK_Variant_Calling/Combined_GVCF/Genotyped_VCF/Without_Indels/Dama_gazelle_without_indels
 
 # ------------------------------
 # Filter with VCFtools
 # ------------------------------
 vcftools --gzvcf $RAW_VCF \                # Input VCF (can be gzipped)
-         --minQ 30 \                        # Keep only sites with minimum quality score of 30 (high confidence genotypes)
-         --remove-indels \                  # Remove insertions/deletions (INDELs), keep only SNPs.
-         --recode --recode-INFO-all \       # Produce a new VCF keeping all INFO fields
-         --out $VCFTOOLS_OUT                # Output prefix
+         --minQ 30 \                       # Keep only sites with minimum quality score of 30 (high-confidence genotypes)
+         --remove-indels \                 # Remove INDELs, keeping only SNPs
+         --recode --recode-INFO-all \      # Produce a new VCF while keeping all INFO fields
+         --out $VCFTOOLS_OUT               # Output prefix (final file: Dama_gazelle_without_indels.recode.vcf)
 
 # ------------------------------
 # Check missingness per individual
 # ------------------------------
-vcftools --vcf ${VCFTOOLS_OUT}.recode.vcf \
-         --missing-indv                    # Reports fraction of missing genotypes per sample
+vcftools --vcf ${VCFTOOLS_OUT}.recode.vcf \  # Use the SNP-only VCF as input
+         --missing-indv                     # Reports fraction of missing genotypes per sample
+
 
 # This will produce 'out.miss' file with % missing genotypes per individual
 # Individuals with very high missingness can be removed in later filtering steps
 ```
-#### Step 5.B Keep indel if you want to do SNpeff and VEP
+#### Step 5.B Keep indels if you want to do SNpeff and VEP(Variant Effect Predictor).
 ```bash
 module load vcf-tools
-RAW_VCF=/localscratch/bistbs/4_aligning_with_BWA_Mem_Final_1/5_Sorted_BAMs/6_ReadGroups/7_MergeSam/8_MarkDuplicates/GVCFs/all_samples_joint_filtered.vcf.gz
-VCFTOOLS_OUT=/localscratch/bistbs/4_aligning_with_BWA_Mem_Final_1/5_Sorted_BAMs/6_ReadGroups/7_MergeSam/8_MarkDuplicates/GVCFs/vcftools_filtered_with_indels
+
+RAW_VCF=/scratch/bistbs/GATK_Variant_Calling/Combined_GVCF/Genotyped_VCF/all_samples_genotyped_gatkfiltered.vcf.gz
+VCFTOOLS_OUT=/scratch/bistbs/GATK_Variant_Calling/Combined_GVCF/Genotyped_VCF/With_Indels/Dama_gazelle_with_indels
 
 # ------------------------------
-# Filter with VCFtools (keep indels)
+# Filter with VCFtools (keep SNPs + INDELs)
 # ------------------------------
-vcftools --gzvcf $RAW_VCF \       # Input VCF (gzipped)
-         --minQ 30 \              # Keep sites with minimum quality score of 30
-         --recode --recode-INFO-all \  # Produce new VCF with all INFO fields
-         --out $VCFTOOLS_OUT      # Output prefix
+vcftools \
+  --gzvcf $RAW_VCF \
+  --minQ 30 \
+  --recode --recode-INFO-all \
+  --out $VCFTOOLS_OUT
 
 # ------------------------------
 # Check missingness per individual
 # ------------------------------
-vcftools --vcf ${VCFTOOLS_OUT}.recode.vcf \
-         --missing-indv
+vcftools \
+  --vcf ${VCFTOOLS_OUT}.recode.vcf \
+  --missing-indv
+
 ```
 
 
