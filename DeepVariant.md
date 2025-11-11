@@ -128,3 +128,34 @@ $APPTAINER run \
 echo "DeepVariant finished at $(date)"
 ```
 
+#### Step 4. After running five such slurm script, we get the two output files for each individual sample. For example: 
+a. /scratch/bistbs/DeepVariant/per_sample_BAMs/DeepVariant_Results/SRR17129394.bam.dv.g.vcf
+b. /scratch/bistbs/DeepVariant/per_sample_BAMs/DeepVariant_Results/SRR17129394.bam.dv.vcf
+#### For our purpose of population genomic analysis we use files with .bam.dv.vcf.
+#### I am compressing all the .vcf file to adjust it for merging and make it a one giant vcf file.
+
+```bash
+# 1️. Compress each DeepVariant VCF using bcftools 
+for f in SRR*.bam.dv.vcf; do
+  bcftools view -Oz -o "${f}.gz" "$f"
+done
+
+# 2️. Index the compressed VCFs
+for f in SRR*.bam.dv.vcf.gz; do
+  bcftools index "$f"
+done
+
+# 3. Merge all samples into one combined VCF
+bcftools merge -Oz -o merged_deepvariant.vcf.gz SRR*.bam.dv.vcf.gz
+
+# 4️. Index the merged file
+bcftools index merged_deepvariant.vcf.gz
+```
+
+#### Step 5. Filter the high-quality variants
+- Keep only variants with quality ≥30
+  
+```bash
+bcftools view -i 'QUAL>=30' -Oz -o merged_deepvariant_minQ30.vcf.gz merged_deepvariant.vcf.gz
+bcftools index merged_deepvariant_minQ30.vcf.gz
+```
