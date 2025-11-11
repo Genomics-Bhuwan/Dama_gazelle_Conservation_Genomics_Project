@@ -155,12 +155,46 @@ bcftools index merged_deepvariant.vcf.gz
 
 #### Step 5. Filter the high-quality variants
 - Keep only variants with quality ≥30
-  
+ ---
+ a. Filtering but keeping the indels for Structural annotation analysis as well as VEP and SnpEff analysis.
+ ---
 ```bash
-bcftools view -i 'QUAL>=30' -Oz -o merged_deepvariant_minQ30.vcf.gz merged_deepvariant.vcf.gz
-bcftools index merged_deepvariant_minQ30.vcf.gz
+# -------------------------------
+# Filter with VCFtools: Keep all variants (SNPs + INDELs) with high quality
+# -------------------------------
+vcftools --gzvcf $RAW_VCF \
+         --minQ 30 \
+         --recode --recode-INFO-all \
+         --out /scratch/bistbs/DeepVariant/per_sample_BAMs/DeepVariant_Results/With_Indels/Dama_gazelle_merged_dv_with_indels
+
+# -------------------------------
+# Check missingness per individual
+# -------------------------------
+vcftools --vcf /scratch/bistbs/DeepVariant/per_sample_BAMs/DeepVariant_Results/With_Indels/Dama_gazelle_merged_dv_with_indels.recode.vcf \
+         --missing-indv \
+         --out /scratch/bistbs/DeepVariant/per_sample_BAMs/DeepVariant_Results/With_Indels/Dama_gazelle_merged_dv_with_indels
 ```
 
+ ---
+ b. Filtering but removing the indels for population genomic analysis.
+ ---
+```bash
+# -------------------------------
+# Filter with VCFtools: Keep only SNPs with high quality (remove INDELs)
+# -------------------------------
+vcftools --gzvcf $RAW_VCF \
+         --minQ 30 \
+         --remove-indels \
+         --recode --recode-INFO-all \
+         --out /scratch/bistbs/DeepVariant/per_sample_BAMs/DeepVariant_Results/Without_Indels/Dama_gazelle_merged_dv_without_indels
+
+# -------------------------------
+# Check missingness per individual
+# -------------------------------
+vcftools --vcf /scratch/bistbs/DeepVariant/per_sample_BAMs/DeepVariant_Results/Without_Indels/Dama_gazelle_merged_dv_without_indels.recode.vcf \
+         --missing-indv \
+         --out /scratch/bistbs/DeepVariant/per_sample_BAMs/DeepVariant_Results/Without_Indels/Dama_gazelle_merged_dv_without_indels
+```
 ---
 References
 ---
