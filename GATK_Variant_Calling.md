@@ -157,8 +157,8 @@ module load gatk-4.1.2.0
 # -------------------------------
 # Input/output paths
 # -------------------------------
-RAW_VCF=/localscratch/bistbs/4_aligning_with_BWA_Mem_Final_1/5_Sorted_BAMs/6_ReadGroups/7_MergeSam/8_MarkDuplicates/GVCFs/all_samples_joint.vcf.gz
-FILTERED_VCF=/localscratch/bistbs/4_aligning_with_BWA_Mem_Final_1/5_Sorted_BAMs/6_ReadGroups/7_MergeSam/8_MarkDuplicates/GVCFs/all_samples_joint_filtered.vcf.gz
+RAW_VCF=/scratch/bistbs/GATK_Variant_Calling/Combined_GVCF/Genotyped_VCF/all_samples_genotyped.vcf.gz
+FILTERED_VCF=/scratch/bistbs/GATK_Variant_Calling/Combined_GVCF/Genotyped_VCF/all_samples_genotyped_gatkfiltered.vcf.gz
 
 # -------------------------------
 # Run VariantFiltration
