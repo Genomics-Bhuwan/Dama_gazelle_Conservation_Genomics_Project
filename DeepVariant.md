@@ -1,6 +1,7 @@
-#### Variant Calling using DeepVariant
+#### Variant Calling using DeepVariant  
+- https://github.com/google/deepvariant
 
-- DeepVariant is a deep learning-based variant caller that takes aligned reads (in BAM or CRAM format), produces pileup image tensors from them, classifies each tensor using a convolutional neural network, and finally reports the results in a standard VCF or gVCF file.
+- DeepVariant is a deep learning-based variant caller that takes aligned reads (in BAM or CRAM format), produces pileup image tensors from them, classifies each tensor using a convolutional neural network, and finally reports the results in a standard VCF or gVCF file (Poplin et al., 2018).
 
 - My rmdup_.bam file holds five samples in it but DeepVariant runs for one bam for each sample at a time. Therefore, I am firstly seperating all the five samples and making 5 .bam files. Then will be running DeepVariant.
 
@@ -159,3 +160,8 @@ bcftools index merged_deepvariant.vcf.gz
 bcftools view -i 'QUAL>=30' -Oz -o merged_deepvariant_minQ30.vcf.gz merged_deepvariant.vcf.gz
 bcftools index merged_deepvariant_minQ30.vcf.gz
 ```
+
+---
+References
+---
+- Poplin R, Chang PC, Alexander D, Schwartz S, Colthurst T, Ku A, Newburger D, Dijamco J, Nguyen N, Afshar PT, Gross SS. A universal SNP and small-indel variant caller using deep neural networks. Nature biotechnology. 2018 Nov;36(10):983-7
