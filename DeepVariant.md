@@ -1,8 +1,8 @@
-# Variant Calling using DeepVariant
+#### Variant Calling using DeepVariant
 
-##### DeepVariant is a deep learning-based variant caller that takes aligned reads (in BAM or CRAM format), produces pileup image tensors from them, classifies each tensor using a convolutional neural network, and finally reports the results in a standard VCF or gVCF file.
+- DeepVariant is a deep learning-based variant caller that takes aligned reads (in BAM or CRAM format), produces pileup image tensors from them, classifies each tensor using a convolutional neural network, and finally reports the results in a standard VCF or gVCF file.
 
-#### My rmdup_.bam file holds five samples in it but DeepVariant runs for one bam for each sample at a time. Therefore, I am firstly seperating all the five samples and making 5 .bam files. Then will be running DeepVariant.
+- My rmdup_.bam file holds five samples in it but DeepVariant runs for one bam for each sample at a time. Therefore, I am firstly seperating all the five samples and making 5 .bam files. Then will be running DeepVariant.
 
 ```bash
 #!/bin/bash
@@ -41,9 +41,9 @@ $APPTAINER run \
 echo "DeepVariant finished at $(date)"
 
 ```
-
-#### Since,  I have one merged deduplicated .bam contatining five samples. But deepvariant is asking for individual .bam for each sample. Therefore, I am splitting the bam samplewise with below code.
-
+---
+#### Since, I have one merged deduplicated .bam contatining five samples. But deepvariant is asking for individual .bam for each sample. Therefore, I am splitting the bam samplewise with below code.
+---
 ##### Split the files
 ```bash
 cd /scratch/bistbs/DeepVariant
@@ -131,8 +131,8 @@ echo "DeepVariant finished at $(date)"
 #### Step 4. After running five such slurm script, we get the two output files for each individual sample. For example: 
 a. /scratch/bistbs/DeepVariant/per_sample_BAMs/DeepVariant_Results/SRR17129394.bam.dv.g.vcf
 b. /scratch/bistbs/DeepVariant/per_sample_BAMs/DeepVariant_Results/SRR17129394.bam.dv.vcf
-#### For our purpose of population genomic analysis we use files with .bam.dv.vcf.
-#### I am compressing all the .vcf file to adjust it for merging and make it a one giant vcf file.
+- For our purpose of population genomic analysis we use files with .bam.dv.vcf.
+- I am compressing all the .vcf file to adjust it for merging and make it a one giant vcf file.
 
 ```bash
 # 1️. Compress each DeepVariant VCF using bcftools 
