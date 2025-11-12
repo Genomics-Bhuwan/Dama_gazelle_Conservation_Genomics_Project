@@ -1,5 +1,6 @@
-# Gene Annotation and Prediction for the Ruminant T2T Genome Assembly of Dama Gazelle using RNAseq Data using EGAPx.
-
+---
+#### Gene Annotation and Prediction for the Ruminant T2T Genome Assembly of Dama Gazelle using RNAseq Data using EGAPx.
+---
 ## Prerequisites
 
 ```bash
