@@ -1,80 +1,109 @@
-# Genome Annotation of Dama gazelle using homology based gene prediction
+# 🧬 Dama gazelle — ADMIXTURE Workflow
 
-**Author:** Bhuwan Singh Bist
-
-**Affiliation:** Jezkova lab
-
-**Date:** 2025-10-11
-
-This tutorial demonstrates a complete workflow for homology based gene prediction. The pipeline includes:
-
-1. Quality control (FastQC)
-2. Adapter trimming (Trim Galore + Cutadapt)
-3. Mapping reads to a haplotype-resolved Ruminant Telomere-to-Telomere(T2T)reference genome assembly of Dama gazelle(Nanger dama)
-4. BAM processing (Picard & Samtools)
-5. Variant calling and filtering (GATK & VCFtools)
-
-> **Note:** All code blocks are for **demonstration purposes only** and are not executed in this document.
+**Author:** Bhuwan Singh Bist  
+**Date:** 2025-11-12  
+**Purpose:** Complete workflow for preparing and running ADMIXTURE analysis on *Dama gazelle* using a high-quality biallelic SNP VCF.
 
 ---
 
-# Dama Gazelle WGS Variant Calling Pipeline
-
-This tutorial demonstrates the workflow for whole-genome sequencing (WGS) variant calling in the Dama gazelle. Each step includes the commands in a copyable code block.
-
----
-
-## 1. The code is using GeMoMa for gene annotation.
+##  Step 1: Directory Setup
 
 ```bash
-#!/bin/bash -l
-# To be submitted by: sbatch gemoma_Dama_gazelle.slurm
-
-#SBATCH --time=300:00:00
-#SBATCH --nodes=1
-#SBATCH --ntasks-per-node=24
-#SBATCH --mem=256G
-#SBATCH --partition=batch
-#SBATCH --mail-type=BEGIN,END
-#SBATCH --mail-user=bistbs@miamioh.edu
-#SBATCH --job-name=GeMoMa_Dama_gazelle
-#SBATCH --output=GeMoMa_Dama_gazelle_%j.out
-#SBATCH --error=GeMoMa_Dama_gazelle_%j.err
-
-# Masking and annotating repetitive elements with Repeatmodeler and RepeatMasker
-
-# Repeatmodeler: 
-a. used for identifying the repeates in the genome. It provides a list of repeat family sequence to mask repeats in the genome with RepeatMasker. 
-b. screens DNA sequences for interspersed repeats and low complexity DNA sequences.
-c. output would be: detailed annotation of the repeats that are present in the query sequence as well as modified version of the query sequence in which all the annotated repeats have been masked.
-d. software takes way long time with large genomes. 
-e. Set correct parameters in repeatemodeler so that we could get repeats that are not only grouped by family, but are also annotated.
-
-# Link to the software
-Repeatmodeler http://www.repeatmasker.org/RepeatModeler/
-RepeatMasker http://www.repeatmasker.org/RMDownload.html
-
-#usage:BuildDatabase -name {database_name} {genome_file-in_fasta_format}
-# # Since, dama gazelle doesnot have the database in repbase, I am creating the denovo repeat library and use it.
-## This step is building the database for downstream analysis.
-```bash
-BuildDatabase -name Dama_gazelle /scratch/bistbs_new/Genome_annotation_Homology_based/Dama_gazelle_hifiasm-ULONT_primary.fasta.gz
+mkdir -p /scratch/bistbs/Population_Genomic_Analysis/Admixture
+cd /scratch/bistbs/Population_Genomic_Analysis/Admixture
 ```
 
-
-# RepeatModeler is a de novo transposable element (TE) family identification and modeling package. At the heart of RepeatModeler are three de-novo repeat finding programs ( RECON, RepeatScout and LtrHarvest/Ltr_retriever ) which employ complementary computational methods for identifying repeat element boundaries and family relationships from sequence data.
-
-# RepeatModeler assists in automating the runs of the various algorithms given a genomic database, clustering redundant results, refining and classifying the families and producing a high quality library of TE families suitable for use with RepeatMasker and ultimately for submission to the Dfam database ( http://dfam.org ).
+## Step 2: Input Data
+- Biallelic SNPs only + Indels removed + High quality (QUAL ≥ 30) + Missingness ≤ 7%
 ```bash
-# Usage: RepeatModeler -database {database_name} -pa {number of cores} -LTRStruct > out.log
-RepeatModeler -database Dama_gazelle -threads 24 -engine ncbi -LTRStruct  > repeatmodeler_Dama_gazelle_out.log
+/scratch/bistbs/Population_Genomic_Analysis/Admixture/Dama_gazelle_biallelic_snps.vcf
+```
+## Step 3: Filter VCF with VCF-tools to work on maximum missingness.
+```bash
+module load vcf-tools
+
+VCF=/scratch/bistbs/Population_Genomic_Analysis/Admixture/Dama_gazelle_biallelic_snps.vcf
+OUT=/scratch/bistbs/Population_Genomic_Analysis/Admixture/Dama_gazelle_filtered
+
+vcftools --vcf ${VCF} \
+  --minQ 30 \
+  --max-missing 0.8 \
+  --remove-indels \
+  --recode --recode-INFO-all \
+  --out ${OUT}
 ```
 
+#### Step 4: Convert VCF to PLINK Format
+```bash
+module load plink
 
-#Repeat Masker: It is used for masking the repetitive elements. Soft mask with lower case letter and hard mask with N.
-# usage: RepeatMasker -pa 30 -gff -lib {consensi_classified} -dir {dir_name} {genome_in_fasta}
+plink --vcf /scratch/bistbs/Population_Genomic_Analysis/Admixture/Dama_gazelle_filtered.recode.vcf \
+  --double-id \
+  --allow-extra-chr \
+  --make-bed \
+  --out /scratch/bistbs/Population_Genomic_Analysis/Admixture/Dama_gazelle_admixture
+```
 
-RepeatMasker -pa $NSLOTS -xsmall -gff -lib consensi.fa.classified -dir ../repeatmasker /path/to_assembly/bHypOws1_hifiasm.bp.p_ctg.fasta
+Output files:
+
+Dama_gazelle_admixture.bed
+Dama_gazelle_admixture.bim
+Dama_gazelle_admixture.fam
+
+⚙️ Step 5: Run ADMIXTURE
+module load admixture
+
+cd /scratch/bistbs/Population_Genomic_Analysis/Admixture
+
+for K in {2..6}; do
+   admixture --cv Dama_gazelle_admixture.bed $K | tee log${K}.out
+done
 
 
+Outputs:
 
+Dama_gazelle_admixture.${K}.Q – Individual ancestry proportions
+
+Dama_gazelle_admixture.${K}.P – Allele frequencies per cluster
+
+log${K}.out – Cross-validation logs
+
+📊 Step 6: Determine Best K
+grep -h "CV error" log*.out
+
+
+Example output:
+
+CV error (K=2): 0.541
+CV error (K=3): 0.498
+CV error (K=4): 0.503
+CV error (K=5): 0.510
+CV error (K=6): 0.517
+
+
+👉 Best K = 3 (lowest CV error).
+
+🎨 Step 7: Visualize ADMIXTURE Results in R
+# Load packages
+library(ggplot2)
+library(tidyverse)
+
+# Set working directory
+setwd("/scratch/bistbs/Population_Genomic_Analysis/Admixture")
+
+# Read ADMIXTURE output
+qdata <- read.table("Dama_gazelle_admixture.3.Q")
+fam <- read.table("Dama_gazelle_admixture.fam")
+
+# Combine data
+qdata$ID <- fam$V2
+colnames(qdata) <- c("Cluster1", "Cluster2", "Cluster3", "ID")
+
+# Plot ancestry proportions
+ggplot(qdata, aes(x = ID, y = 1, fill = Cluster1)) +
+  geom_bar(aes(y = Cluster1), stat = "identity") +
+  geom_bar(aes(y = Cluster2), stat = "identity", position = "stack") +
+  geom_bar(aes(y = Cluster3), stat = "identity", position = "stack") +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 90, size = 7)) +
+  labs(title = "Dama gazelle ADMIXTURE (K=3)", x = "Individuals", y = "Ancestry Proportion")
