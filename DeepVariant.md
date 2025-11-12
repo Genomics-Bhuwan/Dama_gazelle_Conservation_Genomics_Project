@@ -195,6 +195,9 @@ vcftools --vcf /scratch/bistbs/DeepVariant/per_sample_BAMs/DeepVariant_Results/W
          --missing-indv \
          --out /scratch/bistbs/DeepVariant/per_sample_BAMs/DeepVariant_Results/Without_Indels/Dama_gazelle_merged_dv_without_indels
 ```
+
+---
+Count the number of bi-allelic SNPs only. Compare the bi-allelic SNPs between both methods: GATK and DeepVariant.
 ---
 References
 ---
