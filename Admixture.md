@@ -19,6 +19,10 @@ cd /scratch/bistbs/Population_Genomic_Analysis/Admixture
 /scratch/bistbs/Population_Genomic_Analysis/Admixture/Dama_gazelle_biallelic_snps.vcf
 ```
 ## Step 3: Filter VCF with VCF-tools to work on maximum missingness.
+- minQ 30 --> keep sites that have at least a minimum quality score of 30. Meaning that the base quality accuracy at this postiton is 99.9% correct.
+- remove-indels --> this removes indels and we are interested in only SNPs. 
+- max-missing 0.8 --> keep positions where there is data for at least 80% of individuals .
+  
 ```bash
 module load vcf-tools
 
@@ -33,77 +37,86 @@ vcftools --vcf ${VCF} \
   --out ${OUT}
 ```
 
-#### Step 4: Convert VCF to PLINK Format
+#### Step 4: Convert VCF to PLINK Format: Plink (https://zzz.bwh.harvard.edu/plink/)
+
+# ---------------------------------------------------------------
+# PLINK pipeline for Dama gazelle population genomics
+# Converts VCF to PLINK format, performs LD pruning, and prepares 
+# files for downstream analyses like PCA or Admixture
+# ---------------------------------------------------------------
+
+# -------------------------------
+# Step A: Load PLINK module
+# -------------------------------
+# download or install the plink. I had already downloaded and am not downloading now.
+# -------------------------------
+# Step B: LD pruning preparation
+# Convert VCF to PLINK format and prune SNPs in LD
+# -------------------------------
 ```bash
-module load plink
-
-plink --vcf /scratch/bistbs/Population_Genomic_Analysis/Admixture/Dama_gazelle_filtered.recode.vcf \
-  --double-id \
-  --allow-extra-chr \
-  --make-bed \
-  --out /scratch/bistbs/Population_Genomic_Analysis/Admixture/Dama_gazelle_admixture
+plink --vcf /scratch/bistbs/Population_Genomic_Analysis/Admixture/Dama_gazelle_biallelic_snps_filtered.recode.vcf \
+      --double-id \                        # Duplicate sample IDs as FID and IID
+      --allow-extra-chr \                  # Allow non-standard chromosome names
+      --set-missing-var-ids @:# \          # Assign unique IDs to variants missing IDs (chrom:pos)
+      --indep-pairwise 50 10 0.1 \         # LD pruning: 50 SNP window, 10 SNP step, r² threshold 0.1
+      --out Dama_gazelle_plink            # Output prefix
 ```
+# -------------------------------
+# Step C: Create LD-pruned binary PLINK dataset
+# Only extract SNPs kept after LD pruning
+# -------------------------------
+```bash
+plink --vcf /scratch/bistbs/Population_Genomic_Analysis/Admixture/Dama_gazelle_biallelic_snps_filtered.recode.vcf \
+      --double-id \
+      --allow-extra-chr \
+      --set-missing-var-ids @:# \
+      --extract Dama_gazelle_plink.prune.in \
+      --make-bed \
+      --out Dama_gazelle_LDpruned
+```
+# ---------------------------------------------------------------
+# Notes:
+# - 'Dama_gazelle_plink.prune.in' = SNPs kept after LD pruning
+# - 'Dama_gazelle_LDpruned' = ready for PCA/Admixture analyses
+# - Adjust window size / step size / r² threshold depending on species' LD decay
+# ---------------------------------------------------------------
 
+---
 Output files:
 
 Dama_gazelle_admixture.bed
 Dama_gazelle_admixture.bim
 Dama_gazelle_admixture.fam
+---
+# ---------------------------------------------------------------
+# Step D. Replace the first column of the .bim file with "0" for ADMIXTURE
+awk '{$1="0"; print $0}' Dama_gazelle_LDpruned.bim > Dama_gazelle_LDpruned.bim.tmp
+mv Dama_gazelle_LDpruned.bim.tmp Dama_gazelle_LDpruned.bim
+# ---------------------------------------------------------------
 
-⚙️ Step 5: Run ADMIXTURE
-module load admixture
+# ---------------------------------------------------------------
+# Step E. ADMIXTURE: Individual Admixture Proportions with Admixture and visualization using MapMixture.
+# Now we can infer individual admixture proportions with Admixture. This is a genetic clustering program to define populations and assign individuals to them.  
+# We will use the plink files we just make to run Admixture. 
 
-cd /scratch/bistbs/Population_Genomic_Analysis/Admixture
 
-for K in {2..6}; do
-   admixture --cv Dama_gazelle_admixture.bed $K | tee log${K}.out
+# ====== Step E.1: ADMIXTURE Analysis with Cross-Validation ======
+```bash
+# Base name of your PLINK binary files (no extension)
+FILE="Dama_gazelle_LDpruned"
+
+ADMIXTURE_PATH="/scratch/bistbs/Population_Genomic_Analysis/Admixture/Admixture_mapmixture/admixture_linux-1.3.0/admixture"
+
+# Run ADMIXTURE for K = 1 to 10 with cross-validation
+for K in {1..10}; do
+    echo "Running ADMIXTURE for K=${K}..."
+    ${ADMIXTURE_PATH} --cv ${FILE}.bed $K > log${K}.out
 done
 
+# Summarize CV errors to find the best K
+grep "CV error" log*.out | awk '{print $3, $4, $5}' | sed -e 's/(//;s/)//;s/://;s/K=//' > ${FILE}_cv_errors.txt
 
-Outputs:
-
-Dama_gazelle_admixture.${K}.Q – Individual ancestry proportions
-
-Dama_gazelle_admixture.${K}.P – Allele frequencies per cluster
-
-log${K}.out – Cross-validation logs
-
-📊 Step 6: Determine Best K
-grep -h "CV error" log*.out
+```
 
 
-Example output:
 
-CV error (K=2): 0.541
-CV error (K=3): 0.498
-CV error (K=4): 0.503
-CV error (K=5): 0.510
-CV error (K=6): 0.517
-
-
-👉 Best K = 3 (lowest CV error).
-
-🎨 Step 7: Visualize ADMIXTURE Results in R
-# Load packages
-library(ggplot2)
-library(tidyverse)
-
-# Set working directory
-setwd("/scratch/bistbs/Population_Genomic_Analysis/Admixture")
-
-# Read ADMIXTURE output
-qdata <- read.table("Dama_gazelle_admixture.3.Q")
-fam <- read.table("Dama_gazelle_admixture.fam")
-
-# Combine data
-qdata$ID <- fam$V2
-colnames(qdata) <- c("Cluster1", "Cluster2", "Cluster3", "ID")
-
-# Plot ancestry proportions
-ggplot(qdata, aes(x = ID, y = 1, fill = Cluster1)) +
-  geom_bar(aes(y = Cluster1), stat = "identity") +
-  geom_bar(aes(y = Cluster2), stat = "identity", position = "stack") +
-  geom_bar(aes(y = Cluster3), stat = "identity", position = "stack") +
-  theme_classic() +
-  theme(axis.text.x = element_text(angle = 90, size = 7)) +
-  labs(title = "Dama gazelle ADMIXTURE (K=3)", x = "Individuals", y = "Ancestry Proportion")
