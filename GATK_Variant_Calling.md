@@ -234,6 +234,12 @@ vcftools --vcf ${VCFTOOLS_OUT}.recode.vcf \  # Use the SNP-only VCF as input
 
 # This will produce 'out.miss' file with % missing genotypes per individual
 # Individuals with very high missingness can be removed in later filtering steps
+
+# 1) Make biallelic SNP-only (keep your existing file unchanged)
+bcftools view -v snps -m2 -M2 /scratch/bistbs/GATK_Variant_Calling/Combined_GVCF/Genotyped_VCF/Without_Indels/Dama_gazelle_without_indels.recode.vcf \
+  -Oz -o /scratch/bistbs/GATK_Variant_Calling/Combined_GVCF/Genotyped_VCF/Without_Indels/Dama_gazelle_biallelic_snps.vcf.gz
+tabix -p vcf /scratch/bistbs/GATK_Variant_Calling/Combined_GVCF/Genotyped_VCF/Without_Indels/Dama_gazelle_biallelic_snps.vcf.gz
+
 ```
 #### Step 5.B Keep indels if you want to do SNpeff and VEP(Variant Effect Predictor).
 ```bash
