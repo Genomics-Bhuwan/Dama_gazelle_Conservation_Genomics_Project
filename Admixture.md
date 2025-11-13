@@ -1,8 +1,8 @@
-# 🧬 Dama gazelle — ADMIXTURE Workflow
+# 🧬 Dama gazelle — ADMIXTURE and PCA Workflow
 
 **Author:** Bhuwan Singh Bist  
 **Date:** 2025-11-12  
-**Purpose:** Complete workflow for preparing and running ADMIXTURE analysis on *Dama gazelle* using a high-quality biallelic SNP VCF.
+**Purpose:** Complete workflow for preparing and running ADMIXTURE as well as PCA analysis on *Dama gazelle* using a high-quality biallelic SNP VCF.
 
 ---
 
@@ -116,7 +116,95 @@ done
 # Summarize CV errors to find the best K
 grep "CV error" log*.out | awk '{print $3, $4, $5}' | sed -e 's/(//;s/)//;s/://;s/K=//' > ${FILE}_cv_errors.txt
 
+# Follow the Steps from MapMixture Package for rest.
+
 ```
 
+
+
+#### PCA
+# run PCA with PLINK (var-wts gives weighted PCA like SmartPCA)
+# add --allow-extra-chr because you have nonstandard chromosome names
+```bash
+cd /scratch/bistbs/Population_Genomic_Analysis/PCA
+plink --bfile Dama_gazelle_LDpruned \
+      --pca var-wts \
+      --const-fid 0 \
+      --allow-extra-chr \
+      --out Dama_gazelle_PCA
+
+```
+
+### Plot the eigenvector to get the samples in Principal Components.
+### Plot the eigenvalues to get the screeplot to see the variance explained by each principal component.
+```bash
+# Install necessary packages (run once)
+install.packages("ggplot2")
+install.packages("ggrepel")
+
+# Load libraries
+library(ggplot2)
+library(ggrepel)
+
+# Set working directory
+setwd("F:/Collaborative_Projects/Dama_Gazelle_Project/PCA")
+
+# ---- READ DATA ----
+dat <- read.csv("Dama_gazelle_PCA.csv", header = TRUE)
+
+# ---- PCA SCATTER PLOT ----
+p <- ggplot(dat, aes(x = PC1, y = PC2, color = Sample, label = Sample)) +
+  geom_point(size = 3) +
+  geom_text_repel(show.legend = FALSE) +
+  theme_classic() +
+  labs(
+    title = "PCA Plot of Dama Gazelle",
+    x = "Principal Component 1",
+    y = "Principal Component 2"
+  ) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    legend.position = "right"
+  )
+
+# Display PCA scatter plot
+print(p)
+
+# ---- SAVE PCA PLOT ----
+ggsave("Dama_gazelle_PCA_plot_300dpi.jpeg", p, width = 7, height = 5, dpi = 300)
+ggsave("Dama_gazelle_PCA_plot_600dpi.jpeg", p, width = 7, height = 5, dpi = 600)
+ggsave("Dama_gazelle_PCA_plot_300dpi.tiff", p, width = 7, height = 5, dpi = 300, compression = "lzw")
+ggsave("Dama_gazelle_PCA_plot_600dpi.tiff", p, width = 7, height = 5, dpi = 600, compression = "lzw")
+ggsave("Dama_gazelle_PCA_plot.pdf", p, width = 7, height = 5)
+
+# ---- EIGENVALUE BARPLOT ----
+Eigenvalues <- c(3.60779, 1.05618, 0.755254, 0.392603, -0.00613124)
+bar_data <- data.frame(
+  PC = paste0("PC", 1:length(Eigenvalues)),
+  Eigenvalue = Eigenvalues
+)
+
+bp <- ggplot(bar_data, aes(x = PC, y = Eigenvalue)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  theme_classic() +
+  labs(
+    title = "Scree Plot of Eigenvalues",
+    x = "Principal Components",
+    y = "Eigenvalues"
+  ) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+# Display Scree (Eigenvalue) plot
+print(bp)
+
+# ---- SAVE EIGENVALUE PLOT ----
+ggsave("Dama_gazelle_Eigenvalue_plot_300dpi.jpeg", bp, width = 7, height = 5, dpi = 300)
+ggsave("Dama_gazelle_Eigenvalue_plot_600dpi.jpeg", bp, width = 7, height = 5, dpi = 600)
+ggsave("Dama_gazelle_Eigenvalue_plot_300dpi.tiff", bp, width = 7, height = 5, dpi = 300, compression = "lzw")
+ggsave("Dama_gazelle_Eigenvalue_plot_600dpi.tiff", bp, width = 7, height = 5, dpi = 600, compression = "lzw")
+ggsave("Dama_gazelle_Eigenvalue_plot.pdf", bp, width = 7, height = 5)
+
+cat("✅ All plots saved in JPEG, TIFF (300 & 600 dpi), and PDF formats.\n")
+```
 
 
