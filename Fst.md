@@ -1,5 +1,4 @@
-# Synteny analysis of Addra and Bos taurus
-## 1. The code is using https://github.com/PombertLab/SYNY
+#### Fst calculation
 
 #### Filtration before final Fst calculation.
 ```bash
@@ -31,14 +30,14 @@ Windowed FST (Weir & Cockerham) – Explanation
 ##### next window. This creates overlapping sliding windows.
 
 ##### Why use windowed FST?
-##### • Reduces noise caused by single SNPs with unreliable frequencies.
-##### • Provides a smoother profile of differentiation across the genome.
-##### • More robust when sample sizes are small (like n=3 vs n=2).
-####  • Helps identify genomic regions of high differentiation.
+ • Reduces noise caused by single SNPs with unreliable frequencies.
+ • Provides a smoother profile of differentiation across the genome.
+ • More robust when sample sizes are small (like n=3 vs n=2).
+ • Helps identify genomic regions of high differentiation.
 
 ##### Interpretation:
-#####   The output ".windowed.weir.fst" file contains one FST estimate
-#####   per window, including:
+-  The output ".windowed.weir.fst" file contains one FST estimate
+- per window, including:
 #####       CHROM   BIN_START   BIN_END   N_VARIANTS   MEAN_FST
 
 #####   MEAN_FST is the average genetic differentiation in that window.
