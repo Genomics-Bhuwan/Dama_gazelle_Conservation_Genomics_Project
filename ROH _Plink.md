@@ -25,11 +25,7 @@ plink --bfile /scratch/bistbs/Population_Genomic_Analysis/ROH/Plink/Dama_gazelle
 
 
 #### Visualization of ROH 
-##########################################
-# Dama Gazelle ROH Analysis - Full Script
-# Author: Bhuwan Bist
-# Directory: F:/Collaborative_Projects/Dama_Gazelle_Project/ROH/Plink_Final
-##########################################
+
 ```bash
 # Load required packages
 library(data.table)
@@ -40,6 +36,7 @@ library(tidyr)
 # -----------------------------
 # Parameters
 # -----------------------------
+cd F:/Collaborative_Projects/Dama_Gazelle_Project/ROH/Plink_Final
 genome_size <- 3e9  # 3 Gb
 samples <- c("SRR17134085","SRR17134086","SRR17129394", # Addra
              "SRR17134087","SRR17134088")               # Mohrr
