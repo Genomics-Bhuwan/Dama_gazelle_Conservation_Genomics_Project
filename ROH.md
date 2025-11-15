@@ -1,4 +1,4 @@
-#### ROHs
+#### ROHs.
 - Runs of Homozygosity are the stretches of DNA where an individual inherits identical haplotypes from both parents.
 - Occurs because of inbreeding which can occur when closely related with invidual mates.
 - Runs of Homozygosity are stretches of DNA where an individual inherits identical haplotypes from both parents. They often are a result of inbreeding, which can occur when 
