@@ -22,7 +22,13 @@ module load bcftools-1.15
 - AF-dflt 0.4: This option sets the default allele frequency to 0.4 when the frequency is missing in the input file.
 - G30: This option sets the phred-scaled genotype quality threshold to 30. Genotypes below this quality threshold will be treated as missing.
 ```bash
+# Set variables
+VCF="/scratch/bistbs/Population_Genomic_Analysis/ROH/bcftools/Dama_gazelle_biallelic_snps_autosomes.vcf"
+OUTDIR="/scratch/bistbs/Population_Genomic_Analysis/ROH/bcftools"
+
+# Run bcftools ROH
 bcftools roh -G30 --AF-dflt 0.4 $VCF -o ${OUTDIR}/Dama_gazelle_ROH_all.txt
+
 
 ```
 
