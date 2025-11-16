@@ -117,3 +117,100 @@ mafft --thread 10 --adjustdirection Dama_gazelle_mitogenomes.fasta > Dama_gazell
 ```bash
 iqtree -nt 10 --pre Dama_gazelle_mito -s Dama_gazelle_mitogenomes.aln -B 1000
 ```
+
+
+##################################################################################################################################################
+##################################################################################################################################################
+### This will create a partition.nexus file for each gene type and get the Phylogenetic tree for all the five individuals.
+#!/bin/bash
+#============================================#
+# Mitogenome Assembly & Phylogenomics Workflow
+# Production-Ready Version
+# - Subsample reads
+# - Run MitoZ assembly
+# - Extract PCGs
+# - Align sequences
+# - Build phylogenetic tree with IQ-TREE
+#============================================#
+
+#---------------Directories------------------#
+INPUT_DIR="/localscratch/bistbs/mitogenome_phylogeny/sub_reads"
+OUTPUT_DIR="/localscratch/bistbs/mitogenome_phylogeny/sub_reads_sub20"
+MITOZ_OUT="/localscratch/bistbs/mitogenome_phylogeny/mitoz_out"
+PCG_OUT="/localscratch/bistbs/mitogenome_phylogeny/mitoz_PCGs"
+ALIGN_OUT="/localscratch/bistbs/mitogenome_phylogeny/alignment"
+TREE_OUT="/localscratch/bistbs/mitogenome_phylogeny/tree"
+
+# Create directories if not exist
+mkdir -p $OUTPUT_DIR $MITOZ_OUT $PCG_OUT $ALIGN_OUT $TREE_OUT
+
+#---------------Samples----------------------#
+samples=("SRR17129394" "SRR17134085" "SRR17134086" "SRR17134087" "SRR17134088")
+
+#---------------Subsample Reads---------------#
+echo "### Subsampling reads (20% read1) ###"
+for sample in "${samples[@]}"; do
+    echo "Processing $sample..."
+
+    # Subsample 20% of read1
+    seqtk sample -s 100 $INPUT_DIR/${sample}_1_val_1.fq.gz 0.2 | pigz -p 8 > $OUTPUT_DIR/${sample}_1.sub.fq.gz
+
+    # Merge subsampled read1 with original read2
+    seqtk mergepe $OUTPUT_DIR/${sample}_1.sub.fq.gz $INPUT_DIR/${sample}_2_val_2.fq.gz > $OUTPUT_DIR/${sample}.interleave.fq
+
+    # Deinterleave to get final read1 and read2
+    sh /shared/jezkovt_bistbs_shared/scripts/deinterleave_fastq.sh < $OUTPUT_DIR/${sample}.interleave.fq \
+        $OUTPUT_DIR/${sample}_1.sub20.fq.gz $OUTPUT_DIR/${sample}_2.sub20.fq.gz compress
+
+    echo "$sample subsampling done."
+done
+
+#---------------Run MitoZ Assembly---------------#
+echo "### Running MitoZ Assembly ###"
+for sample in "${samples[@]}"; do
+    echo "Assembling mitogenome for $sample..."
+
+    MitoZ.py all \
+        --genetic_code 2 \
+        --clade 'Chordata' \
+        --outprefix $MITOZ_OUT/${sample} \
+        --thread_number 24 \
+        --fastq1 $OUTPUT_DIR/${sample}_1.sub20.fq.gz \
+        --fastq2 $OUTPUT_DIR/${sample}_2.sub20.fq.gz \
+        --fastq_quality_shift \
+        --fastq_read_length 125 \
+        --duplication \
+        --insert_size 350 \
+        --run_mode 2 \
+        --filter_taxa_method 1 \
+        --requiring_taxa 'Mammalia' \
+        --species_name 'Dama gazella' &> $MITOZ_OUT/${sample}.mitoz.log
+
+    echo "MitoZ assembly for $sample completed."
+done
+
+#---------------Extract Protein-Coding Genes (PCGs)---------------#
+# MitoZ output directory structure: ${MITOZ_OUT}/${sample}/Genome_Annotation/MT_genes.fasta
+echo "### Extracting PCGs from MitoZ output ###"
+for sample in "${samples[@]}"; do
+    cp $MITOZ_OUT/${sample}/Genome_Annotation/MT_genes.fasta $PCG_OUT/${sample}_PCGs.fasta
+done
+
+#---------------Combine All PCGs for Alignment---------------#
+echo "### Combining all PCGs ###"
+cat $PCG_OUT/*_PCGs.fasta > $ALIGN_OUT/Dama_gazelle_PCGs.fasta
+
+#---------------Align Sequences with MAFFT---------------#
+echo "### Running MAFFT alignment ###"
+mafft --thread 10 --adjustdirection $ALIGN_OUT/Dama_gazelle_PCGs.fasta > $ALIGN_OUT/Dama_gazelle_PCGs.aln
+
+#---------------Build Phylogenetic Tree with IQ-TREE---------------#
+echo "### Building IQ-TREE phylogenetic tree ###"
+iqtree -nt 10 \
+       --pre $TREE_OUT/Dama_gazelle_PCGs \
+       -s $ALIGN_OUT/Dama_gazelle_PCGs.aln \
+       -B 1000 \
+       -m MFP  # ModelFinder to select best substitution model automatically
+
+echo "### Workflow Complete ###"
+
