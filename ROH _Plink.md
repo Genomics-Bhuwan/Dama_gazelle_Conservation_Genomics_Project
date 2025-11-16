@@ -27,6 +27,11 @@ plink --bfile /scratch/bistbs/Population_Genomic_Analysis/ROH/Plink/Dama_gazelle
 #### Visualization of ROH 
 
 ```bash
+# ---------------------------------------
+# ROH Analysis Script for Dama Gazelle
+# Working Directory: F:/Collaborative_Projects/Dama_Gazelle_Project/ROH/Plink_Final
+# ---------------------------------------
+
 # Load required packages
 library(data.table)
 library(dplyr)
@@ -34,13 +39,14 @@ library(ggplot2)
 library(tidyr)
 
 # -----------------------------
-# Parameters
+# Set Working Directory & Parameters
 # -----------------------------
-cd F:/Collaborative_Projects/Dama_Gazelle_Project/ROH/Plink_Final
-genome_size <- 3e9  # 3 Gb
+setwd("F:/Collaborative_Projects/Dama_Gazelle_Project/ROH/Plink_Final")
+
+genome_size <- 3e9  # 3 Gb genome
 samples <- c("SRR17134085","SRR17134086","SRR17129394", # Addra
              "SRR17134087","SRR17134088")               # Mohrr
-output_dir <- "F:/Collaborative_Projects/Dama_Gazelle_Project/ROH/Plink_Final"
+output_dir <- getwd()  # use current directory for outputs
 
 # -----------------------------
 # 1️⃣ Percent Genome in ROH per Subspecies
@@ -51,20 +57,28 @@ roh_indiv <- fread(file.path(output_dir, "Dama_gazelle_ROH.hom.indiv"))
 roh_sub <- roh_indiv %>%
   filter(IID %in% samples) %>%
   mutate(Species = ifelse(IID %in% c("SRR17134085","SRR17134086","SRR17129394"), "Addra", "Mohrr"),
-         Percent_ROH = (KB*1000 / genome_size)*100)  # Convert KB to bp then %
+         Percent_ROH = (KB * 1000 / genome_size) * 100)  # Convert KB to bp then %
 
 # Plot
 p1 <- ggplot(roh_sub, aes(x=Species, y=Percent_ROH, fill=Species)) +
   geom_boxplot() +
   geom_jitter(width=0.1, size=3) +
-  theme_classic() +
   labs(title="Percent Genome in ROH per Subspecies",
-       x="Subspecies",
-       y="Percent genome in ROH") +
-  scale_fill_manual(values=c("Addra"="skyblue","Mohrr"="orange"))
+       x="Sub-species",
+       y="% genome in ROH") +
+  scale_fill_manual(values=c("Addra"="skyblue","Mohrr"="orange")) +
+  scale_y_continuous(breaks = seq(0, max(roh_sub$Percent_ROH, na.rm=TRUE), by = 2)) +
+  theme_classic() +
+  theme(panel.border = element_rect(color = "black", fill = NA, size = 1))
 
 print(p1)
-ggsave(file.path(output_dir,"Percent_ROH_by_sub_species.jpeg"), plot=p1, width=6, height=4)
+# Save as JPEG
+ggsave(file.path(output_dir, "Percent_ROH_by_sub_species.jpeg"), 
+       plot = p1, width = 6, height = 4, dpi = 300)
+
+# Save as PDF
+ggsave(file.path(output_dir, "Percent_ROH_by_sub_species.pdf"), 
+       plot = p1, width = 6, height = 4)
 
 # -----------------------------
 # 2️⃣ ROH Landscape across Chromosomes
@@ -97,7 +111,7 @@ ggsave(file.path(output_dir,"ROH_landscape.jpeg"), plot=p2, width=12, height=6)
 # 3️⃣ Percent Genome in ROH by ROH Size Category
 # -----------------------------
 # Filter ROH > 100 kb
-roh_segments_filtered <- roh_segments %>% filter(KB*1000 > 100000)
+roh_segments_filtered <- roh_segments %>% filter(KB * 1000 > 100000)
 
 # Define ROH categories
 roh_segments_filtered <- roh_segments_filtered %>%
@@ -111,23 +125,29 @@ roh_segments_filtered <- roh_segments_filtered %>%
 # Aggregate per individual per category
 roh_by_cat <- roh_segments_filtered %>%
   group_by(IID, Species, ROH_category) %>%
-  summarise(Total_ROH_bp = sum(KB*1000), .groups="drop") %>%
-  mutate(Percent_Genome_ROH = (Total_ROH_bp / genome_size)*100)
+  summarise(Total_ROH_bp = sum(KB * 1000), .groups="drop") %>%
+  mutate(Percent_Genome_ROH = (Total_ROH_bp / genome_size) * 100)
 
 # Plot stacked bar
 p3 <- ggplot(roh_by_cat, aes(x=IID, y=Percent_Genome_ROH, fill=ROH_category)) +
   geom_bar(stat="identity", color="black") +
   facet_wrap(~Species, scales="free_x") +
   theme_classic() +
-  labs(title="Percent Genome in ROH by Size Category",
+  labs(title="% Genome in ROH by Size Category",
        x="Individual",
-       y="Percent of Genome in ROH",
-       fill="ROH Size Category") +
+       y="% Genome in ROH",
+       fill="ROH size category") +
   scale_fill_manual(values=c("0.1-1Mb"="#e6ab02", "1-5Mb"="#d95f02",
-                             "5-10Mb"="#7570b3", "10-100Mb"="#1b9e77"))
+                             "5-10Mb"="#7570b3", "10-100Mb"="#1b9e77")) +
+  theme(panel.border = element_rect(color = "black", fill = NA, size = 1))  # bounding box
 
 print(p3)
-ggsave(file.path(output_dir,"Percent_ROH_by_size_category.jpeg"), plot=p3, width=8, height=5)
+
+# Save as JPEG
+ggsave(file.path(output_dir, "Percent_ROH_by_size_category.jpeg"), plot=p3, width=8, height=5, dpi=300)
+
+# Save as PDF
+ggsave(file.path(output_dir, "Percent_ROH_by_size_category.pdf"), plot=p3, width=8, height=5)
 
 # -----------------------------
 # 4️⃣ Cumulative Percent Genome in ROH vs ROH Size
@@ -135,20 +155,28 @@ ggsave(file.path(output_dir,"Percent_ROH_by_size_category.jpeg"), plot=p3, width
 roh_segments_filtered <- roh_segments_filtered[order(IID, ROH_Mb)]
 roh_segments_filtered <- roh_segments_filtered %>%
   group_by(IID) %>%
-  mutate(Cumulative_bp = cumsum(KB*1000),
-         Percent_Cumulative = (Cumulative_bp / genome_size)*100) %>%
+  mutate(Cumulative_bp = cumsum(KB * 1000),
+         Percent_Cumulative = (Cumulative_bp / genome_size) * 100) %>%
   ungroup()
 
-# Plot cumulative
+
+# Plot cumulative with bounding box
 p4 <- ggplot(roh_segments_filtered, aes(x=ROH_Mb, y=Percent_Cumulative, color=Species)) +
   geom_line(size=1.2) +
   geom_point(alpha=0.7, size=2) +
   theme_classic() +
-  labs(title="Cumulative Percent Genome in ROH vs ROH Size",
+  labs(title="Cumulative % Genome in ROH vs ROH Size",
        x="ROH Size (Mb)",
-       y="Cumulative Percent of Genome in ROH") +
-  scale_color_manual(values=c("Addra"="skyblue","Mohrr"="orange"))
+       y="Cumulative % of Genome in ROH") +
+  scale_color_manual(values=c("Addra"="skyblue","Mohrr"="orange")) +
+  theme(panel.border = element_rect(color = "black", fill = NA, size = 1))  # bounding box
 
 print(p4)
-ggsave(file.path(output_dir,"Cumulative_ROH_vs_size.jpeg"), plot=p4, width=8, height=5)
+
+# Save as JPEG
+ggsave(file.path(output_dir, "Cumulative_ROH_vs_size.jpeg"), plot=p4, width=8, height=5, dpi=300)
+
+# Save as PDF
+ggsave(file.path(output_dir, "Cumulative_ROH_vs_size.pdf"), plot=p4, width=8, height=5)
+
 ```
