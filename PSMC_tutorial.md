@@ -1,45 +1,99 @@
-# PSMC
+#### How to do PSMC analyses?
+- The PSMC is a pairwise sequential markovian coalescent model used for infering the effective population size or genetic diversity of the species based on the demographic history of the species.
+- It is based on coalescent theory helping understand how genetic diversity is shaped by the history of a population in a pairwise fashion.
 
-Developed by Henrique V. Figueiró
+---
+Assumptions
+---
+- I already have one BAM per individual in */scratch/bistbs/Population_Genomic_Analysis/PSMC/*, named exactly as the sample IDs (e.g. SRR17129394.bam, etc.).
+- Reference FASTA is available and indexed at REF_FA=/scratch/bistbs/Population_Genomic_Analysis/PSMC/Dama_gazelle_hifiasm-ULONT_primary.fasta 
+- bcftools, samtools, psmc and vcfutils.pl are available via module load.
+- The script will produce gziped fq, psmcfa, psmc output and bootstrap results in the results/ directory.
 
-Contact: henriquevf@gmail.com
-
-The PSMC (Pairwise Sequential Markovian Coalescent) analysis is a widely used tool in genomics for inferring the demographic history of a population from genomic data. It is based on the coalescent theory, a framework for understanding how genetic diversity is shaped by the history of a population. By modeling the coalescent process in a pairwise fashion, PSMC can provide insights into changes in population size over time, allowing researchers to reconstruct the demographic history of a population.
-
-Mapping files are located in the directory below. You can also use your own mapping files.
-
-```bash
-/pool/genomics/figueiroh/SMSC_2023_class/mapping
-/pool/genomics/figueiroh/SMSC_2023_class/reference
-```
-
-Intermediate data are located in the following directory:
-
-```bash
-/pool/genomics/figueiroh/SMSC_2023_class/psmc
-```
-
-On your user create the following folder: 
-
+##### Find our the generation time and mutation rate of your species.
+Generation time= 5.85 years (https://onlinelibrary.wiley.com/doi/full/10.1002/ece3.10876)
+We use generation time GEN=5.85 years and mutation rate MU=1.1 × 10−08 (https://onlinelibrary.wiley.com/doi/10.1111/1755-0998.13181).
 ```bash
 mkdir psmc
 ```
 
-### Consensus building
+##### Consensus building
+- The first step is to generate the consensus sequence from the bam files.
+- Although the command for this step is relatively old, it still functions effectively.
+- However, it is important to ensure that the command is still operational and functioning correctly before proceeding.
 
-The initial step in the process is to generate a consensus sequence from the bam files. Although the command for this step is relatively old, it still functions effectively. However, it is important to ensure that the command is still operational and functioning correctly before proceeding. This step should take between 9 and 12 hours to run on Hydra with 8 Gb of RAM. 
-
+  ##### 1: SRR17129394 
 ```bash
-module load bioinformatics/bcftools
-bcftools mpileup -Ou -f <reference_genome> <bam_file> | bcftools call -c | vcfutils.pl vcf2fq -d 10 -D 100 | gzip > <output.fq.gz>
+module load bcftools-1.15
+
+# Exact command for sample SRR17129394
+bcftools mpileup -Ou \
+  -f Dama_gazelle_hifiasm-ULONT_primary.fasta \
+  SRR17129394.bam \
+| bcftools call -c \
+| vcfutils.pl vcf2fq -d 10 -D 100 \
+| gzip > SRR17129394.fq.gz
 ```
+##### 2: SRR17134085 
+```bash
+module load bcftools-1.15
+
+# Exact command for sample SRR17129394
+bcftools mpileup -Ou \
+  -f Dama_gazelle_hifiasm-ULONT_primary.fasta \
+  SRR17129394.bam \
+| bcftools call -c \
+| vcfutils.pl vcf2fq -d 10 -D 100 \
+| gzip > SRR17134085.fq.gz
+```
+
+##### 3:   SRR17134086
+```bash
+module load bcftools-1.15
+
+# Exact command for sample SRR17129394
+bcftools mpileup -Ou \
+  -f Dama_gazelle_hifiasm-ULONT_primary.fasta \
+  SRR17129394.bam \
+| bcftools call -c \
+| vcfutils.pl vcf2fq -d 10 -D 100 \
+| gzip >   SRR17134086.fq.gz
+```
+
+##### 4: SRR17134087
+```bash
+module load bcftools-1.15
+
+# Exact command for sample SRR17129394
+bcftools mpileup -Ou \
+  -f Dama_gazelle_hifiasm-ULONT_primary.fasta \
+  SRR17129394.bam \
+| bcftools call -c \
+| vcfutils.pl vcf2fq -d 10 -D 100 \
+| gzip > SRR17134087.fq.gz
+```
+
+##### 5: SRR17134088
+```bash
+module load bcftools-1.15
+
+# Exact command for sample SRR17129394
+bcftools mpileup -Ou \
+  -f Dama_gazelle_hifiasm-ULONT_primary.fasta \
+  SRR17129394.bam \
+| bcftools call -c \
+| vcfutils.pl vcf2fq -d 10 -D 100 \
+| gzip >  SRR17134088.fq.gz
+```
+
 
 1. `bcftools mpileup -C50 -uf <reference_genome> <bam_file>`: This command generates a textual pileup format of the input BAM file (`<bam_file>`) using the given reference genome (`<reference_genome>`). The `C50` option applies a coefficient to adjust the base alignment quality, and the `u` flag outputs the results in the uncompressed BCF format, which is required for piping to `bcftools`. The `f` flag specifies the reference genome file.
 2. `bcftools call -c`: This command performs variant calling on the input data received from the `bcftools mpileup` command (indicated by `` as input). The `c` option uses the consensus caller, which is suitable for calling a diploid consensus sequence.
 3. `vcfutils.pl vcf2fq -d 10 -D 100`: This command is part of the `bcftools` package and converts the output from `bcftools call` (in VCF format) to a FastQ format. The `d 10` and `D 100` options set the minimum and maximum depth thresholds for filtering variants, respectively.
 4. `gzip > <output.fq.gz>`: This part of the command compresses the final output using `gzip` and saves it as a `.fq.gz` file (`<output.fq.gz>`).
 
-With the consensus sequence we generate the input file in order to run PSMC. For the sake of time you can copy the data from the original folder.
+
+- With this consensus sequence, we created the input file to run PSMC.
 
 ```bash
 module load bioinformatics/psmc
@@ -48,7 +102,7 @@ fq2psmcfa -q20 <input.fq.gz> > <output.psmcfa>
 
 This command will take a gzipped FastQ file `input.fq.gz` as input and create a PSMC input file `output.psmcfa` with bases that have quality scores below 20 masked (`-q20` ).The higher the quality threshold, the more stringent the filtering process, leading to more masked bases in the output.
 
-### Run PSMC
+### Run PSMC. Also install it.
 
 ```bash
 module load bioinformatics/psmc
