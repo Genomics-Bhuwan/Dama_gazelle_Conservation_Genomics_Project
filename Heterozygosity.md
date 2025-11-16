@@ -1,43 +1,35 @@
-# Heterozygosity tutorial
+#### Heterozygosity tutorial
+---
+- We will use two strategies to calcualte the average heterozygosity.
+- The first step is using bcftools and vcftools.
+- The second step will be exploring the heterozygosity variation across the genome using ANGSD(Analysis of Next Generation Sequencing Data).
+- This calculates the heterozygosity of each sample in a vcf file.
+- Firstly, it extracts the list of the sample names and calculates the number of heterozygous variants for each sample.
+- The results are saved as tab-separated file with the name "heterozygosity.tsv" and two columns aka "Sample" and "Heterozygosity".
+ --- 
 
-Heterozygosity is a simple and informative statistic that can be obtained by analyzing whole-genome data. You can calculate the average heterozygosity of an individual or assess the local heterozygosity throughout the genome to answer more specific questions.
 
-There are many methods available to achieve this. In this tutorial, we will use two strategies. To obtain the average heterozygosity, we will manipulate the VCF file using bcftools and vcftools. To explore heterozygosity variation across the genome, we will use ANGSD and other associated tools.
 
-### Average heterozygosity
+##### Method A. Average heterozygosity
 
 ```bash
-#!/bin/bash
-
 #Replace these with the actual file names
-VCF_FILE="/pool/genomics/figueiroh/SMSC_2023_class/vcf/NN_6samples_HD_PASS_DP5.vcf.gz"
-OUTPUT_FILE="NN_heterozygosity_v5.tsv"
-GENOME_LENGTH=2468345093 #you can use the fasta index (.fai) to sum the total length of the genome
+VCF_FILE="/scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/Dama_gazelle_biallelic_snps_filtered.recode.vcf"
+OUTPUT_FILE="Dama_heterozygosity_v5.tsv"
+GENOME_LENGTH=3108406478
 
-#Get a list of sample names from the VCF file
 SAMPLES=$(bcftools query -l $VCF_FILE)
 
-#Write a header line to the output file
 echo -e "Sample\tHeterozygous_sites\tHeterozygosity" > $OUTPUT_FILE
 
-#Loop through each sample and calculate the heterozygosity
 for SAMPLE in $SAMPLES; do
-  HETEROZYGOUS=$(bcftools view -s $SAMPLE $VCF_FILE | grep -v "#" | grep -o "0/1" | wc -l)
+  HETEROZYGOUS=$(bcftools query -s $SAMPLE -f '[%GT\n]' $VCF_FILE | grep -F "0/1" | wc -l)
   HETEROZYGOSITY=$(echo "scale=7; $HETEROZYGOUS / $GENOME_LENGTH" | bc)
   echo -e "$SAMPLE\t$HETEROZYGOUS\t$HETEROZYGOSITY" >> $OUTPUT_FILE
 done
 
 ```
-
-This is a bash script that calculates the heterozygosity of each sample in a VCF file. It uses the bcftools command line tool to extract the list of sample names and calculate the number of heterozygous variants for each sample. The results are written to a tab-separated file with the name "heterozygosity.tsv" and two columns: "Sample" and "Heterozygosity". The script assumes that the VCF file is named "your_vcf_file.vcf" and is located in the same directory as the script. Copy this script to a file, give a name that ends with `.sh`, and run on interactive mode on Hydra using `bash command.sh`.
-
-| Individual | Heterozygous sites | Heterozygosity |
-| --- | --- | --- |
-| NN114296 | 1690684 | 0.0006762 |
-| NN114297 | 1690576 | 0.0006762 |
-| NN114393 | 1599970 | 0.0006399 |
-| NN115950 | 1645258 | 0.0006581 |
-| NN190240 | 1413972 | 0.0005655 |
+##### Method A. Visualization for the Heterozygosity.
 
 ```r
 library(ggplot2)
@@ -55,19 +47,18 @@ plot <- ggplot(data, aes(x=Sample, y=Heterozygosity)) +
     labs(x="Sample", y="Heterozygosity")
 
 # Save the plot to a file
-ggsave("heterozygosity_plot.png", plot, width=10, height=5, dpi=300)
+ggsave("heterozygosity_plot.jpeg", plot, width=10, height=5, dpi=300)
 ```
 
-This is an R code block that creates a scatter plot of heterozygosity values from a tab-separated value (tsv) file. The ggplot2 library is loaded, and the name of the input file is specified as "heterozygosity.tsv". The data is read in using the read.table function, and a scatter plot is created using ggplot with "Sample" on the x-axis and "Heterozygosity" on the y-axis. The resulting plot is saved as a png file named "heterozygosity_plot.png".
 
-### Genome-wide heterozygosity
 
-Another way to display heterozygosity is by using a window-based approach. This approach allows for the visualization of variation throughout the genome and the ability to focus on regions of particularly high or low diversity. It also permits comparison of results with other methods, such as Runs of Homozygosity (RoH). There are several software programs that can perform this task in a similar way, including ANGSD.
-
-ANGSD (Analysis of Next Generation Sequencing Data) is an open-source software designed to analyze low-depth Next Generation Sequencing (NGS) data. Developed by researchers at the University of Copenhagen, ANGSD was specifically designed to handle large-scale sequencing data, particularly from non-model organisms. ANGSD provides a flexible and efficient framework for analyzing complex genomic data, enabling researchers to perform various types of population genetics and genomics analyses.
-
+### B. Genome-wide heterozygosity using Window-based approach.
+- This approach allows us to visualize the variation throughtout the genome with the ability to focus on regions of particularly higher or lower diversity.
+- It is also a comparision with other methods such as ROH.
+- ANGSD peforms it. It is a software designed to analyze low-depth NGS data. It handles large-scale sequencing data particularly for non-model organisms.
+---
 Key capabilities of ANGSD include:
-
+---
 1. Genotype calling: ANGSD can estimate genotype likelihoods from sequencing data without actually calling genotypes, which helps reduce biases and errors introduced by hard genotype calls.
 2. SNP discovery: The software can identify Single Nucleotide Polymorphisms (SNPs) and estimate their allele frequencies while accounting for sequencing errors and varying levels of sequencing depth.
 3. Genetic association studies: ANGSD can perform Genome-Wide Association Studies (GWAS) and estimate genotype-phenotype associations using mixed linear models or generalized linear models.
@@ -76,8 +67,8 @@ Key capabilities of ANGSD include:
 6. Handling of various file formats: ANGSD can work with various input file formats, including BAM, CRAM, and VCF files, and output results in multiple formats suitable for downstream analyses.
 
 Overall, ANGSD is a versatile and powerful tool for analyzing NGS data, particularly for non-model organisms or low-coverage sequencing projects. It provides a comprehensive suite of analysis tools that cater to various research objectives in population genetics and genomics.
-
-### How to run heterozygosity using ANGSD
+---
+#### How to run heterozygosity using ANGSD
 
 ```bash
 module load bioinformatics/angsd/0.921
