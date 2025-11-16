@@ -26,15 +26,21 @@ samples=("SRR17129394" "SRR17134085" "SRR17134086" "SRR17134087" "SRR17134088")
 for sample in "${samples[@]}"; do
     echo "Processing $sample"
 
-    # Step 1: Subsample 20% of read1
-    seqtk sample -s 100 $INPUT_DIR/${sample}_1_val_1.fq.gz 0.2 | pigz -p 8 > $OUTPUT_DIR/${sample}_1.sub.fq.gz
+    # Step 1: Subsample 20% of read1 (INPUT IS .fq, NOT .fq.gz)
+    seqtk sample -s 100 $INPUT_DIR/${sample}_1_val_1.fq 0.2 | gzip > $OUTPUT_DIR/${sample}_1.sub.fq.gz
 
-    # Step 2: Merge subsampled read1 with original read2
-    seqtk mergepe $OUTPUT_DIR/${sample}_1.sub.fq.gz $INPUT_DIR/${sample}_2_val_2.fq.gz > $OUTPUT_DIR/${sample}.interleave.fq
+    # Step 2: Merge subsampled read1 with original read2 (also .fq, not .fq.gz)
+    seqtk mergepe \
+        $OUTPUT_DIR/${sample}_1.sub.fq.gz \
+        $INPUT_DIR/${sample}_2_val_2.fq \
+        > $OUTPUT_DIR/${sample}.interleave.fq
 
-    # Step 3: Deinterleave to get final read1 and read2 subsampled files
-    sh /shared/jezkovt_bistbs_shared/scripts/deinterleave_fastq.sh < $OUTPUT_DIR/${sample}.interleave.fq \
-        $OUTPUT_DIR/${sample}_1.sub20.fq.gz $OUTPUT_DIR/${sample}_2.sub20.fq.gz compress
+    # Step 3: Deinterleave using your local script
+    sh /localscratch/bistbs/mitogenome_phylogeny/deinterleave_fastq.sh \
+        < $OUTPUT_DIR/${sample}.interleave.fq \
+        $OUTPUT_DIR/${sample}_1.sub20.fq.gz \
+        $OUTPUT_DIR/${sample}_2.sub20.fq.gz \
+        compress
 
     echo "$sample done."
 done
