@@ -2,7 +2,7 @@
 
 #### Filtration before final Fst calculation.
 ```bash
-vcftools --vcf /scratch/bistbs/Population_Genomic_Analysis/Fst/Dama_gazelle_biallelic_snps_filtered.recode.vcf \
+vcftools --vcf /scratch/bistbs/Population_Genomic_Analysis/Fst/Dama_gazelle_biallelic_snps_autosomes.vcf \
   --max-missing 0.9 \
   --minQ 30 \
   --minDP 5 \
@@ -59,5 +59,3 @@ vcftools --gzvcf /scratch/bistbs/Population_Genomic_Analysis/Fst/filtered_for_fs
   --out /scratch/bistbs/Population_Genomic_Analysis/Fst/Dama_Addra_vs_Mohrr_windowed_50kb_step10kb
 ```
 
-
-```
