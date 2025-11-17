@@ -54,12 +54,15 @@ vcftools --vcf ${VCF} \
 # Convert VCF to PLINK format and prune SNPs in LD
 # -------------------------------
 ```bash
-plink --vcf /scratch/bistbs/Population_Genomic_Analysis/Admixture/Dama_gazelle_biallelic_snps_filtered.recode.vcf \
-      --double-id \                        # Duplicate sample IDs as FID and IID
-      --allow-extra-chr \                  # Allow non-standard chromosome names
-      --set-missing-var-ids @:# \          # Assign unique IDs to variants missing IDs (chrom:pos)
-      --indep-pairwise 50 10 0.1 \         # LD pruning: 50 SNP window, 10 SNP step, r² threshold 0.1
-      --out Dama_gazelle_plink            # Output prefix
+VCF=/scratch/bistbs/Population_Genomic_Analysis/PCA/Dama_gazelle_biallelic_snps_autosomes.vcf
+OUT=Dama_gazelle_LDprune
+
+plink --vcf $VCF \
+      --indep-pairwise 50 5 0.5 \
+      --out $OUT \
+      --const-fid 0 \
+      --allow-extra-chr
+
 ```
 # -------------------------------
 # Step C: Create LD-pruned binary PLINK dataset
@@ -122,9 +125,35 @@ grep "CV error" log*.out | awk '{print $3, $4, $5}' | sed -e 's/(//;s/)//;s/://;
 
 
 
-#### PCA
-# run PCA with PLINK (var-wts gives weighted PCA like SmartPCA)
-# add --allow-extra-chr because you have nonstandard chromosome names
+##### PCA
+- run PCA with PLINK (var-wts gives weighted PCA like SmartPCA)
+- add --allow-extra-chr because you have nonstandard chromosome names
+```bash
+VCF=/scratch/bistbs/Population_Genomic_Analysis/PCA/Dama_gazelle_biallelic_snps_autosomes.vcf
+OUT=Dama_gazelle_LDprune
+
+plink --vcf $VCF \
+      --indep-pairwise 50 5 0.5 \
+      --out $OUT \
+      --const-fid 0 \
+      --allow-extra-chr
+```
+
+VCF=/scratch/bistbs/Population_Genomic_Analysis/PCA/Dama_gazelle_biallelic_snps_autosomes.vcf
+OUT=Dama_gazelle_LDprune
+FINAL=Dama_gazelle_LDpruned
+
+##### Extract LD-pruned SNPs and create PLINK binary files
+```bash
+plink --vcf $VCF \
+      --extract ${OUT}.prune.in \
+      --make-bed \
+      --out $FINAL \
+      --const-fid 0 \
+      --allow-extra-chr
+```
+##### Get the final data for visualization
+
 ```bash
 cd /scratch/bistbs/Population_Genomic_Analysis/PCA
 plink --bfile Dama_gazelle_LDpruned \
@@ -135,8 +164,8 @@ plink --bfile Dama_gazelle_LDpruned \
 
 ```
 
-### Plot the eigenvector to get the samples in Principal Components.
-### Plot the eigenvalues to get the screeplot to see the variance explained by each principal component.
+##### Plot the eigenvector to get the samples in Principal Components.
+##### Plot the eigenvalues to get the screeplot to see the variance explained by each principal component.
 ```bash
 # Install necessary packages (run once)
 install.packages("ggplot2")
