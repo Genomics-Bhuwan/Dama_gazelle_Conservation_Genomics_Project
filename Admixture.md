@@ -207,7 +207,7 @@ ggsave("Dama_gazelle_PCA_plot_600dpi.tiff", p, width = 7, height = 5, dpi = 600,
 ggsave("Dama_gazelle_PCA_plot.pdf", p, width = 7, height = 5)
 
 # ---- EIGENVALUE BARPLOT ----
-Eigenvalues <- c(3.60779, 1.05618, 0.755254, 0.392603, -0.00613124)
+Eigenvalues <- c(2.32759, 1.22138, 0.959168, 0.351876, -0.00225006)
 bar_data <- data.frame(
   PC = paste0("PC", 1:length(Eigenvalues)),
   Eigenvalue = Eigenvalues
@@ -234,6 +234,7 @@ ggsave("Dama_gazelle_Eigenvalue_plot_600dpi.tiff", bp, width = 7, height = 5, dp
 ggsave("Dama_gazelle_Eigenvalue_plot.pdf", bp, width = 7, height = 5)
 
 cat("✅ All plots saved in JPEG, TIFF (300 & 600 dpi), and PDF formats.\n")
+
 ```
 
 
