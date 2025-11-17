@@ -14,7 +14,7 @@
 
 ```bash
 #Replace these with the actual file names
-VCF_FILE="/scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/Dama_gazelle_biallelic_snps_filtered.recode.vcf"
+VCF_FILE="/scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/Dama_gazelle_biallelic_snps_autosomes.vcf"
 OUTPUT_FILE="Dama_heterozygosity_v5.tsv"
 GENOME_LENGTH=3108406478
 
@@ -28,26 +28,64 @@ for SAMPLE in $SAMPLES; do
   echo -e "$SAMPLE\t$HETEROZYGOUS\t$HETEROZYGOSITY" >> $OUTPUT_FILE
 done
 
+
 ```
 ##### Method A. Visualization for the Heterozygosity.
 
 ```r
 library(ggplot2)
+library(dplyr)
+library(readr)
 
-# Replace this with the actual file name
-INPUT_FILE <- "heterozygosity.tsv"
+# Input file (CSV)
+INPUT_FILE <- "F:/Collaborative_Projects/Dama_Gazelle_Project/Heterozygosity/Heterozygosity.csv"
 
-# Read in the data from the input file
-data <- read.table(INPUT_FILE, header=TRUE, sep="\t")
+# Read CSV
+data <- read_csv(INPUT_FILE, show_col_types = FALSE)
 
-# Create a scatter plot of heterozygosity values
-plot <- ggplot(data, aes(x=Sample, y=Heterozygosity)) +
-    geom_point(size=2) +
-    theme(axis.text.x=element_text(angle=90, hjust=1, vjust=0.5)) +
-    labs(x="Sample", y="Heterozygosity")
+# Explicit species mapping
+data <- data %>%
+  mutate(
+    Species = case_when(
+      Sample %in% c("SRR17129394", "SRR17134085", "SRR17134086") ~ "Addra gazelle",
+      Sample %in% c("SRR17134087", "SRR17134088") ~ "Mohrr gazelle",
+      TRUE ~ "Unknown"
+    )
+  )
 
-# Save the plot to a file
-ggsave("heterozygosity_plot.jpeg", plot, width=10, height=5, dpi=300)
+# Sort by heterozygosity
+data <- data %>% arrange(Heterozygosity)
+
+# Preserve sorted x-axis order
+data$Sample <- factor(data$Sample, levels = data$Sample)
+
+# Plot with species color labels
+plot <- ggplot(data, aes(x = Sample, y = Heterozygosity, color = Species)) +
+  geom_point(size = 3) +
+  theme_bw(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
+    panel.grid.major.x = element_blank()
+  ) +
+  labs(
+    x = "Sample",
+    y = "Genome-wide heterozygosity",
+    title = "Individual Heterozygosity Across Samples"
+  ) +
+  scale_color_manual(
+    values = c(
+      "Addra gazelle" = "skyblue",
+      "Mohrr gazelle" = "orange",
+      "Unknown" = "grey"
+    )
+  )
+
+# Save plot
+ggsave("heterozygosity_plot_labeled.jpeg", plot, width = 12, height = 6, dpi = 300)
+# Save plot as PDF
+ggsave("heterozygosity_plot_labeled.pdf", plot, width = 12, height = 6)
+
+
 ```
 
 
