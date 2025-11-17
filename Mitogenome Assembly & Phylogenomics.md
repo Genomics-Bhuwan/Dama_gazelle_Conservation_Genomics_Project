@@ -13,29 +13,33 @@ mkdir mitogenome_phylogeny/
 mkdir mitogenome_phylogeny/sub_reads
 cd /mitogenome_phylogeny/
 ```
+##### Step 1. randomly subsample 20% of read pairs
 
 ```bash
-# Input and output directories
 INPUT_DIR="/localscratch/bistbs/mitogenome_phylogeny/sub_reads"
 OUTPUT_DIR="/localscratch/bistbs/mitogenome_phylogeny/sub_reads_sub20"
 mkdir -p $OUTPUT_DIR
 
-# List of samples
-samples=("SRR17129394" "SRR17134085" "SRR17134086" "SRR17134087" "SRR17134088")
+SAMPLES=("SRR17129394" "SRR17134085" "SRR17134086" "SRR17134087" "SRR17134088")
+PIGZ="/localscratch/bistbs/mitogenome_phylogeny/pigz-2.8/pigz"
 
-for sample in "${samples[@]}"; do
-    echo "Processing $sample"
+for SAMPLE in "${SAMPLES[@]}"; do
+    echo "Processing $SAMPLE..."
+    seqtk sample -s 100 "$INPUT_DIR/${SAMPLE}_1_val_1.fq" 0.2 | $PIGZ -p 20 > "$OUTPUT_DIR/${SAMPLE}_1.sub.fq.gz" 
+    echo "$SAMPLE done."
+done
+```
 
-    # Step 1: Subsample 20% of read1 (INPUT IS .fq, NOT .fq.gz)
-    seqtk sample -s 100 $INPUT_DIR/${sample}_1_val_1.fq 0.2 | gzip > $OUTPUT_DIR/${sample}_1.sub.fq.gz
-
-    # Step 2: Merge subsampled read1 with original read2 (also .fq, not .fq.gz)
+##### Step 2: Merge subsampled read1 with original read2 (also .fq, not .fq.gz)
+```bash
     seqtk mergepe \
         $OUTPUT_DIR/${sample}_1.sub.fq.gz \
         $INPUT_DIR/${sample}_2_val_2.fq \
         > $OUTPUT_DIR/${sample}.interleave.fq
+```
 
-    # Step 3: Deinterleave using your local script
+#### Step 3: Deinterleave using your local script
+```bash
     sh /localscratch/bistbs/mitogenome_phylogeny/deinterleave_fastq.sh \
         < $OUTPUT_DIR/${sample}.interleave.fq \
         $OUTPUT_DIR/${sample}_1.sub20.fq.gz \
@@ -44,9 +48,8 @@ for sample in "${samples[@]}"; do
 
     echo "$sample done."
 done
-
 ```
-##### Step 2. Our main target is to run MitoZ as a loop over all of our samples via their subreads.
+##### Step 4. Our main target is to run MitoZ as a loop over all of our samples via their subreads.
 ---
 - MitoZ generates the de novo mitogenome assembly and annotates teh resulting mitogenome.
 ---
@@ -72,18 +75,18 @@ done
 
 ```
 
-### Finding a mitogenone in an assembly using BLASTN
+##### Step 5. Finding a mitogenone in an assembly using BLASTN
 - I downloaded the mitochondrial reference genome assembly of Addra gazelle from NCBI(https://www.ncbi.nlm.nih.gov/nuccore/NC_020724.1)
-```
+```bash
 cp /data/genomics/workshops/smsc_2024/mitogenomes/*.fa . mitogenomes/
 ```
 
-```
-# Step 1: Make a BLAST database from the mitochondrial reference genome
+
+##### Step 6: Make a BLAST database from the mitochondrial reference genome
 ```bash
 makeblastdb -in /scratch/bistbs/Population_Genomic_Analysis/mitogenome_haplotype_phylogeny/Nanger_dama_mitochondrial_reference_genome.fasta -dbtype nucl
 ```
-# Step 2: BLAST the nuclear genome against the mitochondrial reference
+##### Step 7: BLAST the nuclear genome against the mitochondrial reference
 ```bash
 blastn -db /scratch/bistbs/Population_Genomic_Analysis/mitogenome_haplotype_phylogeny/Nanger_dama_mitochondrial_reference_genome.fasta \
 -query /scratch/bistbs/Population_Genomic_Analysis/mitogenome_haplotype_phylogeny/Dama_gazelle_hifiasm-ULONT_primary.fasta \
@@ -92,32 +95,32 @@ blastn -db /scratch/bistbs/Population_Genomic_Analysis/mitogenome_haplotype_phyl
 | head -n1 \
 | cut -f1 > Dama_gazelle_mitoscaf.txt
 ```
-# Step 3: Extract the mitochondrial scaffold
+##### Step 8: Extract the mitochondrial scaffold
 ```bash
 seqtk subseq /scratch/bistbs/Population_Genomic_Analysis/mitogenome_haplotype_phylogeny/Dama_gazelle_hifiasm-ULONT_primary.fasta Dama_gazelle_mitoscaf.txt > Dama_gazelle_mitogenome.fasta
 ```
 
-##### 4. Mitogenome Phylogenomics
+##### 9. Mitogenome Phylogenomics
 - Now, I have a mitogenome for our samples.
 - I will do whole genome phylogeny using MAFFT and IQTREE.
 - Typically, We use the annotations to only include the 12 protein-coding genes(PCGs).
 - But, here we are only going to align the whole mitogenome.
 - How to concatenate the PCGs can be found here https://github.com/rtfcoimbra/Coimbra-et-al-2021_CurrBiol/blob/main/mitogenomes_workflow.txt
 
-##### 4.A Combine all the mitogenomes
+##### 10.A Combine all the mitogenomes
 - Assuming your mitochondrial fasta files are named something like *.fa:
 ```bash
 cat *.fa > Dama_gazelle_mitogenomes.fasta
 ```
 
-##### 4.B Align sequences with MAFFT
+##### 10.B Align sequences with MAFFT
 ##### --adjustdirection ensures reverse-complement sequences are corrected.
 ```bash
 mafft --thread 10 --adjustdirection Dama_gazelle_mitogenomes.fasta > Dama_gazelle_mitogenomes.aln
 ```
 
 
-##### 4.C Build phylogenetic tree with IQ-TREE
+##### 10.C Build phylogenetic tree with IQ-TREE
 -B 1000 → ultrafast bootstrap with 1000 replicates
 --pre Dama_gazelle_mito → output prefix for all IQ-TREE results
 ```bash
