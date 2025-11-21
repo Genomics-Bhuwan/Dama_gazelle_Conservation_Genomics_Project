@@ -19,17 +19,15 @@
 # -----------------------------
 # Paths to programs
 # -----------------------------
-```bash
 PSMC=/scratch/bistbs/Population_Genomic_Analysis/PSMC/psmc/psmc
 HPSMC_DIR=/scratch/bistbs/Population_Genomic_Analysis/hPSMC/hPSMC  # scripts folder
 MS=/path/to/ms  # path to ms simulation program
 REF=Dama_gazelle_hifiasm-ULONT_primary.fasta
 PSMC_PLOT=/scratch/bistbs/Population_Genomic_Analysis/PSMC/psmc/utils/psmc_plot.pl
-```
-##### -----------------------------
-- Step 1 & 2: Haploidize BAMs and concatenate chromosome FASTAs
-##### -----------------------------
-```bash
+
+# -----------------------------
+# Step 1 & 2: Haploidize BAMs and concatenate chromosome FASTAs
+# -----------------------------
 SAMPLES=("SRR17129394" "SRR17134085" "SRR17134086" "SRR17134087" "SRR17134088")
 
 for SAMPLE in "${SAMPLES[@]}"; do
@@ -41,11 +39,10 @@ for SAMPLE in "${SAMPLES[@]}"; do
     # Concatenate all chromosomes into one genome fasta
     cat ${SAMPLE}_haploidized_*.fa > ${SAMPLE}_all.fa
 done
-```
-##### -----------------------------
-- Step 3: Generate hPSMC .psmcfa for all Addra × Mohrr pairs
-##### -----------------------------
-```bash
+
+# -----------------------------
+# Step 3: Generate hPSMC .psmcfa for all Addra × Mohrr pairs
+# -----------------------------
 ADDRA=("SRR17129394" "SRR17134085" "SRR17134086")
 MOHR=("SRR17134087" "SRR17134088")
 
@@ -55,33 +52,30 @@ for A in "${ADDRA[@]}"; do
         python $HPSMC_DIR/psmcfa_from_2_fastas.py -b10 -m5 ${A}_all.fa ${M}_all.fa > hPSMC_${A}_${M}.psmcfa
     done
 done
-```
-##### -----------------------------
-- Step 4: Run PSMC on all pairwise .psmcfa
-##### -----------------------------
-```bash
+
+# -----------------------------
+# Step 4: Run PSMC on all pairwise .psmcfa
+# -----------------------------
 for A in "${ADDRA[@]}"; do
     for M in "${MOHR[@]}"; do
         echo "Running PSMC for $A × $M ..."
         $PSMC -N25 -t15 -r5 -p "4+25*2+4+6" -o hPSMC_${A}_${M}.psmc hPSMC_${A}_${M}.psmcfa
     done
 done
-```
-##### -----------------------------
-- Step 5: Plot hPSMC results
-##### -----------------------------
-```bash
+
+# -----------------------------
+# Step 5: Plot hPSMC results
+# -----------------------------
 for A in "${ADDRA[@]}"; do
     for M in "${MOHR[@]}"; do
         echo "Plotting hPSMC for $A × $M ..."
         $PSMC_PLOT -g 5.85 -u 1.2e-8 -X 1000000 hPSMC_${A}_${M} hPSMC_${A}_${M}.psmc
     done
 done
-```
-##### -----------------------------
-- Step 6: Estimate pre-divergence Ne
-##### -----------------------------
-```bash
+
+# -----------------------------
+# Step 6: Estimate pre-divergence Ne
+# -----------------------------
 for A in "${ADDRA[@]}"; do
     for M in "${MOHR[@]}"; do
         echo "Estimating pre-divergence Ne for $A × $M ..."
@@ -89,11 +83,11 @@ for A in "${ADDRA[@]}"; do
           -s10 -g5.85 -m1.2e-8 hPSMC_${A}_${M}.psmc > hPSMC_${A}_${M}_preNe.txt
     done
 done
-```
-##### -----------------------------
-- Step 7 (optional): Run divergence simulations
-##### -----------------------------
-##### Replace <PRE_DIV_NE>, <LOWER_TIME>, <UPPER_TIME> with values estimated from Step 6
+
+# -----------------------------
+# Step 7 (optional): Run divergence simulations
+# -----------------------------
+# Replace <PRE_DIV_NE>, <LOWER_TIME>, <UPPER_TIME> with values estimated from Step 6
 # for A in "${ADDRA[@]}"; do
 #     for M in "${MOHR[@]}"; do
 #         echo "Running divergence simulations for $A × $M ..."
@@ -105,33 +99,5 @@ done
 # done
 
 echo "hPSMC pipeline completed for all Addra × Mohrr pairs."
-6. Estimate pre-divergence Ne & simulate divergence
-
-- Use:
-```bash
-python PSMC_emit_last_iteration_coord.py -s10 -g5.85 -m1.2e-8 hPSMC_29394_34087.psmc
-```
-
-- Then run simulations to compare divergence times:
-```bash
-python hPSMC_quantify_split_time.py \
-  -o ./hPSMC_sim_29394_34087 \
-  -N NE_PRE_DIV \
-  -l LOWER_TIME \
-  -u UPPER_TIME \
-  -s 10 \
-  -p 2 \
-  -P /path/to/psmc \
-  -m /path/to/ms \
-  -H /path/to/hPSMC_directory
-```
-✅ Summary for your 5 samples
-
-Number of hPSMC comparisons: 6 (all Addra × Mohrr pairs)
-
-Steps per pair: haploidize → concat → psmcfa → run PSMC → plot → simulate
-
-Use scripts and SLURM arrays to parallelize the 6 pairs.
-
 
 
