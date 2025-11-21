@@ -12,7 +12,8 @@ Assumptions
 
 ##### Find our the generation time and mutation rate of your species.
 Generation time= 5.85 years (https://onlinelibrary.wiley.com/doi/full/10.1002/ece3.10876)
-We use generation time GEN=5.85 years and mutation rate MU=1.1 × 10−08 (https://onlinelibrary.wiley.com/doi/10.1111/1755-0998.13181).
+We use generation time GEN=5.85 years and mutation rate MU=2.96E-09 per site per year. (science.sciencemag.org/content/364/6446/eaav6202/suppl/DC1).
+2.96E-09 per site per year.
 ```bash
 mkdir psmc
 ```
@@ -66,7 +67,6 @@ echo "Consensus FASTQ generated for $SAMPLE"
 - With this consensus sequence, we created the input file to run PSMC.
 
   ##### The slurm script will convert the fastq file into psmcfa
-
 ```bash
 #!/bin/bash -l
 #SBATCH --job-name=PSMC_run
@@ -87,6 +87,10 @@ FQ2PSMCFA_BIN=/scratch/bistbs/Population_Genomic_Analysis/PSMC/psmc/utils/fq2psm
 SPLITFA_BIN=/scratch/bistbs/Population_Genomic_Analysis/PSMC/psmc/utils/splitfa
 PSMC_PLOT_BIN=/scratch/bistbs/Population_Genomic_Analysis/PSMC/psmc/utils/psmc_plot.pl
 
+# Mutation rate (updated)
+MU=2.96e-09
+GEN=5.85
+
 # List of fq.gz files
 FQS=(SRR17129394.fq.gz SRR17134085.fq.gz SRR17134086.fq.gz SRR17134087.fq.gz SRR17134088.fq.gz)
 
@@ -94,31 +98,63 @@ FQS=(SRR17129394.fq.gz SRR17134085.fq.gz SRR17134086.fq.gz SRR17134087.fq.gz SRR
 FQ=${FQS[$SLURM_ARRAY_TASK_ID]}
 SAMPLE=$(basename $FQ .fq.gz)
 
+# Create output folder for this sample
+OUTDIR=PSMC_results/${SAMPLE}
+mkdir -p $OUTDIR
+
 echo "Processing sample $SAMPLE ..."
+echo "Output directory: $OUTDIR"
 
-# Step 1: Convert fq.gz → psmcfa
-$FQ2PSMCFA_BIN -q20 $FQ > ${SAMPLE}.psmcfa
-echo "PSMCFA input generated: ${SAMPLE}.psmcfa"
+###############################
+# Step 1: fq.gz → psmcfa
+###############################
+$FQ2PSMCFA_BIN -q20 $FQ > $OUTDIR/${SAMPLE}.psmcfa
+echo "PSMCFA created."
 
-# Step 2: Split PSMCFA for bootstrapping
-$SPLITFA_BIN ${SAMPLE}.psmcfa > ${SAMPLE}.split.psmcfa
-echo "PSMCFA split generated: ${SAMPLE}.split.psmcfa"
+###############################
+# Step 2: Split for bootstrapping
+###############################
+$SPLITFA_BIN $OUTDIR/${SAMPLE}.psmcfa > $OUTDIR/${SAMPLE}.split.psmcfa
+echo "Split PSMCFA created."
 
-# Step 3: Run main PSMC
-$PSMC_BIN -N25 -t15 -r5 -p "4+25*2+4+6" -o ${SAMPLE}.psmc ${SAMPLE}.psmcfa
-echo "PSMC completed for ${SAMPLE}"
+###############################
+# Step 3: Main PSMC
+###############################
+$PSMC_BIN -N25 -t15 -r5 -p "4+25*2+4+6" \
+    -o $OUTDIR/${SAMPLE}.psmc \
+    $OUTDIR/${SAMPLE}.psmcfa
 
-# Step 4: Run 100 bootstrap replicates in parallel
-seq 100 | xargs -P 4 -i echo $PSMC_BIN -N25 -t15 -r5 -b -p "4+25*2+4+6" -o ${SAMPLE}_round-{}.psmc ${SAMPLE}.split.psmcfa | sh
-echo "Bootstrapping done for ${SAMPLE}"
+echo "Main PSMC done."
+```
+##### Bootstrap the samples
+```bash
+###############################
+# Step 4: Bootstraps (100)
+###############################
+cd $OUTDIR
 
-# Step 5: Combine original + bootstrap replicates
+seq 100 | xargs -P 4 -I{} \
+    $PSMC_BIN -N25 -t15 -r5 -b -p "4+25*2+4+6" \
+    -o ${SAMPLE}_round-{}.psmc ${SAMPLE}.split.psmcfa
+
+echo "Bootstrap replicates generated."
+
+###############################
+# Step 5: Combine main + bootstraps
+###############################
 cat ${SAMPLE}.psmc ${SAMPLE}_round-*.psmc > ${SAMPLE}.combined.psmc
-echo "Combined PSMC file created: ${SAMPLE}.combined.psmc"
 
-# Step 6: Generate PSMC plot
-$PSMC_PLOT_BIN -g 5.85 -u 1.2e-8 -X 1000000 ${SAMPLE} ${SAMPLE}.combined.psmc
-echo "PSMC plot generated for ${SAMPLE}"
-
+echo "Combined PSMC created."
 ```
 
+##### Final Plotting
+```bash
+###############################
+# Step 6: Plot final PSMC
+###############################
+$PSMC_PLOT_BIN -g $GEN -u $MU -X 1000000 ${SAMPLE} ${SAMPLE}.combined.psmc
+
+echo "PSMC plot generated."
+
+echo "Finished sample: $SAMPLE"
+```
