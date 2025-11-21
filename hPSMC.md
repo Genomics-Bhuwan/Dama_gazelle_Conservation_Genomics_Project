@@ -1,6 +1,6 @@
 # hPSMC
 
-**Author:** Bhuwan Singh Bist
+**Author:** Bhuwan Singh Bist.
 
 **Affiliation:** Jezkova lab
 
