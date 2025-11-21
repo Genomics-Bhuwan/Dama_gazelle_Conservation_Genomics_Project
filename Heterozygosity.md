@@ -175,7 +175,7 @@ for bam_file in "${samples[@]}"; do
         echo "[$(date)] Processing $SAMPLE chromosome $CHR..."
         
         # Run ANGSD to calculate SAF
-        $ANGSD_EXE -P 10 \
+        $ANGSD_EXE -P 24 \
             -i "${bam_dir}/${bam_file}" \
             -anc "$ancestral_fasta" \
             -ref "$reference_fasta" \
