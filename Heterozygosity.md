@@ -136,35 +136,70 @@ realSFS -nsites <number_of_sites> <input_saf_idx_file> > <output_est_ml_file>
 - `> <output_est_ml_file>` - Specifies the output file path and name for the maximum likelihood estimate of the SFS.
 
 ANGSD does not differentiate the chromosomes if you run the whole genome at once, that is why we need to use the ‘region’ variable when running ANGSD to specify the chromosome/scaffold. This will be useful to look the heterozygosity throughout the genome. 
-
+##### This is the code I used for running the ANGSD and SFS for Dama gazelle for the five samples as given in the code below.
 ```bash
-#!/bin/bash
+#!/bin/bash -l
+#SBATCH --job-name=ANGSD_Het
+#SBATCH --time=300:00:00
+#SBATCH --cpus-per-task=24
+#SBATCH --mem=128G
+#SBATCH --partition=batch
+#SBATCH --output=angsd_het_%A.log
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=bistbs@miamioh.edu
 
 #Set variables
+# ANGSD executable (full path)
+ANGSD_EXE="/scratch/bistbs/Population_Genomic_Analysis/PSMC/angsd/angsd"
+REAL_SFS_EXE="/scratch/bistbs/Population_Genomic_Analysis/PSMC/angsd/misc/realSFS"  # adjust if different
 
-input_bam_file="/pool/genomics/figueiroh/SMSC_2023/mapping/NN114296_cloud_leopard_sorted.bam"
-ancestral_fasta_file="/pool/genomics/figueiroh/SMSC_2023/reference/mNeoNeb1.pri.cur.20220520.fasta"
-reference_fasta_file="/pool/genomics/figueiroh/SMSC_2023/reference/mNeoNeb1.pri.cur.20220520.fasta"
-output_directory="/pool/genomics/figueiroh/SMSC_2023/heterozygosity"
-SAMPLE="NN114296"
+# Directories and reference files
+bam_dir="/scratch/bistbs/Population_Genomic_Analysis/PSMC"
+output_dir="${bam_dir}/heterozygosity"
+ancestral_fasta="${bam_dir}/Dama_gazelle_hifiasm-ULONT_primary.fasta"
+reference_fasta="${bam_dir}/Dama_gazelle_hifiasm-ULONT_primary.fasta"
 
-#Loop through scaffolds 1 to 18
+# Create output directory if it doesn't exist
+mkdir -p "$output_dir"
 
-for i in {1..18}; do
-# Run ANGSD command
-angsd -P 10 -i ${input_bam_file} -anc ${ancestral_fasta_file} -dosaf 1 -gl 1 -C 50 -minQ 20 -minmapq 30 -fold 1 -out ${output_directory}/$SAMPLE.SUPER_${i} -ref ${reference_fasta_file} -r SUPER_${i}
+# List of BAM files
+samples=("SRR17129394.bam" "SRR17134085.bam" "SRR17134086.bam" "SRR17134087.bam" "SRR17134088.bam")
 
-# Run realSFS command
-realSFS -nsites 200000 ${output_directory}/$SAMPLE.SUPER_${i}.saf.idx > ${output_directory}/$SAMPLE.SUPER_${i}.est.ml
-
+# Loop over each sample
+for bam_file in "${samples[@]}"; do
+    SAMPLE=$(basename "$bam_file" .bam)
+    
+    # Loop over autosomes 1-17 (matching FASTA headers)
+    for i in {1..17}; do
+        CHR="$i"
+        echo "[$(date)] Processing $SAMPLE chromosome $CHR..."
+        
+        # Run ANGSD to calculate SAF
+        $ANGSD_EXE -P 10 \
+            -i "${bam_dir}/${bam_file}" \
+            -anc "$ancestral_fasta" \
+            -ref "$reference_fasta" \
+            -dosaf 1 \
+            -gl 1 \
+            -C 50 \
+            -minQ 20 \
+            -minmapq 30 \
+            -out "${output_dir}/${SAMPLE}.${CHR}" \
+            -r "$CHR"
+        
+        # Estimate folded SFS
+        $REAL_SFS_EXE -fold 1 "${output_dir}/${SAMPLE}.${CHR}.saf.idx" > "${output_dir}/${SAMPLE}.${CHR}.est.ml"
+    done
 done
+
+echo "[$(date)] All ANGSD runs completed."
 ```
 
-Replace the `<placeholders>` with the desired values for your specific analysis, and update the paths for input and output files as needed. The `$SAMPLE` variable should also be set to the appropriate sample name.
+- Replace the `<placeholders>` with the desired values for your specific analysis, and update the paths for input and output files as needed. The `$SAMPLE` variable should also be set to the appropriate sample name.
 
-This script will loop through scaffolds 1 to 19, running the ANGSD command and then the realSFS command for each scaffold. The results will be saved in the specified output directory.
+- This script will loop through scaffolds 1 to 17, running the ANGSD command and then the realSFS command for each scaffold. The results will be saved in the specified output directory.
 
-Now we can add the sample name and scaffold number for each line in our output. This will make our work easier when we want to plot our results. 
+- Now we can add the sample name and scaffold number for each line in our output. This will make our work easier when we want to plot our results. 
 
 ```bash
 #!/bin/bash
