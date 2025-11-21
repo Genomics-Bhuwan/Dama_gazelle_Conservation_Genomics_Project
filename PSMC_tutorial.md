@@ -79,8 +79,13 @@ echo "Consensus FASTQ generated for $SAMPLE"
 #SBATCH --mail-user=bistbs@miamioh.edu
 #SBATCH --array=0-4  # 5 samples
 
-# PSMC binary location
+# PSMC main binary
 PSMC_BIN=/scratch/bistbs/Population_Genomic_Analysis/PSMC/psmc/psmc
+
+# PSMC utils
+FQ2PSMCFA_BIN=/scratch/bistbs/Population_Genomic_Analysis/PSMC/psmc/utils/fq2psmcfa
+SPLITFA_BIN=/scratch/bistbs/Population_Genomic_Analysis/PSMC/psmc/utils/splitfa
+PSMC_PLOT_BIN=/scratch/bistbs/Population_Genomic_Analysis/PSMC/psmc/utils/psmc_plot.pl
 
 # List of fq.gz files
 FQS=(SRR17129394.fq.gz SRR17134085.fq.gz SRR17134086.fq.gz SRR17134087.fq.gz SRR17134088.fq.gz)
@@ -92,19 +97,19 @@ SAMPLE=$(basename $FQ .fq.gz)
 echo "Processing sample $SAMPLE ..."
 
 # Step 1: Convert fq.gz → psmcfa
-fq2psmcfa -q20 $FQ > ${SAMPLE}.psmcfa
+$FQ2PSMCFA_BIN -q20 $FQ > ${SAMPLE}.psmcfa
 echo "PSMCFA input generated: ${SAMPLE}.psmcfa"
 
 # Step 2: Split PSMCFA for bootstrapping
-splitfa ${SAMPLE}.psmcfa > ${SAMPLE}.split.psmcfa
+$SPLITFA_BIN ${SAMPLE}.psmcfa > ${SAMPLE}.split.psmcfa
 echo "PSMCFA split generated: ${SAMPLE}.split.psmcfa"
 
 # Step 3: Run main PSMC
-psmc -N25 -t15 -r5 -p "4+25*2+4+6" -o ${SAMPLE}.psmc ${SAMPLE}.psmcfa
+$PSMC_BIN -N25 -t15 -r5 -p "4+25*2+4+6" -o ${SAMPLE}.psmc ${SAMPLE}.psmcfa
 echo "PSMC completed for ${SAMPLE}"
 
 # Step 4: Run 100 bootstrap replicates in parallel
-seq 100 | xargs -P 4 -i echo psmc -N25 -t15 -r5 -b -p "4+25*2+4+6" -o ${SAMPLE}_round-{}.psmc ${SAMPLE}.split.psmcfa | sh
+seq 100 | xargs -P 4 -i echo $PSMC_BIN -N25 -t15 -r5 -b -p "4+25*2+4+6" -o ${SAMPLE}_round-{}.psmc ${SAMPLE}.split.psmcfa | sh
 echo "Bootstrapping done for ${SAMPLE}"
 
 # Step 5: Combine original + bootstrap replicates
@@ -112,8 +117,7 @@ cat ${SAMPLE}.psmc ${SAMPLE}_round-*.psmc > ${SAMPLE}.combined.psmc
 echo "Combined PSMC file created: ${SAMPLE}.combined.psmc"
 
 # Step 6: Generate PSMC plot
-# Use generation time g=5.85 yrs (Dama gazelle) and mutation rate u=1.2e-8
-psmc_plot.pl -g 5.85 -u 1.2e-8 -X 1000000 ${SAMPLE} ${SAMPLE}.combined.psmc
+$PSMC_PLOT_BIN -g 5.85 -u 1.2e-8 -X 1000000 ${SAMPLE} ${SAMPLE}.combined.psmc
 echo "PSMC plot generated for ${SAMPLE}"
 
 ```
