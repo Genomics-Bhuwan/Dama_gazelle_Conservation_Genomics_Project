@@ -1,4 +1,4 @@
-# Genome Annotation of Dama gazelle using homology based gene prediction
+# hPSMC
 
 **Author:** Bhuwan Singh Bist
 
@@ -6,75 +6,132 @@
 
 **Date:** 2025-10-11
 
-This tutorial demonstrates a complete workflow for homology based gene prediction. The pipeline includes:
-
-1. Quality control (FastQC)
-2. Adapter trimming (Trim Galore + Cutadapt)
-3. Mapping reads to a haplotype-resolved Ruminant Telomere-to-Telomere(T2T)reference genome assembly of Dama gazelle(Nanger dama)
-4. BAM processing (Picard & Samtools)
-5. Variant calling and filtering (GATK & VCFtools)
-
-> **Note:** All code blocks are for **demonstration purposes only** and are not executed in this document.
-
----
-
-# Dama Gazelle WGS Variant Calling Pipeline
-
-This tutorial demonstrates the workflow for whole-genome sequencing (WGS) variant calling in the Dama gazelle. Each step includes the commands in a copyable code block.
-
----
-
-## 1. The code is using GeMoMa for gene annotation.
-
-```bash
 #!/bin/bash -l
-# To be submitted by: sbatch gemoma_Dama_gazelle.slurm
-
-#SBATCH --time=300:00:00
-#SBATCH --nodes=1
-#SBATCH --ntasks-per-node=24
-#SBATCH --mem=256G
+#SBATCH --job-name=hPSMC_all
+#SBATCH --time=120:00:00
+#SBATCH --cpus-per-task=10
+#SBATCH --mem=128G
 #SBATCH --partition=batch
-#SBATCH --mail-type=BEGIN,END
+#SBATCH --output=hpsmc_run_%A_%a.log
+#SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=bistbs@miamioh.edu
-#SBATCH --job-name=GeMoMa_Dama_gazelle
-#SBATCH --output=GeMoMa_Dama_gazelle_%j.out
-#SBATCH --error=GeMoMa_Dama_gazelle_%j.err
 
-# Masking and annotating repetitive elements with Repeatmodeler and RepeatMasker
-
-# Repeatmodeler: 
-a. used for identifying the repeates in the genome. It provides a list of repeat family sequence to mask repeats in the genome with RepeatMasker. 
-b. screens DNA sequences for interspersed repeats and low complexity DNA sequences.
-c. output would be: detailed annotation of the repeats that are present in the query sequence as well as modified version of the query sequence in which all the annotated repeats have been masked.
-d. software takes way long time with large genomes. 
-e. Set correct parameters in repeatemodeler so that we could get repeats that are not only grouped by family, but are also annotated.
-
-# Link to the software
-Repeatmodeler http://www.repeatmasker.org/RepeatModeler/
-RepeatMasker http://www.repeatmasker.org/RMDownload.html
-
-#usage:BuildDatabase -name {database_name} {genome_file-in_fasta_format}
-# # Since, dama gazelle doesnot have the database in repbase, I am creating the denovo repeat library and use it.
-## This step is building the database for downstream analysis.
+# -----------------------------
+# Paths to programs
+# -----------------------------
 ```bash
-BuildDatabase -name Dama_gazelle /scratch/bistbs_new/Genome_annotation_Homology_based/Dama_gazelle_hifiasm-ULONT_primary.fasta.gz
+PSMC=/scratch/bistbs/Population_Genomic_Analysis/PSMC/psmc/psmc
+HPSMC_DIR=/scratch/bistbs/Population_Genomic_Analysis/hPSMC/hPSMC  # scripts folder
+MS=/path/to/ms  # path to ms simulation program
+REF=Dama_gazelle_hifiasm-ULONT_primary.fasta
+PSMC_PLOT=/scratch/bistbs/Population_Genomic_Analysis/PSMC/psmc/utils/psmc_plot.pl
+```
+##### -----------------------------
+- Step 1 & 2: Haploidize BAMs and concatenate chromosome FASTAs
+##### -----------------------------
+```bash
+SAMPLES=("SRR17129394" "SRR17134085" "SRR17134086" "SRR17134087" "SRR17134088")
+
+for SAMPLE in "${SAMPLES[@]}"; do
+    echo "Haploidizing $SAMPLE ..."
+    for CHR in $(cat chromosomes.txt); do
+        samtools mpileup -s -f $REF -q30 -Q60 -r $CHR ${SAMPLE}.bam | \
+        pu2fa -c $CHR -C 100 > ${SAMPLE}_haploidized_${CHR}.fa
+    done
+    # Concatenate all chromosomes into one genome fasta
+    cat ${SAMPLE}_haploidized_*.fa > ${SAMPLE}_all.fa
+done
+```
+##### -----------------------------
+- Step 3: Generate hPSMC .psmcfa for all Addra × Mohrr pairs
+##### -----------------------------
+```bash
+ADDRA=("SRR17129394" "SRR17134085" "SRR17134086")
+MOHR=("SRR17134087" "SRR17134088")
+
+for A in "${ADDRA[@]}"; do
+    for M in "${MOHR[@]}"; do
+        echo "Generating hPSMC .psmcfa for $A × $M ..."
+        python $HPSMC_DIR/psmcfa_from_2_fastas.py -b10 -m5 ${A}_all.fa ${M}_all.fa > hPSMC_${A}_${M}.psmcfa
+    done
+done
+```
+##### -----------------------------
+- Step 4: Run PSMC on all pairwise .psmcfa
+##### -----------------------------
+```bash
+for A in "${ADDRA[@]}"; do
+    for M in "${MOHR[@]}"; do
+        echo "Running PSMC for $A × $M ..."
+        $PSMC -N25 -t15 -r5 -p "4+25*2+4+6" -o hPSMC_${A}_${M}.psmc hPSMC_${A}_${M}.psmcfa
+    done
+done
+```
+##### -----------------------------
+- Step 5: Plot hPSMC results
+##### -----------------------------
+```bash
+for A in "${ADDRA[@]}"; do
+    for M in "${MOHR[@]}"; do
+        echo "Plotting hPSMC for $A × $M ..."
+        $PSMC_PLOT -g 5.85 -u 1.2e-8 -X 1000000 hPSMC_${A}_${M} hPSMC_${A}_${M}.psmc
+    done
+done
+```
+##### -----------------------------
+- Step 6: Estimate pre-divergence Ne
+##### -----------------------------
+```bash
+for A in "${ADDRA[@]}"; do
+    for M in "${MOHR[@]}"; do
+        echo "Estimating pre-divergence Ne for $A × $M ..."
+        python $HPSMC_DIR/PSMC_emit_last_iteration_coord.py \
+          -s10 -g5.85 -m1.2e-8 hPSMC_${A}_${M}.psmc > hPSMC_${A}_${M}_preNe.txt
+    done
+done
+```
+##### -----------------------------
+- Step 7 (optional): Run divergence simulations
+##### -----------------------------
+##### Replace <PRE_DIV_NE>, <LOWER_TIME>, <UPPER_TIME> with values estimated from Step 6
+# for A in "${ADDRA[@]}"; do
+#     for M in "${MOHR[@]}"; do
+#         echo "Running divergence simulations for $A × $M ..."
+#         python $HPSMC_DIR/hPSMC_quantify_split_time.py \
+#           -o ./hPSMC_sim_${A}_${M} \
+#           -N <PRE_DIV_NE> -l <LOWER_TIME> -u <UPPER_TIME> \
+#           -s 10 -p 2 -P $PSMC -m $MS -H $HPSMC_DIR
+#     done
+# done
+
+echo "hPSMC pipeline completed for all Addra × Mohrr pairs."
+6. Estimate pre-divergence Ne & simulate divergence
+
+- Use:
+```bash
+python PSMC_emit_last_iteration_coord.py -s10 -g5.85 -m1.2e-8 hPSMC_29394_34087.psmc
 ```
 
-
-# RepeatModeler is a de novo transposable element (TE) family identification and modeling package. At the heart of RepeatModeler are three de-novo repeat finding programs ( RECON, RepeatScout and LtrHarvest/Ltr_retriever ) which employ complementary computational methods for identifying repeat element boundaries and family relationships from sequence data.
-
-# RepeatModeler assists in automating the runs of the various algorithms given a genomic database, clustering redundant results, refining and classifying the families and producing a high quality library of TE families suitable for use with RepeatMasker and ultimately for submission to the Dfam database ( http://dfam.org ).
+- Then run simulations to compare divergence times:
 ```bash
-# Usage: RepeatModeler -database {database_name} -pa {number of cores} -LTRStruct > out.log
-RepeatModeler -database Dama_gazelle -threads 24 -engine ncbi -LTRStruct  > repeatmodeler_Dama_gazelle_out.log
+python hPSMC_quantify_split_time.py \
+  -o ./hPSMC_sim_29394_34087 \
+  -N NE_PRE_DIV \
+  -l LOWER_TIME \
+  -u UPPER_TIME \
+  -s 10 \
+  -p 2 \
+  -P /path/to/psmc \
+  -m /path/to/ms \
+  -H /path/to/hPSMC_directory
 ```
+✅ Summary for your 5 samples
 
+Number of hPSMC comparisons: 6 (all Addra × Mohrr pairs)
 
-#Repeat Masker: It is used for masking the repetitive elements. Soft mask with lower case letter and hard mask with N.
-# usage: RepeatMasker -pa 30 -gff -lib {consensi_classified} -dir {dir_name} {genome_in_fasta}
+Steps per pair: haploidize → concat → psmcfa → run PSMC → plot → simulate
 
-RepeatMasker -pa $NSLOTS -xsmall -gff -lib consensi.fa.classified -dir ../repeatmasker /path/to_assembly/bHypOws1_hifiasm.bp.p_ctg.fasta
+Use scripts and SLURM arrays to parallelize the 6 pairs.
 
 
 
