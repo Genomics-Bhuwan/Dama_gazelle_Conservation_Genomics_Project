@@ -1,4 +1,4 @@
-#### Heterozygosity tutorial
+##### Heterozygosity tutorial
 ---
 - We will use two strategies to calcualte the average heterozygosity.
 - The first step is using bcftools and vcftools.
@@ -90,7 +90,7 @@ ggsave("heterozygosity_plot_labeled.pdf", plot, width = 12, height = 6)
 
 
 
-### B. Genome-wide heterozygosity using Window-based approach.
+##### B. Genome-wide heterozygosity using Window-based approach.
 - This approach allows us to visualize the variation throughtout the genome with the ability to focus on regions of particularly higher or lower diversity.
 - It is also a comparision with other methods such as ROH.
 - ANGSD peforms it. It is a software designed to analyze low-depth NGS data. It handles large-scale sequencing data particularly for non-model organisms.
@@ -104,7 +104,7 @@ Key capabilities of ANGSD include:
 5. Selection scans: The software can detect signals of positive or balancing selection, using various statistics like FST, Tajima's D, and nucleotide diversity.
 6. Handling of various file formats: ANGSD can work with various input file formats, including BAM, CRAM, and VCF files, and output results in multiple formats suitable for downstream analyses.
 
-Overall, ANGSD is a versatile and powerful tool for analyzing NGS data, particularly for non-model organisms or low-coverage sequencing projects. It provides a comprehensive suite of analysis tools that cater to various research objectives in population genetics and genomics.
+- Overall, ANGSD is a versatile and powerful tool for analyzing NGS data, particularly for non-model organisms or low-coverage sequencing projects. It provides a comprehensive suite of analysis tools that cater to various research objectives in population genetics and genomics.
 ---
 #### How to run heterozygosity using ANGSD
 
@@ -202,7 +202,6 @@ echo "[$(date)] All ANGSD runs completed."
 - Now we can add the sample name and scaffold number for each line in our output. This will make our work easier when we want to plot our results. 
 
 ```bash
-#!/bin/bash
 #!/bin/bash
 
 # ----------------------------
