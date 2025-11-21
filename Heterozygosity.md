@@ -203,22 +203,45 @@ echo "[$(date)] All ANGSD runs completed."
 
 ```bash
 #!/bin/bash
+#!/bin/bash
 
-output_directory="path/to/your/output_directory"
-SAMPLE="your_sample_name"
+# ----------------------------
+# Annotate realSFS output files with number of lines, sample name, and scaffold
+# ----------------------------
 
-# Loop through scaffolds 1 to 18
-for i in {1..18}; do
-  # Calculate the number of lines in the output file
-  num_lines=$(wc -l < ${output_directory}/$SAMPLE.SUPER_${i}.est.ml)
+output_dir="/scratch/bistbs/Population_Genomic_Analysis/PSMC/heterozygosity"
 
-  # Add the number of lines, sample name, and scaffold number to each line of the output file
-  awk -v lines="$num_lines" -v sample="$SAMPLE" -v scaffold="$i" '{print lines, sample, "SUPER_" scaffold, $0}' ${output_directory}/$SAMPLE.SUPER_${i}.est.ml > ${output_directory}/$SAMPLE.SUPER_${i}.est.ml.annotated
+# List of BAM/sample names (without .bam)
+samples=("SRR17129394" "SRR17134085" "SRR17134086" "SRR17134087" "SRR17134088")
 
-  # Optional: Move the annotated file to the original file
-  mv ${output_directory}/$SAMPLE.SUPER_${i}.est.ml.annotated ${output_directory}/$SAMPLE.SUPER_${i}.est.ml
+# Loop over each sample
+for SAMPLE in "${samples[@]}"; do
+    echo "[$(date)] Annotating $SAMPLE files..."
 
+    # Loop over scaffolds 1 to 17
+    for i in {1..17}; do
+        input_file="${output_dir}/${SAMPLE}.${i}.est.ml"
+        output_file="${output_dir}/${SAMPLE}.${i}.est.ml.annotated"
+
+        if [ -f "$input_file" ]; then
+            # Count number of lines
+            num_lines=$(wc -l < "$input_file")
+
+            # Annotate each line with line count, sample, and scaffold
+            awk -v lines="$num_lines" -v sample="$SAMPLE" -v scaffold="$i" '{print lines, sample, scaffold, $0}' "$input_file" > "$output_file"
+
+            # Replace original file with annotated version
+            mv "$output_file" "$input_file"
+
+            echo "[$(date)] Annotated $input_file"
+        else
+            echo "[$(date)] WARNING: File $input_file not found, skipping."
+        fi
+    done
 done
+
+echo "[$(date)] All annotation completed!"
+
 ```
 
 Concatenate files
@@ -226,137 +249,75 @@ Concatenate files
 ```bash
 #!/bin/bash
 
-Set the input and output directory
+# ----------------------------
+# Concatenate all realSFS output files for a given sample
+# ----------------------------
 
-input_directory="path/to/your/input_directory"
-output_directory="path/to/your/output_directory"
+input_directory="/scratch/bistbs/Population_Genomic_Analysis/PSMC/heterozygosity"
+output_directory="/scratch/bistbs/Population_Genomic_Analysis/PSMC/heterozygosity/concatenated"
+mkdir -p "$output_directory"
 
-Create a new output file
+# Output file
+output_file="${output_directory}/all_samples_est_ml_concatenated.txt"
 
-output_file="${output_directory}/all_est_ml_concatenated.txt"
+# Remove output file if it already exists
+[ -f "$output_file" ] && rm "$output_file"
 
-Remove the output file if it already exists
+# List of samples
+samples=("SRR17129394" "SRR17134085" "SRR17134086" "SRR17134087" "SRR17134088")
 
-if [ -f "${output_file}" ]; then
-rm "${output_file}"
-fi
-
-Loop through all "[est.ml](http://est.ml/)" files and concatenate them
-for file in ${input_directory}/*.est.ml; do
-cat "${file}" >> "${output_file}"
-done
-```
-
-Plot the results for one chromosome using R
-
-```bash
-# Load required libraries
-library(tidyverse) # Collection of packages for data manipulation and visualization
-library(viridis)   # Package for generating color palettes
-library(scales)    # Package for scaling and formatting axis labels
-
-# Read data file and store it in the variable 'het_master'
-het_master <- read.table("/path/to/file/NN_SUPER.est.ml")
-
-# Manipulate the data
-het_master %>% 
-  rename(sample=V2) %>%          # Rename V2 as 'sample'
-  rename(chromosome = V3) %>%    # Rename V3 as 'chromosome'
-  mutate(heterozygosity = V5/(V4 + V5)) %>% # Calculate heterozygosity as V5 / (V4 + V5)
-  mutate(position = ((V1*200000)-200000))   %>% # Calculate position as (V1 * 200000) - 200000
-  filter(chromosome == "SUPER_2") %>% # Filter data to include only rows where 'chromosome' is 'SUPER_2'
-
-  # Create a ggplot2 plot
-  ggplot(aes(x=position, y=heterozygosity)) + # Set x-axis as 'position' and y-axis as 'heterozygosity'
-  geom_line(colour="grey",alpha=0.5) + # Add a line plot with grey color and 0.5 alpha (transparency)
-  geom_point(aes(colour=factor(chromosome))) + # Add points, color them based on 'chromosome' factor variable
-  scale_color_viridis(discrete = TRUE) + # Use viridis color palette for the points
-  facet_grid(sample ~ chromosome,scales = "free_x") + # Create a facet grid with 'sample' on the y-axis and 'chromosome' on the x-axis, set x-axis scales to be free
-  labs(x = NULL, y = "Heterozygosity\n") + # Remove x-axis labels and set y-axis label to "Heterozygosity\n"
-  scale_y_continuous(labels = comma) + # Format y-axis labels with commas
-  scale_x_continuous(labels = comma) + # Format x-axis labels with commas
-  theme_minimal() + # Apply a minimal theme to the plot
-  theme(legend.position = "none", # Remove legend
-        strip.text.x = element_text(face = "bold"), # Set strip text for x-axis to bold
-        strip.text.y = element_text(face = "bold"), # Set strip text for y-axis to bold
-        panel.grid.major.x = element_blank(), # Remove major x-axis gridlines
-        panel.grid.minor.x = element_blank(), # Remove minor x-axis gridlines
-        panel.spacing.x = unit(0, "line"), # Set panel spacing to zero
-        panel.border = element_rect(color = "black", fill = NA, size = 0.25)) # Add a black border around the panels
-```
-
-### How to run on an HPC
-
-```bash
-#!/bin/sh
-#---------------Parameters----------------------#
-#$ -S /bin/sh
-#$ -pe mthread 4
-#$ -q mThC.q
-#$ -l mres=4G,h_data=1G,h_vmem=1G
-#$ -cwd
-#$ -j y
-#$ -N ANGSD_realSFS_job
-#$ -o ANGSD_realSFS_job.log
-#---------------Modules-------------------------#
-module load bioinformatics/angsd/0.921
-module load other_required_modules
-#---------------Your Commands-------------------#
-echo + date job $JOB_NAME started in $QUEUE with jobID=$JOB_ID on $HOSTNAME
-
-#Set variables
-
-input_bam_file="path/to/your/input_bam_file.bam"
-ancestral_fasta_file="path/to/your/ancestral_fasta_file.fasta"
-reference_fasta_file="path/to/your/reference_fasta_file.fasta"
-output_directory="path/to/your/output_directory"
-SAMPLE="your_sample_name"
-
-Loop through scaffolds 1 to 19
-
-for i in {1..18}; do
-# Run ANGSD command
-angsd -P <threads> -i ${input_bam_file} -anc ${ancestral_fasta_file} -dosaf <dosaf_value> -gl <genotype_likelihood_method> -C <base_quality_adjustment> -minQ <min_base_quality> -minmapq <min_mapping_quality> -fold <fold_value> -out ${output_directory}/$SAMPLE.scaffold${i} -ref ${reference_fasta_file} -r HiC_scaffold_${i}
-
-# Run realSFS command
-realSFS -nsites <number_of_sites> ${output_directory}/$SAMPLE.scaffold${i}.saf.idx > ${output_directory}/$SAMPLE.scaffold${i}.est.ml
-
+# Loop over each sample and scaffold 1-17
+for SAMPLE in "${samples[@]}"; do
+    for i in {1..17}; do
+        input_file="${input_directory}/${SAMPLE}.${i}.est.ml"
+        if [ -f "$input_file" ]; then
+            cat "$input_file" >> "$output_file"
+        else
+            echo "WARNING: $input_file not found, skipping."
+        fi
+    done
 done
 
-echo = date job $JOB_NAME done
+echo "All files concatenated into $output_file"
+
 ```
+
+##### Plot the results for one chromosome using R
 
 ```bash
-#!/bin/sh
-#---------------Parameters----------------------#
-#$ -S /bin/sh
-#$ -pe mthread 4
-#$ -q mThC.q
-#$ -l mres=4G,h_data=1G,h_vmem=1G
-#$ -cwd
-#$ -j y
-#$ -N Annotate_EST_ML_job
-#$ -o Annotate_EST_ML_job.log
-#---------------Modules-------------------------#
-#Load any required modules if necessary (uncomment the following line and replace 'module_name')
-#module load module_name
-#---------------Your Commands-------------------#
-echo + date job $JOB_NAME started in $QUEUE with jobID=$JOB_ID on $HOSTNAME
-#Set variables
+library(tidyverse)
+library(viridis)
+library(scales)
 
-output_directory="path/to/your/output_directory"
-SAMPLE="your_sample_name"
+# Read the concatenated file
+het_master <- read.table("/path/to/file/all_est_ml_concatenated.txt")
 
-#Loop through scaffolds 1 to 19
+# Process and plot
+het_master %>%
+  rename(sample = V2,
+         chromosome = V3) %>%
+  mutate(
+    heterozygosity = V5 / (V4 + V5),
+    position = ((V1 * 200000) - 200000)  # rough genomic position
+  ) %>%
+  ggplot(aes(x = position, y = heterozygosity)) +
+  geom_line(color = "grey", alpha = 0.5) +
+  geom_point(aes(colour = factor(sample)), size = 1) +  # color by sample
+  scale_color_viridis(discrete = TRUE) +
+  facet_grid(sample ~ chromosome, scales = "free_x") +  # facets by sample and chromosome
+  labs(x = NULL, y = "Heterozygosity\n") +
+  scale_y_continuous(labels = comma) +
+  scale_x_continuous(labels = comma) +
+  theme_minimal() +
+  theme(
+    legend.position = "top",
+    strip.text.x = element_text(face = "bold"),
+    strip.text.y = element_text(face = "bold"),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor.x = element_blank(),
+    panel.spacing.x = unit(0, "line"),
+    panel.border = element_rect(color = "black", fill = NA, size = 0.25)
+  )
 
-for i in {1..19}; do
-# Add sample name and scaffold number to each line of the output file
-awk -v sample="$SAMPLE" -v scaffold="$i" '{print sample, "scaffold" scaffold, $0}' ${output_directory}/$SAMPLE.scaffold${i}.est.ml > ${output_directory}/$SAMPLE.scaffold${i}.est.ml.annotated
-
-# Optional: Move the annotated file to the original file
-mv ${output_directory}/$SAMPLE.scaffold${i}.est.ml.annotated ${output_directory}/$SAMPLE.scaffold${i}.est.ml
-
-done
-
-echo = date job $JOB_NAME done
 ```
+
