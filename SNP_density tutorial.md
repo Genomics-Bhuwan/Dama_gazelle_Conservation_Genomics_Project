@@ -1,184 +1,181 @@
-# SNP density tutorial
+##### SNP density tutorial
+- SNP density is a tool used for visualizing the genetic diversity across the genome.
+- It represents the number of SNPs in a heatmap.
+- It is used for comparing genetic diversity between different populations or closely related species.
+- To calculate the SNP density, count the number of SNPs over a certain length of the genome, typically ranging from 100kb to 1 megabase.
+- Use VCFtools with the snpden function(Danecek et al., 2011).
+- Vcf as input file and a table with the snp count for reach region interval.
 
-SNP density is a valuable tool for visualizing genetic diversity across the genome. This technique involves representing the number of SNPs in a heatmap, which is particularly useful for comparing genetic diversity between different populations or closely related species.
 
-To calculate SNP density, count the number of SNPs over a certain length of the genome, typically ranging from 100 kilobases to 1 megabase depending on the diversity and analyzed region. One way to perform this analysis is by using vcftools with the snpden function (Danecek et al., 2011). This function takes a VCF file as input and outputs a table with the SNP count for each region interval.
-
-Finally, the results can be visualized by generating a plot using your preferred programming language. In this case, we will use the R programming language with the tidyverse package.
-
-The VCF file used for this tutorial can be found in the folder below
-
-```bash
-/pool/genomics/figueiroh/SMSC_2023_class/vcf
-```
-
-The first step is to create the folder where we are going to work with the vcf files in order to generate the SNP density plots.
+##### Code
+- Get only autosomes. Remove unaligned scaffolds and cytotypes.
+- Input .vcf
 
 ```bash
-mkdir snpden
+/scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Dama_gazelle_biallelic_snps_autosomes.vcf
 
-cd snpden
+# Samples in your VCF
+SAMPLES=("SRR17129394" "SRR17134085" "SRR17134086" "SRR17134087" "SRR17134088")
 
-mkdir plots
-```
+# Parameters
+MAF_THRESHOLD=0.1          # Minimum allele frequency
+WINDOW_SIZE=1000000        # SNP density window size in bp (1 Mb)
 
-Inside the `snpden` folder, the first step is to create new VCF files that only contain heterozygous positions. There are several ways to accomplish this, but for simplicity, we will use vcftools.
-
-```bash
-vcftools --gzvcf NN114296_HD_PASS_DP5.vcf.gz --recode --out NN114296_HD_PASS_DP5_hetsites --maf 0.1
-
-vcftools --gzvcf NN114297_HD_PASS_DP5.vcf.gz --recode --out NN114297_HD_PASS_DP5_hetsites --maf 0.1
-
-vcftools --gzvcf NN114393_HD_PASS_DP5.vcf.gz --recode --out NN114393_HD_PASS_DP5_hetsites --maf 0.1
-
-vcftools --gzvcf NN115950_HD_PASS_DP5.vcf.gz --recode --out NN115950_HD_PASS_DP5_hetsites --maf 0.1
-
-vcftools --gzvcf NN190240_HD_PASS_DP5.vcf.gz --recode --out NN190240_HD_PASS_DP5_hetsites --maf 0.1
-```
-
-1. `-gzvcf input.vcf.gz`: Specifies the input VCF file in compressed gzip format, located in the parent directory's "filtered" folder. The file is named "NN114296_HD_PASS_DP5.vcf.gz".
-2. `-recode`: Indicates that you want to create a new VCF file with the filtered results.
-3. `-out outuput`: Specifies the output file prefix, which will be "NN114296_HD_PASS_DP5_hetsites". The output file will be named "NN114296_HD_PASS_DP5_hetsites.recode.vcf" in the current directory.
-4. `-maf 0.1`: Sets a minimum allele frequency (MAF) filter of 0.1, meaning that only variants with a MAF of at least 10% will be included in the output file.
-
-Now we can run the snp density function on vcftools. This will count the number of heteroyzgous snps breaking the genome into windows. 
-
-```bash
-vcftools --vcf NN114296_HD_PASS_DP5_hetsites.recode.vcf --SNPdensity 1000000 --out NN114296_HD_PASS_DP5_hetsites
-```
-
-1. `-vcf NN114296_HD_PASS_DP5_hetsites.recode.vcf`: Specifies the input VCF file named "NN114296_HD_PASS_DP5_hetsites.recode.vcf" in the current directory.
-2. `-SNPdensity 1000000`: Calculates the SNP density in non-overlapping windows of 1,000,000 base pairs (1 Mb) across the genome. SNP density is the number of SNPs per window.
-3. `-out NN114296_HD_PASS_DP5_hetsites`: Specifies the output file prefix, which will be "NN114296_HD_PASS_DP5_hetsites". The output file will be named "NN114296_HD_PASS_DP5_hetsites.snpden" in the current directory.
-
-You can do the same thing for the other available samples
-
-```bash
-vcftools --vcf NN114297_HD_PASS_DP5_hetsites.recode.vcf --SNPdensity 1000000 --out NN114297_HD_PASS_DP5_hetsites
-
-vcftools --vcf NN114393_HD_PASS_DP5_hetsites.recode.vcf --SNPdensity 1000000 --out NN114393_HD_PASS_DP5_hetsites
-
-vcftools --vcf NN115950_HD_PASS_DP5_hetsites.recode.vcf --SNPdensity 1000000 --out NN115950_HD_PASS_DP5_hetsites
-
-vcftools --vcf NN190240_HD_PASS_DP5_hetsites.recode.vcf --SNPdensity 1000000 --out NN190240_HD_PASS_DP5_hetsites
-```
-
-Here is an example bash loop that can be used to run the `vcftools` commands on multiple input files:
-
-```
-for file in *.vcf.gz
-do
-    name=$(basename $file)
-    name=${name%.vcf.gz}
-    vcftools --vcf $file --SNPdensity 1000000 --out ${name}_density
-done
-
-```
-
-This loop will iterate through all files in the directory that end in ".vcf.gz", extract the base name and use it to name the output files. It will then run the same `vcftools` command on each input file, breaking the genome into 1-megabase windows, and outputting the results to a file with the format "input_file_density".
-
-Then we add the sample names to each table
-
-```bash
-awk -v sample="NN114296" 'NR==1{print $0"\tIndiv"} NR>1{print $0"\t"sample}' NN114296_HD_PASS_DP5_hetsites.snpden > NN114296_HD_PASS_DP5_hetsites_id.snpden
-```
-
-1. `v sample="NN114296"`: Sets a variable called `sample` with the value "NN114296".
-2. `'NR==1{print $0"\tIndiv"} NR>1{print $0"\t"sample}'`: This is an `awk` script that processes the input file line by line. It checks if the current line number (NR) is equal to 1, and if it is, it prints the entire line (`$0`) followed by a tab and the string "Indiv". For all other lines (NR > 1), it prints the entire line followed by a tab and the value of the `sample` variable.
-3. `NN114296_HD_PASS_DP5_hetsites.snpden`: Specifies the input file, which is the SNP density output file generated by VCFtools in your previous command.
-4. `> NN114296_HD_PASS_DP5_hetsites_id.snpden`: Redirects the output to a new file named "NN114296_HD_PASS_DP5_hetsites_id.snpden" in the current directory.
-
-```bash
-awk -v sample="NN114297" 'NR==1{print $0"\tIndiv"} NR>1{print $0"\t"sample}' NN114297_HD_PASS_DP5_hetsites.snpden > NN114297_HD_PASS_DP5_hetsites_id.snpden 
-
-awk -v sample="NN114393" 'NR==1{print $0"\tIndiv"} NR>1{print $0"\t"sample}' NN114393_HD_PASS_DP5_hetsites.snpden > NN114393_HD_PASS_DP5_hetsites_id.snpden
-
-awk -v sample="NN115950" 'NR==1{print $0"\tIndiv"} NR>1{print $0"\t"sample}' NN115950_HD_PASS_DP5_hetsites.snpden > NN115950_HD_PASS_DP5_hetsites_id.snpden
-
-awk -v sample="NN190240" 'NR==1{print $0"\tIndiv"} NR>1{print $0"\t"sample}' NN190240_HD_PASS_DP5_hetsites.snpden > NN190240_HD_PASS_DP5_hetsites_id.snpden
-```
-
-Concatenate all samples into a single file
-
-```bash
-tail -q -n +2 *_id.snpden > NN_hetsites.snpden
-```
-
-Here is a possible bash script that consolidates the code and makes it more efficient:
-
-```
-#!/bin/bash
-
-# create directories
+# Create working directories
 mkdir -p snpden/plots
 
-# set parameters
-WINDOW_SIZE=1000000
-MAF_THRESHOLD=0.1
-SAMPLES=(NN114296 NN114297 NN114393 NN115950 NN190240)
+# Step 1: Extract heterozygous sites for all samples
+echo "Extracting heterozygous sites (MAF >= $MAF_THRESHOLD)..."
+vcftools --vcf $VCF --recode --out snpden/AllSamples_hetsites --maf $MAF_THRESHOLD
 
-# process input files
+# Step 2: Calculate SNP density for each individual
+echo "Calculating SNP density per sample..."
 for sample in "${SAMPLES[@]}"; do
-  # extract heterozygous sites
-  vcftools --gzvcf filtered/${sample}_HD_PASS_DP5.vcf.gz --recode --out snpden/${sample}_hetsites --maf ${MAF_THRESHOLD}
+    echo "Processing sample: $sample"
 
-  # calculate SNP density
-  vcftools --vcf snpden/${sample}_hetsites.recode.vcf --SNPdensity ${WINDOW_SIZE} --out snpden/${sample}_hetsites
+    # Extract sample-specific SNPs from heterozygous VCF
+    echo $sample > snpden/${sample}_keep.txt
+    vcftools --vcf snpden/AllSamples_hetsites.recode.vcf \
+             --keep snpden/${sample}_keep.txt \
+             --recode --out snpden/${sample}_hetsites
 
-  # add sample name to output
-  awk -v sample="${sample}" 'NR==1{print $0"\\tIndiv"} NR>1{print $0"\\t"sample}' snpden/${sample}_hetsites.snpden > snpden/${sample}_hetsites_id.snpden
+    # Calculate SNP density in windows
+    vcftools --vcf snpden/${sample}_hetsites.recode.vcf \
+             --SNPdensity $WINDOW_SIZE \
+             --out snpden/${sample}_hetsites
+
+    # Add sample name to the output file
+    awk -v sample="$sample" 'NR==1{print $0"\tIndiv"} NR>1{print $0"\t"sample}' \
+        snpden/${sample}_hetsites.snpden > snpden/${sample}_hetsites_id.snpden
 done
 
-# combine output files
-tail -q -n +2 snpden/*_id.snpden > snpden/NN_hetsites.snpden
+# Step 3: Combine all sample SNP density files into one
+echo "Combining all samples into a single SNP density file..."
+head -n 1 snpden/${SAMPLES[0]}_hetsites_id.snpden > snpden/Dama_gazelle_hetsites.snpden
+tail -q -n +2 snpden/*_id.snpden >> snpden/Dama_gazelle_hetsites.snpden
 
+echo "✅ SNP density pipeline complete. Combined file:"
+echo "   snpden/Dama_gazelle_hetsites.snpden"
 ```
 
-This script automates the process of extracting heterozygous sites, calculating SNP density, and adding sample names to the output files. The script also uses variables to set the window size and minor allele frequency threshold, so these values can easily be changed if needed. Finally, the script combines the output files into a single file, which can be used to generate the plot.
+##### Visualization of SNP density plot using painted chromosomes.
 
-You can now download the output to your machine and use RStudio to plot the results.
+```bash
 
-There are two scripts available for this task. You can find the scripts to build the plots for this tutorial in the Github folder.
+# -----------------------------
+# 1️⃣ Set working directory
+# -----------------------------
+setwd("F:/Collaborative_Projects/Dama_Gazelle_Project/Heterozygosity/SNPden")  
 
-`Neofelis_snpdenPlot_chr.R`
+# -----------------------------
+# 2️⃣ Load packages
+# -----------------------------
+library(tidyverse)
+library(gdata)
 
-This script is written in R and does the following tasks:
+# -----------------------------
+# 3️⃣ Read input files
+# -----------------------------
+snpden <- read.table("Dama_gazelle_hetsites.snpden", header = FALSE)
+names_vec <- as.character(read.table("Dama_gazelle_IDs.txt")$V1)
 
-1. Sets the working directory to the folder where the data files are located.
-2. Loads the required packages (tidyverse).
-3. Reads the SNP density data file (NN_hetsites.snpden.txt) and stores it in a variable called 'snpden'.
-4. Defines the order of the scaffolds and the chromosomes to be used in the visualization.
-5. Reorders the chromosome column of the data frame according to the target order.
-6. Subsets the data from chromosomes that are not "NA".
-7. Categorizes the SNP density data based on the number of variants per kilobase.
-8. Renames the levels of the CHROM column to match the defined chromosome order.
-9. Iterates through each chromosome in the dataset and performs the following steps:
-a. Subsets the data for the current chromosome.
-b. Creates a ggplot object with the SNP density data and applies appropriate formatting, colors, and facet grid.
-c. Saves the generated plot as a .png file in the "plots/" folder, with the file name including the chromosome name (e.g., 'Neofelis_chr1.1Mb.snpden.png').
+# -----------------------------
+# 4️⃣ Prepare data
+# -----------------------------
+colnames(snpden) <- c("CHROM", "BIN_START", "SNP_COUNT", "VARIANTS.KB", "Indiv")
+snpden.master <- snpden
 
-This script creates a series of SNP density plots for each chromosome in the dataset, showing the distribution of heterozygous SNPs along the chromosome length. The plots are saved as .png files in the "plots/" folder.
+# Keep only chromosomes 1-17
+valid_chroms <- as.character(1:17)
+snpden.master <- snpden.master[snpden.master$CHROM %in% valid_chroms, ]
+snpden.master$CHROM <- factor(snpden.master$CHROM, levels = valid_chroms)
 
-`Neofelis_snpdenPlot_sample.R`
+# Convert to numeric
+snpden.master$BIN_START <- as.numeric(as.character(snpden.master$BIN_START))
+snpden.master$VARIANTS.KB <- as.numeric(as.character(snpden.master$VARIANTS.KB))
 
-1. Set the working directory to the location where the data files are stored.
-2. Load the required packages, specifically the tidyverse package.
-3. Read in the SNP density data file (NN_hetsites.snpden.txt) using the read.table function.
-4. Define the order of the scaffolds to be used in the visualization and the order of the chromosomes to be used in the visualization.
-5. Copy the data frame to another variable snpden.master.
-6. Reorder the chromosome column of the data frame according to the target order.
-7. Subset the data from chromosomes that are not "NA."
-8. Create a new column called groups that cuts the numeric values in the VARIANTS.KB column into different groups based on their values.
-9. Rename the CHROM levels to have chromosome names that start with "chr."
-10. Convert the BIN_START column from a factor to a numeric column.
-11. Loop over each individual in the dataset.
-12. Subset the data for the current individual.
-13. Define a title for the plot.
-14. Create a ggplot object using the ggplot function, specifying the data frame and the aesthetic mapping.
-15. Add a tile layer to the plot using geom_tile to represent the SNP density.
-16. Facet the plot by chromosome and scaffolds.
-17. Set the axis labels and plot titles using the labs function.
-18. Customize the plot using theme functions, such as theme_minimal, element_text, and element_blank.
-19. Scale the fill color using the scale_fill_manual function.
-20. Scale the x-axis using the scale_x_continuous function.
-21. Save the plot using the ggsave function.
+# -----------------------------
+# 5️⃣ Assign species
+# -----------------------------
+snpden.master$Species <- case_when(
+  snpden.master$Indiv %in% c("SRR17129394", "SRR17134085", "SRR17134086") ~ "Addra",
+  snpden.master$Indiv %in% c("SRR17134087", "SRR17134088") ~ "Mhorr",
+  TRUE ~ "Unknown"
+)
+
+# -----------------------------
+# 6️⃣ Bin SNP densities (7 discrete bins)
+# -----------------------------
+snpden.master$groups <- cut(
+  snpden.master$VARIANTS.KB,
+  breaks = c(0, 0.1, 0.25, 0.5, 1, 2, 3, Inf),
+  include.lowest = TRUE,
+  labels = c("0-0.1","0.1-0.25","0.25-0.5","0.5-1","1-2","2-3","3+")
+)
+
+# Factorize individuals
+snpden.master$Indiv <- factor(snpden.master$Indiv, levels = names_vec)
+
+# -----------------------------
+# 7️⃣ Create plots directory
+# -----------------------------
+if(!dir.exists("plots")) dir.create("plots")
+
+# -----------------------------
+# 8️⃣ Okabe-Ito color palette (7 colors)
+# -----------------------------
+okabe_colors <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442",
+                  "#0072B2", "#D55E00", "#CC79A7")
+
+# -----------------------------
+# 9️⃣ Plot per species with bounding box around the whole plot
+# -----------------------------
+for(spec in unique(snpden.master$Species)) {
+  
+  snpden.spec <- subset(snpden.master, Species == spec)
+  
+  plot_title <- paste0("SNP Density - ", spec, " Gazelle")
+  
+  snpden_plot <- ggplot(snpden.spec, aes(x = BIN_START, y = Indiv)) +
+    geom_tile(aes(fill = groups)) +
+    facet_grid(CHROM ~ ., switch = 'y') +
+    labs(x = 'Chromosome Position (Mb)', y = '', title = plot_title) +
+    scale_fill_manual(values = okabe_colors, name = "Variants/kb") +
+    scale_x_continuous(
+      labels = function(x) paste0(x/1e6, " Mb"),
+      breaks = seq(0, 250000000, 50000000),
+      expand = c(0, 0)
+    ) +
+    theme_minimal() +
+    theme(
+      axis.text.y = element_blank(),
+      axis.ticks.y = element_blank(),
+      axis.text.x = element_text(size = 12, face = "bold", color = "black"),
+      axis.title.x = element_text(size = 14, face = "bold", color = "black"),
+      panel.grid = element_blank(),
+      panel.border = element_rect(color = "black", fill = NA, size = 1),  # bounding box
+      strip.text.y.left = element_text(angle = 0, size = 10, face = "bold"),
+      plot.title = element_text(hjust = 0.5, size = 18, face = "bold"),
+      legend.title = element_text(size = 12, face = "bold"),
+      legend.text = element_text(size = 10)
+    )
+  
+  # -----------------------------
+  # Save plots
+  # -----------------------------
+  ggsave(filename = paste0("plots/", spec, "_combined_okabe_boundingBox.jpeg"),
+         plot = snpden_plot,
+         dpi = 600,
+         units = 'cm',
+         width = 28,
+         height = 18,
+         bg = "white")
+  
+  ggsave(filename = paste0("plots/", spec, "_combined_okabe_boundingBox.pdf"),
+         plot = snpden_plot,
+         device = "pdf",
+         units = 'cm',
+         width = 28,
+         height = 18)
+}
+```
