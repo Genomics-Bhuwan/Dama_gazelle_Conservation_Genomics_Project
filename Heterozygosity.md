@@ -284,39 +284,165 @@ echo "All files concatenated into $output_file"
 ##### Plot the results for one chromosome using R
 
 ```bash
+#######################################
+###Box and whisker plot chromosome wise.
 library(tidyverse)
 library(viridis)
 library(scales)
 
 # Read the concatenated file
-het_master <- read.table("/path/to/file/all_est_ml_concatenated.txt")
+het_master <- read.table("F:/Collaborative_Projects/Dama_Gazelle_Project/Heterozygosity/Heterozygosity_Windowbased/all_samples_est_ml_concatenated.txt")
 
-# Process and plot
-het_master %>%
+# Process the data: calculate heterozygosity per window
+het_master_processed <- het_master %>%
   rename(sample = V2,
-         chromosome = V3) %>%
+         chromosome = V3,
+         window_length = V4,
+         het_count = V5) %>%
   mutate(
-    heterozygosity = V5 / (V4 + V5),
-    position = ((V1 * 200000) - 200000)  # rough genomic position
-  ) %>%
-  ggplot(aes(x = position, y = heterozygosity)) +
-  geom_line(color = "grey", alpha = 0.5) +
-  geom_point(aes(colour = factor(sample)), size = 1) +  # color by sample
+    heterozygosity = het_count / (window_length + het_count),
+    chromosome = factor(chromosome, levels = 1:17)
+  )
+
+# Summarize genome-wide heterozygosity per chromosome per sample
+chromosome_summary <- het_master_processed %>%
+  group_by(sample, chromosome) %>%
+  summarise(
+    mean_heterozygosity = mean(heterozygosity, na.rm = TRUE),
+    .groups = 'drop'
+  )
+
+# Box-and-whisker plot for all chromosomes across samples
+het_boxplot <- ggplot(chromosome_summary, aes(x = chromosome, y = mean_heterozygosity, fill = sample)) +
+  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
+  geom_jitter(aes(color = sample), width = 0.2, size = 1, alpha = 0.8) +
+  scale_fill_viridis(discrete = TRUE) +
   scale_color_viridis(discrete = TRUE) +
-  facet_grid(sample ~ chromosome, scales = "free_x") +  # facets by sample and chromosome
-  labs(x = NULL, y = "Heterozygosity\n") +
-  scale_y_continuous(labels = comma) +
-  scale_x_continuous(labels = comma) +
+  labs(x = "Chromosome", y = "Genome-wide Heterozygosity", title = "Genome-wide Heterozygosity per Chromosome") +
   theme_minimal() +
   theme(
     legend.position = "top",
-    strip.text.x = element_text(face = "bold"),
-    strip.text.y = element_text(face = "bold"),
-    panel.grid.major.x = element_blank(),
-    panel.grid.minor.x = element_blank(),
-    panel.spacing.x = unit(0, "line"),
-    panel.border = element_rect(color = "black", fill = NA, size = 0.25)
+    axis.text.x = element_text(face = "bold"),
+    axis.text.y = element_text(face = "bold"),
+    plot.title = element_text(face = "bold", hjust = 0.5)
   )
 
-```
+# Display the plot
+print(het_boxplot)
 
+# Save the plot as JPEG
+ggsave("F:/Collaborative_Projects/Dama_Gazelle_Project/Heterozygosity/Heterozygosity_Windowbased/heterozygosity_boxplot_chromosome.jpeg",
+       plot = het_boxplot,
+       width = 12, height = 6, units = "in", dpi = 300)
+
+# Save the plot as PDF
+ggsave("F:/Collaborative_Projects/Dama_Gazelle_Project/Heterozygosity/Heterozygosity_Windowbased/heterozygosity_chromosome_boxplot.pdf",
+       plot = het_boxplot,
+       width = 12, height = 6, units = "in")
+
+
+#######By species
+library(tidyverse)
+library(scales)
+
+# Read the concatenated file
+het_master <- read.table("F:/Collaborative_Projects/Dama_Gazelle_Project/Heterozygosity/Heterozygosity_Windowbased/all_samples_est_ml_concatenated.txt")
+
+# Add species info
+het_master <- het_master %>%
+  rename(sample = V2,
+         chromosome = V3,
+         window_length = V4,
+         het_count = V5) %>%
+  mutate(
+    heterozygosity = het_count / (window_length + het_count),
+    species = case_when(
+      sample %in% c("SRR17129394", "SRR17134085", "SRR17134086") ~ "Addra",
+      sample %in% c("SRR17134087", "SRR17134088") ~ "Mhorr",
+      TRUE ~ "Unknown"
+    )
+  )
+
+# Box-and-whisker plot per sample with bounding box, no background lines
+het_boxplot <- ggplot(het_master, aes(x = factor(sample), y = heterozygosity, fill = species)) +
+  geom_boxplot(alpha = 0.7, outlier.shape = NA, color = "black") +
+  geom_jitter(aes(color = species), width = 0.2, size = 1, alpha = 0.8) +
+  scale_fill_manual(values = c("Addra" = "skyblue", "Mhorr" = "orange")) +
+  scale_color_manual(values = c("Addra" = "skyblue", "Mhorr" = "orange")) +
+  labs(x = "Sample", y = "Genome-wide Heterozygosity") +
+  theme_minimal(base_size = 14) +
+  theme(
+    legend.position = c(0.9, 0.9),  # top-right corner inside the plot
+    legend.title = element_blank(),
+    axis.text.x = element_text(face = "bold"),
+    axis.text.y = element_text(face = "bold"),
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    panel.border = element_rect(color = "black", fill = NA, size = 1), # bounding box
+    panel.grid = element_blank()  # remove all background lines
+  )
+
+# Display the plot
+print(het_boxplot)
+
+# Save as JPEG
+ggsave("F:/Collaborative_Projects/Dama_Gazelle_Project/Heterozygosity/Heterozygosity_Windowbased/genome_wide_heterozygosity_boxplot.jpeg",
+       plot = het_boxplot,
+       width = 10, height = 6, units = "in", dpi = 300)
+
+# Save as PDF
+ggsave("F:/Collaborative_Projects/Dama_Gazelle_Project/Heterozygosity/Heterozygosity_Windowbased/genome_wide_heterozygosity_boxplot.pdf",
+       plot = het_boxplot,
+       width = 10, height = 6, units = "in")
+
+######By species: Another try
+library(tidyverse)
+library(scales)
+
+# Read the concatenated file
+het_master <- read.table("F:/Collaborative_Projects/Dama_Gazelle_Project/Heterozygosity/Heterozygosity_Windowbased/all_samples_est_ml_concatenated.txt")
+
+# Add species info
+het_master <- het_master %>%
+  rename(sample = V2,
+         chromosome = V3,
+         window_length = V4,
+         het_count = V5) %>%
+  mutate(
+    heterozygosity = het_count / (window_length + het_count),
+    species = case_when(
+      sample %in% c("SRR17129394", "SRR17134085", "SRR17134086") ~ "Addra",
+      sample %in% c("SRR17134087", "SRR17134088") ~ "Mhorr",
+      TRUE ~ "Unknown"
+    )
+  )
+
+# Box-and-whisker plot per sample with bounding box, no background lines
+het_boxplot <- ggplot(het_master, aes(x = factor(sample), y = heterozygosity, fill = species)) +
+  geom_boxplot(alpha = 0.7, outlier.shape = NA, color = "black") +
+  geom_jitter(aes(color = species), width = 0.2, size = 1, alpha = 0.8) +
+  scale_fill_manual(name = "Sub-species", values = c("Addra" = "skyblue", "Mhorr" = "orange")) +
+  scale_color_manual(name = "Sub-species", values = c("Addra" = "skyblue", "Mhorr" = "orange")) +
+  labs(x = "Sample", y = "Genome-wide Heterozygosity") +
+  theme_minimal(base_size = 14) +
+  theme(
+    legend.position = c(0.9, 0.9),  # top-right corner inside the plot
+    axis.text.x = element_text(face = "bold"),
+    axis.text.y = element_text(face = "bold"),
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    panel.border = element_rect(color = "black", fill = NA, size = 1), # bounding box
+    panel.grid = element_blank()  # remove all background lines
+  )
+
+# Display the plot
+print(het_boxplot)
+
+# Save as JPEG
+ggsave("F:/Collaborative_Projects/Dama_Gazelle_Project/Heterozygosity/Heterozygosity_Windowbased/genome_wide_heterozygosity_boxplot.jpeg",
+       plot = het_boxplot,
+       width = 10, height = 6, units = "in", dpi = 300)
+
+# Save as PDF
+ggsave("F:/Collaborative_Projects/Dama_Gazelle_Project/Heterozygosity/Heterozygosity_Windowbased/genome_wide_heterozygosity_boxplot.pdf",
+       plot = het_boxplot,
+       width = 10, height = 6, units = "in")
+```
