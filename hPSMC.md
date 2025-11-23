@@ -21,15 +21,19 @@ PSMC_PLOT=/scratch/bistbs/Population_Genomic_Analysis/PSMC/psmc/utils/psmc_plot.
 ```bash
 SAMPLES=("SRR17129394" "SRR17134085" "SRR17134086" "SRR17134087" "SRR17134088")
 
+PU2FA=/scratch/bistbs/Population_Genomic_Analysis/PSMC/Chrom-Compare/pu2fa
+
 for SAMPLE in "${SAMPLES[@]}"; do
     echo "Haploidizing $SAMPLE ..."
     for CHR in $(cat chromosomes.txt); do
+        echo "Processing chromosome $CHR ..."
         samtools mpileup -s -f $REF -q30 -Q60 -r $CHR ${SAMPLE}.bam | \
-        pu2fa -c $CHR -C 100 > ${SAMPLE}_haploidized_${CHR}.fa
+        $PU2FA -c $CHR -C 100 > ${SAMPLE}_haploidized_${CHR}.fa
     done
     # Concatenate all chromosomes into one genome fasta
     cat ${SAMPLE}_haploidized_*.fa > ${SAMPLE}_all.fa
 done
+
 ```
 ##### Step 3: Generate hPSMC .psmcfa for all Addra × Mohrr pairs
 ```bash
