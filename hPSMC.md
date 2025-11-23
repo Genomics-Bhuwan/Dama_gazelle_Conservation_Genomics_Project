@@ -1,5 +1,5 @@
 ##### hPSMC
-
+---
 #!/bin/bash -l
 #SBATCH --job-name=hPSMC_all
 #SBATCH --time=120:00:00
@@ -9,30 +9,36 @@
 #SBATCH --output=hpsmc_run_%A_%a.log
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=bistbs@miamioh.edu
+---
 
-```bash
-PSMC=/scratch/bistbs/Population_Genomic_Analysis/PSMC/psmc/psmc
-HPSMC_DIR=/scratch/bistbs/Population_Genomic_Analysis/hPSMC/hPSMC  # scripts folder
-MS=/path/to/ms  # path to ms simulation program
-REF=Dama_gazelle_hifiasm-ULONT_primary.fasta
-PSMC_PLOT=/scratch/bistbs/Population_Genomic_Analysis/PSMC/psmc/utils/psmc_plot.pl
-```
 ###### Step 1 & 2: Haploidize BAMs and concatenate chromosome FASTAs
 ```bash
+# Define paths
+PSMC=/scratch/bistbs/Population_Genomic_Analysis/PSMC/psmc/psmc
+HPSMC_DIR=/scratch/bistbs/Population_Genomic_Analysis/hPSMC/hPSMC
+MS=/path/to/ms
+REF=/scratch/bistbs/Population_Genomic_Analysis/PSMC/Dama_gazelle_hifiasm-ULONT_primary.fasta
+PSMC_PLOT=/scratch/bistbs/Population_Genomic_Analysis/PSMC/psmc/utils/psmc_plot.pl
+PU2FA=/scratch/bistbs/Population_Genomic_Analysis/PSMC/Chrom-Compare/pu2fa
+BAMDIR=/scratch/bistbs/Population_Genomic_Analysis/PSMC 
+CHROM_FILE=/scratch/bistbs/Population_Genomic_Analysis/PSMC/chromosomes.txt
+OUTDIR=/scratch/bistbs/Population_Genomic_Analysis/hPSMC
+
+# Define samples
 SAMPLES=("SRR17129394" "SRR17134085" "SRR17134086" "SRR17134087" "SRR17134088")
 
-PU2FA=/scratch/bistbs/Population_Genomic_Analysis/PSMC/Chrom-Compare/pu2fa
-
+# Haploidization loop
 for SAMPLE in "${SAMPLES[@]}"; do
     echo "Haploidizing $SAMPLE ..."
-    for CHR in $(cat chromosomes.txt); do
+    for CHR in $(cat $CHROM_FILE); do
         echo "Processing chromosome $CHR ..."
-        samtools mpileup -s -f $REF -q30 -Q60 -r $CHR ${SAMPLE}.bam | \
-        $PU2FA -c $CHR -C 100 > ${SAMPLE}_haploidized_${CHR}.fa
+        samtools mpileup -s -f $REF -q30 -Q60 -r $CHR $BAMDIR/${SAMPLE}.bam | \
+        $PU2FA -c $CHR -C 100 > $OUTDIR/${SAMPLE}_haploidized_${CHR}.fa
     done
-    # Concatenate all chromosomes into one genome fasta
-    cat ${SAMPLE}_haploidized_*.fa > ${SAMPLE}_all.fa
+    # Concatenate all chromosomes
+    cat $OUTDIR/${SAMPLE}_haploidized_*.fa > $OUTDIR/${SAMPLE}_all.fa
 done
+
 
 ```
 ##### Step 3: Generate hPSMC .psmcfa for all Addra × Mohrr pairs
