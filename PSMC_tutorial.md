@@ -79,58 +79,59 @@ echo "Consensus FASTQ generated for $SAMPLE"
 #SBATCH --mail-user=bistbs@miamioh.edu
 #SBATCH --array=0-4  # 5 samples
 
-# PSMC main binary
+# Binaries
 PSMC_BIN=/scratch/bistbs/Population_Genomic_Analysis/PSMC/psmc/psmc
-
-# PSMC utils
 FQ2PSMCFA_BIN=/scratch/bistbs/Population_Genomic_Analysis/PSMC/psmc/utils/fq2psmcfa
 SPLITFA_BIN=/scratch/bistbs/Population_Genomic_Analysis/PSMC/psmc/utils/splitfa
 PSMC_PLOT_BIN=/scratch/bistbs/Population_Genomic_Analysis/PSMC/psmc/utils/psmc_plot.pl
 
-# Mutation rate (updated)
+# Mutation rate and generation time
 MU=2.96e-09
 GEN=5.85
 
-# List of fq.gz files
+# FASTQ files
 FQS=(SRR17129394.fq.gz SRR17134085.fq.gz SRR17134086.fq.gz SRR17134087.fq.gz SRR17134088.fq.gz)
 
-# Select fq.gz based on array index
-FQ=${FQS[$SLURM_ARRAY_TASK_ID]}
-SAMPLE=$(basename $FQ .fq.gz)
+for FQ in "${FQS[@]}"
+do
+    SAMPLE=$(basename $FQ .fq.gz)
+    OUTDIR=PSMC_results/${SAMPLE}
+    
+    mkdir -p $OUTDIR
 
-# Create output folder for this sample
-OUTDIR=PSMC_results/${SAMPLE}
-mkdir -p $OUTDIR
+    echo "========================================"
+    echo "Processing sample: $SAMPLE"
+    echo "Saving results in: $OUTDIR"
+    echo "========================================"
 
-echo "Processing sample $SAMPLE ..."
-echo "Output directory: $OUTDIR"
+    # Step 1: Convert FASTQ → PSMCFA
+    $FQ2PSMCFA_BIN -q20 $FQ > $OUTDIR/${SAMPLE}.psmcfa
 
-###############################
-# Step 1: fq.gz → psmcfa
-###############################
-$FQ2PSMCFA_BIN -q20 $FQ > $OUTDIR/${SAMPLE}.psmcfa
-echo "PSMCFA created."
+    # Step 2: Split
+    $SPLITFA_BIN $OUTDIR/${SAMPLE}.psmcfa > $OUTDIR/${SAMPLE}_split.psmcfa
 
-###############################
-# Step 2: Split for bootstrapping
-###############################
-$SPLITFA_BIN $OUTDIR/${SAMPLE}.psmcfa > $OUTDIR/${SAMPLE}.split.psmcfa
-echo "Split PSMCFA created."
+done
+```
 
-###############################
-# Step 3: Main PSMC
-###############################
+##### Step 3: Main PSMC
+- Psmc: command to run PSMC tool.
+- N25: sets effective population size to 25. Ne is used for calculating the time to the most recent common ancestor of the population.
+- t15: flag sets the scaled mutation rate per generation(t) to 15. It is the product of mutation rate per base pair per generation and the effective population size.
+- r5: sets the scaled This flag sets the scaled recombination rate per generation (r) to 5.
+- The scaled recombination rate is the product of the recombination rate per base pair per generation and the effective population size.
+- p "4+25*2+4+6": This flag sets the time intervals (p) for the PSMC model. The specified pattern, "4+25*2+4+6", means that there are 4 intervals of equal size at the start, followed by 25 intervals with twice the size of the previous intervals, and then 4 more intervals of equal size, and finally 6 more intervals of increasing size. This allows the model to have higher time resolution near the present and lower resolution in the more distant past.
+o <output.psmc>: This flag specifies the output file name for the PSMC results. Replace <output.psmc> with the desired output file name.
+<input.psmcfa>: This is the input file in PSMCFA format, which contains the sequence data to be analyzed. Replace <input.psmcfa> with the name of the input file.
+```bash
 $PSMC_BIN -N25 -t15 -r5 -p "4+25*2+4+6" \
     -o $OUTDIR/${SAMPLE}.psmc \
     $OUTDIR/${SAMPLE}.psmcfa
 
 echo "Main PSMC done."
 ```
-##### Bootstrap the samples
+##### Step 4: Bootstrap the samples(100)
 ```bash
-###############################
-# Step 4: Bootstraps (100)
-###############################
+
 cd $OUTDIR
 
 seq 100 | xargs -P 4 -I{} \
@@ -147,7 +148,7 @@ cat ${SAMPLE}.psmc ${SAMPLE}_round-*.psmc > ${SAMPLE}.combined.psmc
 echo "Combined PSMC created."
 ```
 
-##### Final Plotting
+#####  Step 5. Final Plotting
 ```bash
 ###############################
 # Step 6: Plot final PSMC
