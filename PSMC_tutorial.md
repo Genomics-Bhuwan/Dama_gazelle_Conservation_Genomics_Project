@@ -131,31 +131,156 @@ echo "Main PSMC done."
 ```
 ##### Step 4: Bootstrap the samples(100)
 ```bash
+#!/bin/bash
 
-cd $OUTDIR
+PSMC_BIN=/scratch/bistbs/Population_Genomic_Analysis/PSMC/psmc/psmc 
 
-seq 100 | xargs -P 4 -I{} \
-    $PSMC_BIN -N25 -t15 -r5 -b -p "4+25*2+4+6" \
-    -o ${SAMPLE}_round-{}.psmc ${SAMPLE}.split.psmcfa
+# Full paths to your sample directories
+SAMPLES=(
+"/scratch/bistbs/Population_Genomic_Analysis/PSMC/PSMC_results/SRR17129394"
+"/scratch/bistbs/Population_Genomic_Analysis/PSMC/PSMC_results/SRR17134085"
+"/scratch/bistbs/Population_Genomic_Analysis/PSMC/PSMC_results/SRR17134086"
+"/scratch/bistbs/Population_Genomic_Analysis/PSMC/PSMC_results/SRR17134087"
+"/scratch/bistbs/Population_Genomic_Analysis/PSMC/PSMC_results/SRR17134088"
+)
 
-echo "Bootstrap replicates generated."
+for SAMPLE_DIR in "${SAMPLES[@]}"
+do
+    (
+        SAMPLE=$(basename "$SAMPLE_DIR")
+        echo "Bootstrapping $SAMPLE ..."
 
-###############################
-# Step 5: Combine main + bootstraps
-###############################
-cat ${SAMPLE}.psmc ${SAMPLE}_round-*.psmc > ${SAMPLE}.combined.psmc
+        cd "$SAMPLE_DIR"
 
-echo "Combined PSMC created."
+        # Run 100 bootstrap replicates in parallel (4 per sample)
+        seq 100 | xargs -P 4 -I{} \
+            $PSMC_BIN -N25 -t15 -r5 -b -p "4+25*2+4+6" \
+            -o ${SAMPLE}_round-{}.psmc ${SAMPLE}_split.psmcfa
+
+        # Combine main + bootstraps
+        cat ${SAMPLE}.psmc ${SAMPLE}_round-*.psmc > ${SAMPLE}.combined.psmc
+
+        echo "Completed $SAMPLE"
+    ) &
+done
+
+# Wait for all background jobs
+wait
+echo "Bootstraps completed for ALL samples."
+
 ```
 
 #####  Step 5. Final Plotting
+###### Step 5.A. Generate separate plots for each sample (one plot file per sample)
 ```bash
-###############################
-# Step 6: Plot final PSMC
-###############################
-$PSMC_PLOT_BIN -g $GEN -u $MU -X 1000000 ${SAMPLE} ${SAMPLE}.combined.psmc
+# Path to psmc_plot.pl
+PSMC_PLOT_BIN=/scratch/bistbs/Population_Genomic_Analysis/PSMC/psmc/utils/psmc_plot.pl
 
-echo "PSMC plot generated."
+# Generation time & mutation rate
+GEN=5.85
+MU=2.96e-09
 
-echo "Finished sample: $SAMPLE"
+# List of your sample directories
+SAMPLES=(
+"/scratch/bistbs/Population_Genomic_Analysis/PSMC/PSMC_results/SRR17129394"
+"/scratch/bistbs/Population_Genomic_Analysis/PSMC/PSMC_results/SRR17134085"
+"/scratch/bistbs/Population_Genomic_Analysis/PSMC/PSMC_results/SRR17134086"
+"/scratch/bistbs/Population_Genomic_Analysis/PSMC/PSMC_results/SRR17134087"
+"/scratch/bistbs/Population_Genomic_Analysis/PSMC/PSMC_results/SRR17134088"
+)
+
+# Loop over all samples
+for SAMPLE_DIR in "${SAMPLES[@]}"
+do
+    SAMPLE=$(basename "$SAMPLE_DIR")
+    echo "Plotting PSMC for $SAMPLE ..."
+
+    cd "$SAMPLE_DIR"
+
+    # Required input file: SAMPLE.combined.psmc
+    $PSMC_PLOT_BIN -g $GEN -u $MU -X 1000000 \
+        $SAMPLE $SAMPLE.combined.psmc
+
+    echo "Finished plotting for $SAMPLE"
+done
+
+echo "All PSMC plots completed."
+
 ```
+
+##### 5.B. Multiple sample plot or the PSCM curves
+
+```bash
+# Step 1 — Create a combined plotting directory
+mkdir -p /scratch/bistbs/Population_Genomic_Analysis/PSMC/PSMC_results/combined_plot
+
+# Step 2 — Copy all combined PSMC files into this folder
+cd /scratch/bistbs/Population_Genomic_Analysis/PSMC/PSMC_results/combined_plot
+
+cp ../SRR17129394/SRR17129394.combined.psmc .
+cp ../SRR17134085/SRR17134085.combined.psmc .
+cp ../SRR17134086/SRR17134086.combined.psmc .
+cp ../SRR17134087/SRR17134087.combined.psmc .
+cp ../SRR17134088/SRR17134088.combined.psmc .
+
+# Step 3 — Create names file (recommended)
+This file assigns custom colors & sample labels.
+
+Create the file names.txt:
+
+SRR17129394   Addra_1
+SRR17134085   Addra_2
+SRR17134086   Addra_3
+SRR17134087   Mhorr_1
+SRR17134088   Mhorr_2
+
+(You can customize labels however you want.)
+
+⚡ Step 4 — Run ONE command to generate the combined multi-sample plot
+
+Use psmc_plot.pl with multiple inputs:
+
+PSMC_PLOT_BIN=/scratch/bistbs/Population_Genomic_Analysis/PSMC/psmc/utils/psmc_plot.pl
+
+GEN=5.85
+MU=2.96e-09
+
+cd /scratch/bistbs/Population_Genomic_Analysis/PSMC/PSMC_results/combined_plot
+
+$PSMC_PLOT_BIN \
+   -g $GEN -u $MU -X 1000000 \
+   -M names.txt \
+   combined_plot \
+   SRR17129394.combined.psmc \
+   SRR17134085.combined.psmc \
+   SRR17134086.combined.psmc \
+   SRR17134087.combined.psmc \
+   SRR17134088.combined.psmc
+
+🎉 Output
+
+Inside combined_plot/ you will get:
+
+combined_plot.eps
+combined_plot.pdf
+combined_plot.svg
+combined_plot.png
+
+This one figure contains all 5 PSMC curves, each in a different color, with labels from your names.txt.
+
+Want species-colored curves?
+
+I can also generate:
+
+Addra = blue
+
+Mhorr = red
+
+Custom line widths
+
+Custom legend names
+
+Export in publication-ready format
+
+Just tell me!
+````
