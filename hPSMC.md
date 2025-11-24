@@ -12,11 +12,11 @@
 ---
 
 ###### Step 1 & 2: Haploidize BAMs and concatenate chromosome FASTAs
-##### 
-```bash
-#!/bin/bash
+---
 - Step A. I am haplodizing for sample SRR17134085.bam only. It is to be done indivdiual sample wise in first few steps as also recommended by the author: https://github.com/Genomics-Bhuwan/Dama_gazelle_Conservation_Genomics_Project/edit/main/hPSMC.md
+---
 
+```bash
 REF=/scratch/bistbs/Population_Genomic_Analysis/PSMC/Dama_gazelle_hifiasm-ULONT_primary.fasta
 BAM=/scratch/bistbs/Population_Genomic_Analysis/PSMC/SRR17134085.bam
 CHROM_FILE=/scratch/bistbs/Population_Genomic_Analysis/PSMC/chromosomes.txt
