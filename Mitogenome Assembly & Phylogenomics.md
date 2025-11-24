@@ -37,10 +37,17 @@ done
 ##### Step 2: Merge subsampled read1 with original read2 (also .fq, not .fq.gz)
 - Interleave is like merging the 20% sub-sampled forward reads with the complete F2 reads.
 ```bash
-    seqtk mergepe \
-        $OUTPUT_DIR/${sample}_1.sub.fq.gz \
-        $INPUT_DIR/${sample}_2_val_2.fq \
-        > $OUTPUT_DIR/${sample}.interleave.fq
+   for SAMPLE in "${SAMPLES[@]}"; do
+    echo "Merging/interleaving subsampled R1 with full R2 for $SAMPLE..."
+
+    /localscratch/bistbs/mitogenome_phylogeny/seqtk/seqtk mergepe \
+        /localscratch/bistbs/mitogenome_phylogeny/sub_reads_sub20/${SAMPLE}_1.sub.fq.gz \
+        /localscratch/bistbs/mitogenome_phylogeny/sub_reads/${SAMPLE}_2_val_2.fq \
+        > /localscratch/bistbs/mitogenome_phylogeny/sub_reads_sub20/${SAMPLE}.interleave.fq
+
+    echo "Done: ${SAMPLE}.interleave.fq"
+done
+
 ```
 
 #### Step 3: Deinterleave using your local script
