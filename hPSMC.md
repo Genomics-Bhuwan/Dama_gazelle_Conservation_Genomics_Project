@@ -12,35 +12,43 @@
 ---
 
 ###### Step 1 & 2: Haploidize BAMs and concatenate chromosome FASTAs
+##### 
 ```bash
-# Define paths
-PSMC=/scratch/bistbs/Population_Genomic_Analysis/PSMC/psmc/psmc
-HPSMC_DIR=/scratch/bistbs/Population_Genomic_Analysis/hPSMC/hPSMC
-MS=/path/to/ms
+#!/bin/bash
+- Step A. I am haplodizing for sample SRR17134085.bam only. It is to be done indivdiual sample wise in first few steps as also recommended by the author: https://github.com/Genomics-Bhuwan/Dama_gazelle_Conservation_Genomics_Project/edit/main/hPSMC.md
+
 REF=/scratch/bistbs/Population_Genomic_Analysis/PSMC/Dama_gazelle_hifiasm-ULONT_primary.fasta
-PSMC_PLOT=/scratch/bistbs/Population_Genomic_Analysis/PSMC/psmc/utils/psmc_plot.pl
-PU2FA=/scratch/bistbs/Population_Genomic_Analysis/PSMC/Chrom-Compare/pu2fa
-BAMDIR=/scratch/bistbs/Population_Genomic_Analysis/PSMC 
+BAM=/scratch/bistbs/Population_Genomic_Analysis/PSMC/SRR17134085.bam
 CHROM_FILE=/scratch/bistbs/Population_Genomic_Analysis/PSMC/chromosomes.txt
-OUTDIR=/scratch/bistbs/Population_Genomic_Analysis/hPSMC
+PU2FA=/scratch/bistbs/Population_Genomic_Analysis/PSMC/Chrom-Compare/pu2fa
+OUTDIR=/scratch/bistbs/Population_Genomic_Analysis/hPSMC/85
+MAX_COVERAGE=100
 
-# Define samples
-SAMPLES=("SRR17129394" "SRR17134085" "SRR17134086" "SRR17134087" "SRR17134088")
+mkdir -p $OUTDIR
 
-# Haploidization loop
-for SAMPLE in "${SAMPLES[@]}"; do
-    echo "Haploidizing $SAMPLE ..."
-    for CHR in $(cat $CHROM_FILE); do
-        echo "Processing chromosome $CHR ..."
-        samtools mpileup -s -f $REF -q30 -Q60 -r $CHR $BAMDIR/${SAMPLE}.bam | \
-        $PU2FA -c $CHR -C 100 > $OUTDIR/${SAMPLE}_haploidized_${CHR}.fa
-    done
-    # Concatenate all chromosomes
-    cat $OUTDIR/${SAMPLE}_haploidized_*.fa > $OUTDIR/${SAMPLE}_all.fa
+# -----------------------------
+# Haploidize each chromosome/scaffold
+# -----------------------------
+for CHR in $(cat $CHROM_FILE); do
+    echo "Processing $CHR ..."
+    
+    samtools mpileup -s -f $REF -q20 -Q20 -r $CHR $BAM | \
+    $PU2FA -c $CHR -C $MAX_COVERAGE > $OUTDIR/SRR17134085_haploidized_${CHR}.fa
+
+    if [ ! -s "$OUTDIR/SRR17134085_haploidized_${CHR}.fa" ]; then
+        echo "Warning: $CHR output is empty"
+    fi
 done
 
+# -----------------------------
+# Concatenate all chromosomes into a single fasta
+# -----------------------------
+cat $OUTDIR/SRR17134085_haploidized_*.fa > $OUTDIR/SRR17134085_all.fa
+echo "Haploidization complete: $OUTDIR/SRR17134085_all.fa"
 
 ```
+
+
 ##### Step 3: Generate hPSMC .psmcfa for all Addra × Mohrr pairs
 ```bash
 ADDRA=("SRR17129394" "SRR17134085" "SRR17134086")
