@@ -46,9 +46,9 @@ cd /scratch/bistbs/Population_Genomic_Analysis/GONE2/GONE2
 make clean
 
 ###Since, the SNPs were greater than 20000, therefore, I had to increase the limit to this. Coz, SNPs in my file were aroudn 10-11 millions.
-make MAXLOCI=10000000 MAXIND=8 gone
+make MAXLOCI=10000000 MAXIND=3 gone
 
-### Run the GONe program for the MOhrr gazelle
+### Run the GONe program for the Addra gazelle
 /scratch/bistbs/Population_Genomic_Analysis/GONE2/GONE2/gone2 \
     -g 0 -r 1.1 -t 16 \
     /scratch/bistbs/Population_Genomic_Analysis/GONE2/Dama_gazelle_Addra.vcf \
@@ -78,7 +78,7 @@ cd /scratch/bistbs/Population_Genomic_Analysis/GONE2/GONE2
 make clean
 
 ###Since, the SNPs were greater than 20000, therefore, I had to increase the limit to this. Coz, SNPs in my file were aroudn 10-11 millions.
-make MAXLOCI=10000000 MAXIND=5 gone
+make MAXLOCI=10000000 MAXIND=2 gone
 
 
 ### Run the GONe program for the MOhrr gazelle
