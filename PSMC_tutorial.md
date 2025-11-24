@@ -130,43 +130,49 @@ $PSMC_BIN -N25 -t15 -r5 -p "4+25*2+4+6" \
 echo "Main PSMC done."
 ```
 ##### Step 4: Bootstrap the samples(100)
+- I ran individual batch script for each of the 5 samples using command below. 
 ```bash
-#!/bin/bash
+#!/bin/bash -l
+#SBATCH --job-name=88_run                  # Job name
+#SBATCH --time=100:00:00                   # Walltime: 100 hours
+#SBATCH --cpus-per-task=16                 # Number of CPU cores per task
+#SBATCH --mem=128G                         # Memory per node
+#SBATCH --partition=batch                  # Partition/queue
+#SBATCH --output=psmc_run_88_%A_%a.log    # Output log file
+#SBATCH --error=psmc_run_88_%A_%a.err     # Error log file
+#SBATCH --mail-type=END,FAIL               # Email notifications for job end/failure
+#SBATCH --mail-user=bistbs@miamioh.edu    # Your email
 
-PSMC_BIN=/scratch/bistbs/Population_Genomic_Analysis/PSMC/psmc/psmc 
+# Load necessary modules (if any)
+# module load psmc
 
-# Full paths to your sample directories
-SAMPLES=(
-"/scratch/bistbs/Population_Genomic_Analysis/PSMC/PSMC_results/SRR17129394"
-"/scratch/bistbs/Population_Genomic_Analysis/PSMC/PSMC_results/SRR17134085"
-"/scratch/bistbs/Population_Genomic_Analysis/PSMC/PSMC_results/SRR17134086"
-"/scratch/bistbs/Population_Genomic_Analysis/PSMC/PSMC_results/SRR17134087"
-"/scratch/bistbs/Population_Genomic_Analysis/PSMC/PSMC_results/SRR17134088"
-)
+# Path to PSMC binary
+PSMC_BIN=/scratch/bistbs/Population_Genomic_Analysis/PSMC/psmc/psmc
 
-for SAMPLE_DIR in "${SAMPLES[@]}"
-do
-    (
-        SAMPLE=$(basename "$SAMPLE_DIR")
-        echo "Bootstrapping $SAMPLE ..."
+# Sample directory
+SAMPLE_DIR=/scratch/bistbs/Population_Genomic_Analysis/PSMC/PSMC_results/SRR17134088
+SAMPLE=$(basename "$SAMPLE_DIR")
 
-        cd "$SAMPLE_DIR"
+# Number of bootstrap replicates
+BOOTSTRAPS=100
 
-        # Run 100 bootstrap replicates in parallel (4 per sample)
-        seq 100 | xargs -P 4 -I{} \
-            $PSMC_BIN -N25 -t15 -r5 -b -p "4+25*2+4+6" \
-            -o ${SAMPLE}_round-{}.psmc ${SAMPLE}_split.psmcfa
+# Number of parallel processes (should not exceed CPUs)
+PARALLEL=16
 
-        # Combine main + bootstraps
-        cat ${SAMPLE}.psmc ${SAMPLE}_round-*.psmc > ${SAMPLE}.combined.psmc
+# Change to the sample directory
+cd "$SAMPLE_DIR" || { echo "Cannot cd into $SAMPLE_DIR"; exit 1; }
 
-        echo "Completed $SAMPLE"
-    ) &
-done
+echo "Starting bootstrapping for $SAMPLE using $PARALLEL cores ..."
 
-# Wait for all background jobs
-wait
-echo "Bootstraps completed for ALL samples."
+# Run bootstrap replicates in parallel
+seq $BOOTSTRAPS | xargs -P $PARALLEL -I{} \
+    $PSMC_BIN -N25 -t15 -r5 -b -p "4+25*2+4+6" \
+    -o ${SAMPLE}_round-{}.psmc ${SAMPLE}_split.psmcfa
+
+# Combine main PSMC with bootstrap replicates
+cat ${SAMPLE}.psmc ${SAMPLE}_round-*.psmc > ${SAMPLE}.combined.psmc
+
+echo "Bootstrapping completed for $SAMPLE"
 
 ```
 
