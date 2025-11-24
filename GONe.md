@@ -1,4 +1,4 @@
-##### GONE2 for estimating the past Ne using LD method.
+##### GONE2 for estimating the past Ne using LD method.https://github.com/esrud/GONE2
 ##### Go the the path where there is vcf file.
 - Since, I have a vcf file with two subspecies: Addra and Mohrr.
 - I am splitting the vcf file based on sub-species and will run the GONE2 seperately.
