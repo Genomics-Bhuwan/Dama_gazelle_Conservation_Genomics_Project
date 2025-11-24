@@ -26,38 +26,6 @@ bcftools view -S <(echo -e "SRR17134087\nSRR17134088") \
 - Run for Addra and save outputs in Output_Addra
 ```bash
 #!/bin/bash -l
-#SBATCH --job-name=Addra_GONe
-#SBATCH --time=300:00:00
-#SBATCH --cpus-per-task=16
-#SBATCH --mem=128G
-#SBATCH --partition=batch
-#SBATCH --output=logs/Addra_%A.out
-#SBATCH --error=logs/Addra_%A.err
-#SBATCH --mail-type=END,FAIL
-#SBATCH --mail-user=bistbs@miamioh.edu
-
-
-###RUn
-module purge
-module load gcc-14.2.0
-
-### Run again
-cd /scratch/bistbs/Population_Genomic_Analysis/GONE2/GONE2
-make clean
-
-###Since, the SNPs were greater than 20000, therefore, I had to increase the limit to this. Coz, SNPs in my file were aroudn 10-11 millions.
-make MAXLOCI=10000000 MAXIND=3 gone
-
-### Run the GONe program for the Addra gazelle
-/scratch/bistbs/Population_Genomic_Analysis/GONE2/GONE2/gone2 \
-    -g 0 -r 1.1 -t 16 \
-    /scratch/bistbs/Population_Genomic_Analysis/GONE2/Dama_gazelle_Addra.vcf \
-    -o /scratch/bistbs/Population_Genomic_Analysis/GONE2/Output_Addra/Dama_gazelle_Addra
-```
-
-- Run for Mhorr and save outputs in Output_Mhorr
-```bash
-#!/bin/bash -l
 #SBATCH --job-name=Mohrr_GONe
 #SBATCH --time=300:00:00
 #SBATCH --cpus-per-task=16
@@ -120,7 +88,10 @@ echo "  cat ${OUT_FILE}_GONE_progress.tmp"
 ```
 
 # Recompile GONE2 for your number of individuals
-make MAXLOCI=9416350 MAXIND=2 gone
+- The reason why I am using MAXIND 10 is coz the maximum capacity should be greater than the number of individuals we have in the vcf file.
+make clean
+make MAXLOCI=9416350 MAXIND=10 gone
+
 
 ### Run the GONe program for the MOhrr gazelle
 ```bash
