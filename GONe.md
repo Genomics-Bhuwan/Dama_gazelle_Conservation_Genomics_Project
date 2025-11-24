@@ -69,35 +69,74 @@ make MAXLOCI=10000000 MAXIND=3 gone
 #SBATCH --mail-user=bistbs@miamioh.edu
 
 
-###RUn
-module purge
-module load gcc-14.2.0
+#!/bin/bash
+#======================================================
+# GONE2 Analysis for Addra Gazelle (All SNPs)
+#======================================================
 
-### Run again
-cd /scratch/bistbs/Population_Genomic_Analysis/GONE2/GONE2
-make clean
+# File paths
+VCF_FILE="/scratch/bistbs/Population_Genomic_Analysis/GONE2/Dama_gazelle_Addra.vcf"
+GONE2_DIR="/scratch/bistbs/Population_Genomic_Analysis/GONE2/GONE2"
+OUT_FILE="/scratch/bistbs/Population_Genomic_Analysis/GONE2/Output_Addra"
 
-### We have around 9 million SNPs in our Mohrr vcf file with only 2 individuals.
-#### Since, the recommended range of SNPs per chromosomes is 50k-100k. Therefore, we are randomly sub-sampling 1 million SNPs out of 9 million SNPs.
-```bash
-# Extract header
-bcftools view -h Dama_gazelle_Mhorr_biallelic.vcf.gz > header.txt
+# Parameters
+RECOMB_RATE=1.1   # cM/Mb
+THREADS=16
+GENOTYPE_TYPE=0   # 0 = unphased diploid
 
-# Extract body (variant lines) and randomly select 1M SNPs
-bcftools view -H Dama_gazelle_Mhorr_biallelic.vcf.gz | shuf -n 1000000 > body.txt
+#---------------------------------------------
+# Step 1: Compile GONE2 if not already compiled
+#---------------------------------------------
+cd $GONE2_DIR
+if [ ! -f gone2 ]; then
+    echo "Compiling GONE2..."
+    g++ -fopenmp gone2.cpp lib/*.cpp -o gone2 -DMAXLOCI=9416350 -DMAXIND=3 
+else
+    echo "GONE2 already compiled."
+fi
 
-# Combine header and body, compress to valid VCF
-cat header.txt body.txt | bcftools view -Oz -o Dama_gazelle_Mhorr_biallelic_1M.vcf.gz
+#---------------------------------------------
+# Step 2: Prepare VCF file (all SNPs)
+#---------------------------------------------
+PREP_VCF="/scratch/bistbs/Population_Genomic_Analysis/GONE2/Addra_allSNPs.vcf"
 
-# Index the VCF for downstream use
-bcftools index Dama_gazelle_Mhorr_biallelic_1M.vcf.gz
+echo "Preparing VCF file with all SNPs..."
+grep "^#" $VCF_FILE > header.txt
+grep -v "^#" $VCF_FILE >> header.txt
+mv header.txt $PREP_VCF
+
+echo "VCF prepared: $PREP_VCF"
+
+#---------------------------------------------
+# Step 3: Run GONE2
+#---------------------------------------------
+echo "Running GONE2..."
+$GONE2_DIR/gone2 -g $GENOTYPE_TYPE -r $RECOMB_RATE -t $THREADS $PREP_VCF -o $OUT_FILE &
+
+echo "GONE2 job started in background."
+echo "Monitor progress with:"
+echo "  cat ${OUT_FILE}_GONE_progress.tmp"
+
 ```
 
+# Recompile GONE2 for your number of individuals
+make MAXLOCI=9416350 MAXIND=2 gone
+
 ### Run the GONe program for the MOhrr gazelle
-/scratch/bistbs/Population_Genomic_Analysis/GONE2/GONE2/gone2 \
-    -g 0 -r 1.1 -t 8 \
-    /scratch/bistbs/Population_Genomic_Analysis/GONE2/Dama_gazelle_Mhorr.vcf \
-    -o /scratch/bistbs/Population_Genomic_Analysis/GONE2/Output_Mhorr/Dama_gazelle_Mhorr
+```bash
+GONE2_DIR=/scratch/bistbs/Population_Genomic_Analysis/GONE2/Mohrr_gazelle/GONE2
+PREP_VCF=/scratch/bistbs/Population_Genomic_Analysis/GONE2/Dama_gazelle_Mhorr.vcf
+GENOTYPE_TYPE=0      # 0 = unphased diploid
+RECOMB_RATE=1.1      # constant recombination rate in cM/Mb
+THREADS=16
+OUT_FILE=/scratch/bistbs/Population_Genomic_Analysis/GONE2/Output_Mhorr
+
+# Run in background
+$GONE2_DIR/gone2 -g $GENOTYPE_TYPE -r $RECOMB_RATE -t $THREADS $PREP_VCF -o $OUT_FILE &
+echo "GONE2 job started in background."
+echo "Monitor progress with:"
+echo "  cat ${OUT_FILE}_GONE_progress.tmp"
+
 ```
 
 ###Visualization of the "Estimated Effective population size" against the generation in time using Linkage Disequilibrium method.
