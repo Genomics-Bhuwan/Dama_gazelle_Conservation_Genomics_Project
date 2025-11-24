@@ -14,23 +14,28 @@ mkdir mitogenome_phylogeny/sub_reads
 cd /mitogenome_phylogeny/
 ```
 ##### Step 1. randomly subsample 20% of read pairs
-
+- This will randomly sub-sample the 20% of the read pairs from reads1 or forward read cause the mtDNA retention is optimal enough from 20%.
 ```bash
+#!/bin/bash
+
 INPUT_DIR="/localscratch/bistbs/mitogenome_phylogeny/sub_reads"
 OUTPUT_DIR="/localscratch/bistbs/mitogenome_phylogeny/sub_reads_sub20"
-mkdir -p $OUTPUT_DIR
+mkdir -p "$OUTPUT_DIR"
 
 SAMPLES=("SRR17129394" "SRR17134085" "SRR17134086" "SRR17134087" "SRR17134088")
+SEQTK="/localscratch/bistbs/mitogenome_phylogeny/seqtk/seqtk"
 PIGZ="/localscratch/bistbs/mitogenome_phylogeny/pigz-2.8/pigz"
 
 for SAMPLE in "${SAMPLES[@]}"; do
-    echo "Processing $SAMPLE..."
-    seqtk sample -s 100 "$INPUT_DIR/${SAMPLE}_1_val_1.fq" 0.2 | $PIGZ -p 20 > "$OUTPUT_DIR/${SAMPLE}_1.sub.fq.gz" 
-    echo "$SAMPLE done."
+    echo "Subsampling read1 for $SAMPLE..."
+    $SEQTK sample -s 100 "$INPUT_DIR/${SAMPLE}_1_val_1.fq" 0.2 | $PIGZ -p 20 > "$OUTPUT_DIR/${SAMPLE}_1.sub.fq.gz"
+    echo "$SAMPLE read1 subsampled."
 done
+
 ```
 
 ##### Step 2: Merge subsampled read1 with original read2 (also .fq, not .fq.gz)
+- Interleave is like merging the 20% sub-sampled forward reads with the complete F2 reads.
 ```bash
     seqtk mergepe \
         $OUTPUT_DIR/${sample}_1.sub.fq.gz \
@@ -39,6 +44,7 @@ done
 ```
 
 #### Step 3: Deinterleave using your local script
+- Since, the 20% will only align with the resepctive region in the reverse reads.
 ```bash
     sh /localscratch/bistbs/mitogenome_phylogeny/deinterleave_fastq.sh \
         < $OUTPUT_DIR/${sample}.interleave.fq \
