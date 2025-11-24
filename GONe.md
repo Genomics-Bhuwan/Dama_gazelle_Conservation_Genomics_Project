@@ -77,9 +77,21 @@ module load gcc-14.2.0
 cd /scratch/bistbs/Population_Genomic_Analysis/GONE2/GONE2
 make clean
 
-###Since, the SNPs were greater than 20000, therefore, I had to increase the limit to this. Coz, SNPs in my file were aroudn 10-11 millions.
-make MAXLOCI=10000000 MAXIND=2 gone
+### We have around 9 million SNPs in our Mohrr vcf file with only 2 individuals.
+#### Since, the recommended range of SNPs per chromosomes is 50k-100k. Therefore, we are randomly sub-sampling 1 million SNPs out of 9 million SNPs.
+```bash
+# Extract header
+bcftools view -h Dama_gazelle_Mhorr_biallelic.vcf.gz > header.txt
 
+# Extract body (variant lines) and randomly select 1M SNPs
+bcftools view -H Dama_gazelle_Mhorr_biallelic.vcf.gz | shuf -n 1000000 > body.txt
+
+# Combine header and body, compress to valid VCF
+cat header.txt body.txt | bcftools view -Oz -o Dama_gazelle_Mhorr_biallelic_1M.vcf.gz
+
+# Index the VCF for downstream use
+bcftools index Dama_gazelle_Mhorr_biallelic_1M.vcf.gz
+```
 
 ### Run the GONe program for the MOhrr gazelle
 /scratch/bistbs/Population_Genomic_Analysis/GONE2/GONE2/gone2 \
