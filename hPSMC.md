@@ -13,7 +13,9 @@
 
 ###### Step 1 & 2: Haploidize BAMs and concatenate chromosome FASTAs
 ---
-- Step A. I am haplodizing for sample SRR17134085.bam only. It is to be done indivdiual sample wise in first few steps as also recommended by the author: https://github.com/Genomics-Bhuwan/Dama_gazelle_Conservation_Genomics_Project/edit/main/hPSMC.md
+- Step A. I am haplodizing for sample Addra: SRR17134085.bam only. It is to be done indivdiual sample wise in first few steps as also recommended by the author: https://github.com/Genomics-Bhuwan/Dama_gazelle_Conservation_Genomics_Project/edit/main/hPSMC.md
+-  After this, I will do hte haplodizing for another sample Mohrr:SRR17134085.bam. Then I will run hPSMC in these two samples.
+-  I will repeat the same for other combination with Addra vs Mohrr sub-species.
 ---
 
 ```bash
