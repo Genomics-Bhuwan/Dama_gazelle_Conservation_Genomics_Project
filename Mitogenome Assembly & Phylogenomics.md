@@ -52,15 +52,20 @@ done
 
 #### Step 3: Deinterleave using your local script
 - Since, the 20% will only align with the resepctive region in the reverse reads.
+- Since, paste command is faster than awk. Therefore, I am using awk.
 ```bash
-    sh /localscratch/bistbs/mitogenome_phylogeny/deinterleave_fastq.sh \
-        < $OUTPUT_DIR/${sample}.interleave.fq \
-        $OUTPUT_DIR/${sample}_1.sub20.fq.gz \
-        $OUTPUT_DIR/${sample}_2.sub20.fq.gz \
-        compress
+  for f in *.interleave.fq; do
+    base=${f%.interleave.fq}
 
-    echo "$sample done."
+    echo "Deinterleaving $base ..."
+
+    paste - - - - - - - - < "$f" | \
+        tee >(cut -f1-4 | tr '\t' '\n' | gzip > ${base}_1.sub20.fq.gz) \
+            >(cut -f5-8 | tr '\t' '\n' | gzip > ${base}_2.sub20.fq.gz) >/dev/null
+
+    echo "$base done."
 done
+
 ```
 ##### Step 4. Our main target is to run MitoZ as a loop over all of our samples via their subreads.
 ---
