@@ -72,15 +72,19 @@ done
 - MitoZ generates the de novo mitogenome assembly and annotates teh resulting mitogenome.
 ---
 ```
+#!/bin/bash
+
+# List of samples
 for sample in SRR17129394 SRR17134085 SRR17134086 SRR17134087 SRR17134088
 do
-    MitoZ.py all \
+    # Run MitoZ
+    python3 /localscratch/bistbs/mitogenome_phylogeny/sub_reads_sub20/mitoz-3.6/mitoz/MitoZ.py all \
         --genetic_code 2 \
         --clade 'Chordata' \
         --outprefix ${sample} \
         --thread_number 24 \
-        --fastq1 sub_reads/${sample}_1.sub.fq.gz \
-        --fastq2 sub_reads/${sample}_2.sub.fq.gz \
+        --fastq1 ../../sub_reads_sub20/sub_reads/${sample}_1.sub.fq.gz \
+        --fastq2 ../../sub_reads_sub20/sub_reads/${sample}_2.sub.fq.gz \
         --fastq_quality_shift \
         --fastq_read_length 125 \
         --duplication \
@@ -90,6 +94,7 @@ do
         --requiring_taxa 'Mammalia' \
         --species_name 'Dama gazella' &> ${sample}.mitoz.log
 done
+
 
 ```
 
