@@ -105,18 +105,38 @@ which spades.py
 - Running MitoZ for one sample. But will be replicating for rest of the four sample for this project.
 - --
 ```bash
-python /app/anaconda/envs/mitoz3.6/lib/python3.8/site-packages/mitoz/MitoZ.py all \
-    --outprefix SRR17129394 \
-    --thread_number 24 \
-    --fq1 ./SRR17129394_1.sub20.fq.gz \
-    --fq2 ./SRR17129394_2.sub20.fq.gz \
-    --clade Chordata \
-    --genetic_code 2 \
-    --requiring_taxa Mammalia \
-    --species_name 'Dama gazella' \
-    --fastq_read_length 125 \
-    --insert_size 350 \
-    --skip_filter
+# Output directory
+OUTDIR=/scratch/bistbs/Population_Genomic_Analysis/mitogenome_haplotype_phylogeny/MitoZ_output
+
+# Correct sample
+SAMPLES=(SRR17129394)
+
+# ===============================================================
+# Loop over each sample and run MitoZ with full paths to FASTQs
+# ===============================================================
+for SAMPLE in "${SAMPLES[@]}"
+do
+    echo "--------------------------------------------------"
+    echo "Running MitoZ for $SAMPLE..."
+    echo "Output will be saved in: ${OUTDIR}/${SAMPLE}"
+    
+    # Run MitoZ all module
+    python /app/anaconda/envs/mitoz3.6/lib/python3.8/site-packages/mitoz/MitoZ.py all \
+        --outprefix $SAMPLE \
+        --thread_number 24 \
+        --fq1 /scratch/bistbs/Population_Genomic_Analysis/mitogenome_haplotype_phylogeny/${SAMPLE}_1.sub20.fq.gz \
+        --fq2 /scratch/bistbs/Population_Genomic_Analysis/mitogenome_haplotype_phylogeny/${SAMPLE}_2.sub20.fq.gz \
+        --clade Chordata \
+        --genetic_code 2 \
+        --requiring_taxa Mammalia \
+        --species_name 'Dama gazelle' \
+        --insert_size 350 \
+        --skip_filter \
+        --workdir ${OUTDIR}/${SAMPLE}
+
+    echo "$SAMPLE done."
+done
+
 ```
 ##### Run the loop for rest of the samples.
 - Step 1: Enter the Apptainer container
