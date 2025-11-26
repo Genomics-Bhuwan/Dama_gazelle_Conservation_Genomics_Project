@@ -118,44 +118,42 @@ python /app/anaconda/envs/mitoz3.6/lib/python3.8/site-packages/mitoz/MitoZ.py al
     --insert_size 350 \
     --skip_filter
 ```
-- Run the loop for rest of the samples.
-  ```bash
-  # ===============================================================
-# Step 1: Enter the Apptainer container
-# ===============================================================
-# Launch the container that has MitoZ installed.
-# This gives you a controlled environment with all dependencies.
+##### Run the loop for rest of the samples.
+- Step 1: Enter the Apptainer container
+- Launch the container that has MitoZ installed.
+- This gives you a controlled environment with all dependencies.
+ ```bash
 singularity exec MitoZ_v3.6.sif bash
-
-# ---------------------------------------------------------------
-# Step 2: Check and activate conda environment
-# ---------------------------------------------------------------
-# Locate conda in the container
+```
+##### Step 2: Check and activate conda environment
+- Locate conda in the container
+```bash
 which conda
-# /app/anaconda/bin/conda
-
-# Activate the MitoZ environment (contains megahit, spades, python, etc.)
+```
+##### Activate the MitoZ environment (contains megahit, spades, python, etc.)
+```bash
 source /app/anaconda/bin/activate mitoz3.6
-# Prompt should show: (mitoz3.6) Apptainer>
-
-# Verify main tools are available
+```
+- Prompt should show: (mitoz3.6) Apptainer>
+- Verify main tools are available
+```bash
 which megahit     # /app/anaconda/envs/mitoz3.6/bin/megahit
 which spades.py   # /app/anaconda/envs/mitoz3.6/bin/spades.py
 which python      # /app/anaconda/envs/mitoz3.6/bin/python
+```
 
-# ===============================================================
-# Step 3: Organize output
-# ===============================================================
-# Define a base directory for all sample outputs
+##### Step 3: Organize output
+##### Define a base directory for all sample outputs
+```bash
 OUTDIR="/scratch/bistbs/Population_Genomic_Analysis/mitogenome_haplotype_phylogeny/MitoZ_Output_Final"
-
-# Make sure the directory exists
+```
+##### Make sure the directory exists
+```bash
 mkdir -p "$OUTDIR"
-
-# ===============================================================
-# Step 4: Prepare sample list
-# ===============================================================
-# List all the SRR samples you want to process
+```
+##### Step 4: Prepare sample list
+- List all the SRR samples you want to process
+```bash
 SAMPLES=(SRR17134085 SRR17134086 SRR17134087 SRR17134088)
 
 # ===============================================================
@@ -184,7 +182,8 @@ do
 
     echo "$SAMPLE done."
 done
-
+```
+```bash
 # ===============================================================
 # Step 6: Check final outputs
 # ===============================================================
