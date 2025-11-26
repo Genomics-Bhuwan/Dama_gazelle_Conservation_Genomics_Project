@@ -71,35 +71,143 @@ done
 ---
 - MitoZ generates the de novo mitogenome assembly and annotates teh resulting mitogenome.
 ---
+- This is the step where I had alredy apptainer/singularity container.
+- I am using MitoZ inside a Apptainer container(A singularity variant).
+- I tried below command.  
+Command you tried:
+```bash
+singularity exec MitoZ_v3.6.sif bash
 ```
-#!/bin/bash
+- Now, Open the container in the interactive session and see the conda environment inside the container.
+- MitoZ requires Python and some bioinformatics tools (MEGAHIT, SPAdes).
+- Inside the container, these are installed in a Conda environment called mitoz3.6.
 
-# List of samples
-for sample in SRR17129394 SRR17134085 SRR17134086 SRR17134087 SRR17134088
+##### Check Conda and environments:
+```bash
+which conda
+```
+```bash
+conda info --envs
+```
+- activate the environment:
+```bash
+source /app/anaconda/bin/activate mitoz3.6
+```
+- (mitoz3.6) appears in the prompt, meaning the environment is active.
+- Now you can access MitoZ, MEGAHIT, SPAdes, etc.
+```bash
+ which megahit
+```
+```bash
+which spades.py
+```
+---
+- Running MitoZ for one sample. But will be replicating for rest of the four sample for this project.
+- --
+```bash
+python /app/anaconda/envs/mitoz3.6/lib/python3.8/site-packages/mitoz/MitoZ.py all \
+    --outprefix SRR17129394 \
+    --thread_number 24 \
+    --fq1 ./SRR17129394_1.sub20.fq.gz \
+    --fq2 ./SRR17129394_2.sub20.fq.gz \
+    --clade Chordata \
+    --genetic_code 2 \
+    --requiring_taxa Mammalia \
+    --species_name 'Dama gazella' \
+    --fastq_read_length 125 \
+    --insert_size 350 \
+    --skip_filter
+```
+- Run the loop for rest of the samples.
+  ```bash
+  # ===============================================================
+# Step 1: Enter the Apptainer container
+# ===============================================================
+# Launch the container that has MitoZ installed.
+# This gives you a controlled environment with all dependencies.
+singularity exec MitoZ_v3.6.sif bash
+
+# ---------------------------------------------------------------
+# Step 2: Check and activate conda environment
+# ---------------------------------------------------------------
+# Locate conda in the container
+which conda
+# /app/anaconda/bin/conda
+
+# Activate the MitoZ environment (contains megahit, spades, python, etc.)
+source /app/anaconda/bin/activate mitoz3.6
+# Prompt should show: (mitoz3.6) Apptainer>
+
+# Verify main tools are available
+which megahit     # /app/anaconda/envs/mitoz3.6/bin/megahit
+which spades.py   # /app/anaconda/envs/mitoz3.6/bin/spades.py
+which python      # /app/anaconda/envs/mitoz3.6/bin/python
+
+# ===============================================================
+# Step 3: Organize output
+# ===============================================================
+# Define a base directory for all sample outputs
+OUTDIR="/scratch/bistbs/Population_Genomic_Analysis/mitogenome_haplotype_phylogeny/MitoZ_Output_Final"
+
+# Make sure the directory exists
+mkdir -p "$OUTDIR"
+
+# ===============================================================
+# Step 4: Prepare sample list
+# ===============================================================
+# List all the SRR samples you want to process
+SAMPLES=(SRR17134085 SRR17134086 SRR17134087 SRR17134088)
+
+# ===============================================================
+# Step 5: Loop over each sample and run MitoZ
+# ===============================================================
+for SAMPLE in "${SAMPLES[@]}"
 do
-    # Run MitoZ
-    python3 /localscratch/bistbs/mitogenome_phylogeny/sub_reads_sub20/mitoz-3.6/mitoz/MitoZ.py all \
-        --genetic_code 2 \
-        --clade 'Chordata' \
-        --outprefix ${sample} \
+    echo "--------------------------------------------------"
+    echo "Running MitoZ for $SAMPLE..."
+    echo "Output will be saved in: ${OUTDIR}/${SAMPLE}"
+    
+    # Run MitoZ all module
+    python /app/anaconda/envs/mitoz3.6/lib/python3.8/site-packages/mitoz/MitoZ.py all \
+        --outprefix $SAMPLE \
         --thread_number 24 \
-        --fastq1 ../../sub_reads_sub20/sub_reads/${sample}_1.sub.fq.gz \
-        --fastq2 ../../sub_reads_sub20/sub_reads/${sample}_2.sub.fq.gz \
-        --fastq_quality_shift \
+        --fq1 ./${SAMPLE}_1.sub20.fq.gz \
+        --fq2 ./${SAMPLE}_2.sub20.fq.gz \
+        --clade Chordata \
+        --genetic_code 2 \
+        --requiring_taxa Mammalia \
+        --species_name 'Dama gazella' \
         --fastq_read_length 125 \
-        --duplication \
         --insert_size 350 \
-        --run_mode 2 \
-        --filter_taxa_method 1 \
-        --requiring_taxa 'Mammalia' \
-        --species_name 'Dama gazella' &> ${sample}.mitoz.log
+        --skip_filter \
+        --workdir ${OUTDIR}/${SAMPLE}
+
+    echo "$SAMPLE done."
 done
 
+# ===============================================================
+# Step 6: Check final outputs
+# ===============================================================
+# After completion, each sample will have its own folder:
+# /scratch/bistbs/Population_Genomic_Analysis/mitogenome_haplotype_phylogeny/MitoZ_Output_Final/SRR17134085/
+# Each folder contains:
+# - assembled mitochondrial contigs (FASTA)
+# - annotation files
+# - log files
+# - intermediate files from Megahit/Spades
 
+# ===============================================================
+# Notes / Comments
+# ===============================================================
+# 1. We activate the correct conda environment inside Apptainer to ensure MitoZ, megahit, spades, and Python versions are correct.
+# 2. Output directory structure keeps all samples separate to avoid overwriting.
+# 3. Thread number (--thread_number) can be adjusted depending on available CPUs.
+# 4. skip_filter can be used if you don't want MitoZ to filter contigs by taxonomy.
+# 5. You can parallelize this loop if running on HPC with job arrays for faster processing.
 ```
-
-##### Step 5. Finding a mitogenone in an assembly using BLASTN
+###### Step 5. Finding a mitogenone in an assembly using BLASTN
 - I downloaded the mitochondrial reference genome assembly of Addra gazelle from NCBI(https://www.ncbi.nlm.nih.gov/nuccore/NC_020724.1)
+
 ```bash
 cp /data/genomics/workshops/smsc_2024/mitogenomes/*.fa . mitogenomes/
 ```
