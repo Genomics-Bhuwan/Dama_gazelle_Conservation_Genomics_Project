@@ -60,7 +60,7 @@ mhorr_genome
 paf <- readPaf("Addra_vs_Mohrr.paf")
 
 ##### Step 5. Filter and Flip the alignment
-paf_filtered<-SVbyEye:::filterPaf(paf, min.align.len = 5000) # Keep only alignments >=5 kb
+paf_filtered<-SVbyEye:::filterPaf(paf, min.align.len = 1000) # Keep only alignments >=1 kb
 paf_filtered
 
 #### Step 5. Load teh annotation.
@@ -78,8 +78,8 @@ mhorr_gff <- import.gff("/scratch/bistbs/Synteny_Analysis/SVbyEye/Mohrr_complete
 ```bash
 pairwise_plot <- SVbyEye:::plotMiro(
   paf.table = paf_filtered,
-  min.deletion.size = 5000,   # highlight deletions ≥5kb
-  min.insertion.size = 5000,  # highlight insertions ≥5kb
+  min.deletion.size = 1000,   # highlight deletions ≥5kb
+  min.insertion.size = 1000,  # highlight insertions ≥5kb
   highlight.sv = TRUE,        # turn on SV highlighting
   color.by = "strand"         # color by alignment direction
 )
@@ -94,14 +94,14 @@ ggsave("Addra_vs_Mohrr_pairwise.pdf", pairwise_plot, width = 12, height = 6)
 ```bash
 /scratch/bistbs/Synteny_Analysis/SVbyEye/minimap2-2.30_x64-linux
 
-./minimap2 -x asm20 -t 24 \
+./minimap2 -x asm20 -c -t 24 \
   ../Addra_complete.genomic.fna \
   ../Addra_complete.genomic.fna \
   > ../Addra_self.paf
 
 ```
 ```bash
-./minimap2 -x asm20 -t 24 \
+./minimap2 -x asm20 -c -t 24 \
   ../Mohrr_complete.genomic.fna \
   Mohrr_complete.genomic.fna \
   > Mohrr_self.paf
@@ -114,45 +114,53 @@ mhorr_self_paf <- SVbyEye:::readPaf("Mohrr_self.paf")
 ```
 - Filter the self paf
 ```bash
-addra_self_filtered <-SVbyEye:::filterPaf(addra_self_paf, minAln = 50000)
-mhorr_self_filtered <-SVbyEye:::filterPaf(addra_self_paf, minAln = 50000)
+addra_self_filtered <- SVbyEye:::filterPaf(addra_self_paf, min.align.len = 1000)
+mhorr_self_filtered <- SVbyEye:::filterPaf(mhorr_self_paf, min.align.len = 1000)
+
 ```
 - Visualization
 ```bash
+library(dplyr)    # for pipes and data manipulation
+library(magrittr) # also provides %>% (optional if dplyr is loaded)
+### I am not removing or filtering cause a lot less.
 self_plot <- plotSelf(
   paf.table = addra_self_filtered,
   color.by = "identity",
   shape = "segment",
   sort.by = "position"
 )
+
 ggsave("Addra_self_dotplot.jpeg", self_plot, width = 12, height = 6)
 
 ```
-
-
+```bash
 self_plot <- plotSelf(
-  paf_filtered,         # Can use self-PAF or filtered PAF
-  genome = mhorr_genome,
-  minAln = 50000,      # Only show alignments >=50 kb
-  color_by = "identity" # Color by % identity
+  paf.table = mhorr_self_filtered,
+  color.by = "identity",
+  shape = "segment",
+  sort.by = "position"
 )
-ggsave("Mhorr_self_dotplot.png", self_plot, width = 12, height = 6)
+ggsave("Mhorr_self_dotplot.jpeg", self_plot, width = 12, height = 6)
 ```
 
 ###### Step 8. Plot the stacked or all-versus-all OR AVA plot.
 ```bash
+# I am using paf without filtering.
+# Use the raw PAF tibble directly
 ava_plot <- SVbyEye:::plotAVA(
-  list(paf_filtered),               # List of PAF alignments
-  ref_list = list(addra_genome, mhorr_genome),
-  color_by = "identity",           # Color by % identity
-  binsize = 5000                  # 5 kb bins
+  paf.table = paf_filtered,       # just the tibble, not list(paf)
+  binsize = 5000,        # 5 kb bins
+  color.by = "identity"  # color by % identity
 )
-ggsave("Addra_vs_Mohrr_stacked.jpeg", ava_plot, width = 12, height = 8)
+
+# Save the plot
+ggsave("Addra_vs_Mohrr_AVA_stacked.jpeg", ava_plot, width = 12, height = 8)
+
 ```
 ##### Step 9. Plot the Whole-genome overview plot
 ```bash
 genome_overview_plot <- plotGenome(
-  paf_filtered,
+  paf,
   genomes = list(addra_genome, mhorr_genome)
 )
 ggsave("Addra_vs_Mohrr_genome_overview.jpeg", genome_overview_plot, width = 12, height = 6)
@@ -160,7 +168,7 @@ ggsave("Addra_vs_Mohrr_genome_overview.jpeg", genome_overview_plot, width = 12, 
 
 ##### Step 10. Extract the structural variants-SVs and plot the size distribution.
 ```bash
-sv_breaks <-SVbyEye:::breakPaf(paf_flipped, minSize = 1000) # SVs >=1 kb
+sv_breaks <-SVbyEye:::breakPaf(paf_filtered, minSize = 1000) # SVs >=1 kb
 write.csv(sv_breaks, "Addra_vs_Mohrr_SVs.csv", row.names = FALSE)
 ```
 ##### Create SV size column
