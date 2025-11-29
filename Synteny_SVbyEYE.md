@@ -75,6 +75,7 @@ mhorr_gff <- import.gff("/scratch/bistbs/Synteny_Analysis/SVbyEye/Mohrr_complete
 
 ```
 ##### Step 6. Pairwise Genome Alignment for Miropeats.
+```bash
 pairwise_plot <- SVbyEye:::plotMiro(
   paf.table = paf_filtered,
   min.deletion.size = 5000,   # highlight deletions ≥5kb
@@ -83,10 +84,10 @@ pairwise_plot <- SVbyEye:::plotMiro(
   color.by = "strand"         # color by alignment direction
 )
 
-# Save pairwise plot
+
 ggsave("Addra_vs_Mohrr_pairwise.jpeg", pairwise_plot, width = 12, height = 6)
 ggsave("Addra_vs_Mohrr_pairwise.pdf", pairwise_plot, width = 12, height = 6)
-
+```
 
 ##### Self-alignment of Addra (horizontal dotplot)
 ###Preparing the self alignment file for Addra and Mohrr
@@ -108,13 +109,13 @@ ggsave("Addra_vs_Mohrr_pairwise.pdf", pairwise_plot, width = 12, height = 6)
 
 - Load the self PAF inside R
 ```bash
-addra_self_paf <- readPaf("Addra_self.paf")
-mhorr_self_paf <- readPaf("Mohrr_self.paf")
+addra_self_paf <- SVbyEye:::readPaf("Addra_self.paf")
+mhorr_self_paf <- SVbyEye:::readPaf("Mohrr_self.paf")
 ```
 - Filter the self paf
 ```bash
-addra_self_filtered <-filterPaf(addra_self_paf, minAln = 50000)
-mhorr_self_filtered <-filterPaf(addra_self_paf, minAln = 50000)
+addra_self_filtered <-SVbyEye:::filterPaf(addra_self_paf, minAln = 50000)
+mhorr_self_filtered <-SVbyEye:::filterPaf(addra_self_paf, minAln = 50000)
 ```
 - Visualization
 ```bash
@@ -140,18 +141,18 @@ ggsave("Mhorr_self_dotplot.png", self_plot, width = 12, height = 6)
 
 ###### Step 8. Plot the stacked or all-versus-all OR AVA plot.
 ```bash
-ava_plot <- plotAVA(
-  list(paf_flipped),               # List of PAF alignments
+ava_plot <- SVbyEye:::plotAVA(
+  list(paf_filtered),               # List of PAF alignments
   ref_list = list(addra_genome, mhorr_genome),
   color_by = "identity",           # Color by % identity
-  binsize = 5000                  # 10 kb bins
+  binsize = 5000                  # 5 kb bins
 )
 ggsave("Addra_vs_Mohrr_stacked.jpeg", ava_plot, width = 12, height = 8)
 ```
 ##### Step 9. Plot the Whole-genome overview plot
 ```bash
 genome_overview_plot <- plotGenome(
-  paf_flipped,
+  paf_filtered,
   genomes = list(addra_genome, mhorr_genome)
 )
 ggsave("Addra_vs_Mohrr_genome_overview.jpeg", genome_overview_plot, width = 12, height = 6)
@@ -159,7 +160,7 @@ ggsave("Addra_vs_Mohrr_genome_overview.jpeg", genome_overview_plot, width = 12, 
 
 ##### Step 10. Extract the structural variants-SVs and plot the size distribution.
 ```bash
-sv_breaks <- breakPaf(paf_flipped, minSize = 1000) # SVs >=1 kb
+sv_breaks <-SVbyEye:::breakPaf(paf_flipped, minSize = 1000) # SVs >=1 kb
 write.csv(sv_breaks, "Addra_vs_Mohrr_SVs.csv", row.names = FALSE)
 ```
 ##### Create SV size column
