@@ -1,5 +1,5 @@
 ##### SVbyEye Visualization: Addra vs Mohrr
-##### Step 1. Install the packages.
+##### Step 1. Install the packages..
 ```bash
 required_packages <- c(
   "ggnewscale", "gggenes", "wesanderson", "randomcoloR",
