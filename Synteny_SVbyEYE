@@ -1,40 +1,44 @@
 # ==============================================
 # SVbyEye Visualization: Addra vs Mohrr
 # ==============================================
-#Load SVbyEye package
-#Install devtools if not already installed
-install.packages("devtools")
+required_packages <- c(
+  "ggnewscale", "gggenes", "wesanderson", "randomcoloR",
+  "ggplot2", "dplyr", "tibble", "magrittr", "scales",
+  "stringr", "data.table", "ggforce", "devtools", "Biostrings"
+)
 
-#Load devtools library
-library(devtools)
+- Install any missing packages
+installed_packages <- rownames(installed.packages())
+for(pkg in required_packages) {
+  if(!pkg %in% installed_packages) {
+    install.packages(pkg, repos="https://cloud.r-project.org")
+  }
+}
 
-#Install SVbyEye directly from GitHub
-devtools::install_github("daewoooo/SVbyEye", branch = "master")
+- Load all required packages
+lapply(required_packages, library, character.only = TRUE)
+
+- Install SVbyEye from GitHub if not already installed
+if(!"SVbyEye" %in% installed_packages) {
+  devtools::install_github("daewoooo/SVbyEye", branch = "master")
+}
 library(SVbyEye)
 
-# ==============================================
-# SVbyEye Full Visualization Workflow: Addra vs Mohrr
-# As per SVbyEye paper (pairwise, self, stacked, genome overview, SV sizes)
-# ==============================================
 
-# 1️⃣ Install and load required packages
-if(!require("devtools")) install.packages("devtools")
-if(!require("ggplot2")) install.packages("ggplot2")
-if(!require("scales")) install.packages("scales")  # for comma formatting
 
-library(devtools)
-library(ggplot2)
-library(scales)
+##### 2️. Load genome sequences (FASTA)
+library(Biostrings)
+- Use the full path
+addra_fasta <- "/scratch/bistbs/Synteny_Analysis/SVbyEye/Addra_complete.genomic.fna"
+mhorr_fasta <- "/scratch/bistbs/Synteny_Analysis/SVbyEye/Mohrr_complete.genomic.fna"
 
-# Install SVbyEye from GitHub if not already installed
-devtools::install_github("daewoooo/SVbyEye", branch = "master")
-library(SVbyEye)
+# Load genome sequences (may take time and memory)
+addra_genome <- readDNAStringSet(addra_fasta)
+mhorr_genome <- readDNAStringSet(mhorr_fasta)
 
-# ==============================================
-# 2️⃣ Load genome sequences (FASTA)
-# ==============================================
-addra_genome <- readFasta("Addra_complete.genomic.fna")
-mhorr_genome <- readFasta("Mohrr_complete.genomic.fna")
+# Check loaded sequences
+addra_genome
+mhorr_genome
 
 # ==============================================
 ##### Step 3. Load PAF alignment
@@ -52,24 +56,27 @@ mhorr_genome <- readFasta("Mohrr_complete.genomic.fna")
 paf <- readPaf("Addra_vs_Mohrr.paf")
 
 ##### Step 5. Filter and Flip the alignment
-paf_filtered <- filterPaf(paf, minAln = 10000) # Keep only alignments >=10 kb
-paf_flipped <- flipPaf(paf_filtered)           # Make orientation consistent
+paf_filtered<-SVbyEye:::filterPaf(paf, min.align.len = 5000) # Keep only alignments >=5 kb
+paf_filtered
 
 #### Step 5. Load teh annotation.
 ```bash
-addra_gff <- readGff("Addra_complete.genomic.gff")
-mhorr_gff <- readGff("Mohrr_complete.genomic.gff")
+library(rtracklayer)
+
+- Import Addra annotation
+addra_gff <- import.gff("/scratch/bistbs/Synteny_Analysis/SVbyEye/Addra_complete.genomic.gff")
+
+- Import Mohrr annotation
+mhorr_gff <- import.gff("/scratch/bistbs/Synteny_Analysis/SVbyEye/Mohrr_complete.genomic.gff")
+
 ```
 ##### Step 6. Pairwise Genome Alignment for Miropeats.
-pairwise_plot <- plotMiro(
-  paf_flipped,
-  ref_genome = addra_genome,   # Reference genome (top)
-  qry_genome = mhorr_genome,   # Query genome (bottom)
-  ref_annot = addra_gff,       # Overlay Addra annotation
-  qry_annot = mhorr_gff,       # Overlay Mohrr annotation
-  color_by = "strand",         # Color by orientation
-  minAln = 10000,              # Only plot alignments >=10 kb
-  highlightSV = TRUE           # Highlight insertions (blue) and deletions (red)
+pairwise_plot <- SVbyEye:::plotMiro(
+  paf.table = paf_filtered,
+  min.deletion.size = 5000,   # highlight deletions ≥5kb
+  min.insertion.size = 5000,  # highlight insertions ≥5kb
+  highlight.sv = TRUE,        # turn on SV highlighting
+  color.by = "strand"         # color by alignment direction
 )
 
 # Save pairwise plot
@@ -78,14 +85,53 @@ ggsave("Addra_vs_Mohrr_pairwise.pdf", pairwise_plot, width = 12, height = 6)
 
 
 ##### Self-alignment of Addra (horizontal dotplot)
+###Preparing the self alignment file for Addra and Mohrr
+```bash
+/scratch/bistbs/Synteny_Analysis/SVbyEye/minimap2-2.30_x64-linux
+
+./minimap2 -x asm20 -t 24 \
+  ../Addra_complete.genomic.fna \
+  ../Addra_complete.genomic.fna \
+  > ../Addra_self.paf
+
+```
+```bash
+./minimap2 -x asm20 -t 24 \
+  ../Mohrr_complete.genomic.fna \
+  Mohrr_complete.genomic.fna \
+  > Mohrr_self.paf
+```
+
+- Load the self PAF inside R
+```bash
+addra_self_paf <- readPaf("Addra_self.paf")
+mhorr_self_paf <- readPaf("Mohrr_self.paf")
+```
+- Filter the self paf
+```bash
+addra_self_filtered <-filterPaf(addra_self_paf, minAln = 50000)
+mhorr_self_filtered <-filterPaf(addra_self_paf, minAln = 50000)
+```
+- Visualization
 ```bash
 self_plot <- plotSelf(
-  paf_flipped,         # Can use self-PAF or filtered PAF
-  genome = addra_genome,
+  paf.table = addra_self_filtered,
+  color.by = "identity",
+  shape = "segment",
+  sort.by = "position"
+)
+ggsave("Addra_self_dotplot.jpeg", self_plot, width = 12, height = 6)
+
+```
+
+
+self_plot <- plotSelf(
+  paf_filtered,         # Can use self-PAF or filtered PAF
+  genome = mhorr_genome,
   minAln = 50000,      # Only show alignments >=50 kb
   color_by = "identity" # Color by % identity
 )
-ggsave("Addra_self_dotplot.png", self_plot, width = 12, height = 6)
+ggsave("Mhorr_self_dotplot.png", self_plot, width = 12, height = 6)
 ```
 
 ##### Step 8. Plot the stacked or all-versus-all OR AVA plot.
@@ -94,7 +140,7 @@ ava_plot <- plotAVA(
   list(paf_flipped),               # List of PAF alignments
   ref_list = list(addra_genome, mhorr_genome),
   color_by = "identity",           # Color by % identity
-  binsize = 10000                  # 10 kb bins
+  binsize = 5000                  # 10 kb bins
 )
 ggsave("Addra_vs_Mohrr_stacked.jpeg", ava_plot, width = 12, height = 8)
 ```
