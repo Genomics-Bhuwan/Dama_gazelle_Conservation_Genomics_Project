@@ -1,46 +1,50 @@
-# ==============================================
-# SVbyEye Visualization: Addra vs Mohrr
-# ==============================================
+##### SVbyEye Visualization: Addra vs Mohrr
+##### Step 1. Install the packages.
+```bash
 required_packages <- c(
   "ggnewscale", "gggenes", "wesanderson", "randomcoloR",
   "ggplot2", "dplyr", "tibble", "magrittr", "scales",
   "stringr", "data.table", "ggforce", "devtools", "Biostrings"
 )
-
+```
 - Install any missing packages
+```bash
 installed_packages <- rownames(installed.packages())
 for(pkg in required_packages) {
   if(!pkg %in% installed_packages) {
     install.packages(pkg, repos="https://cloud.r-project.org")
   }
 }
-
+```
 - Load all required packages
+  ```bash
 lapply(required_packages, library, character.only = TRUE)
-
+```
 - Install SVbyEye from GitHub if not already installed
+```bash
 if(!"SVbyEye" %in% installed_packages) {
   devtools::install_github("daewoooo/SVbyEye", branch = "master")
 }
 library(SVbyEye)
-
-
-
+```
 ##### 2️. Load genome sequences (FASTA)
 library(Biostrings)
 - Use the full path
+```bash
 addra_fasta <- "/scratch/bistbs/Synteny_Analysis/SVbyEye/Addra_complete.genomic.fna"
 mhorr_fasta <- "/scratch/bistbs/Synteny_Analysis/SVbyEye/Mohrr_complete.genomic.fna"
-
-# Load genome sequences (may take time and memory)
+```
+##### Load genome sequences (may take time and memory)
+```bash
 addra_genome <- readDNAStringSet(addra_fasta)
 mhorr_genome <- readDNAStringSet(mhorr_fasta)
-
-# Check loaded sequences
+```
+##### Check loaded sequences
+```bash
 addra_genome
 mhorr_genome
+```
 
-# ==============================================
 ##### Step 3. Load PAF alignment
 ##### A. Generate with minimap2 in terminal if not done:
 ```bash
@@ -134,7 +138,7 @@ self_plot <- plotSelf(
 ggsave("Mhorr_self_dotplot.png", self_plot, width = 12, height = 6)
 ```
 
-##### Step 8. Plot the stacked or all-versus-all OR AVA plot.
+###### Step 8. Plot the stacked or all-versus-all OR AVA plot.
 ```bash
 ava_plot <- plotAVA(
   list(paf_flipped),               # List of PAF alignments
