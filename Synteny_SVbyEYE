@@ -1,0 +1,134 @@
+# ==============================================
+# SVbyEye Visualization: Addra vs Mohrr
+# ==============================================
+#Load SVbyEye package
+#Install devtools if not already installed
+install.packages("devtools")
+
+#Load devtools library
+library(devtools)
+
+#Install SVbyEye directly from GitHub
+devtools::install_github("daewoooo/SVbyEye", branch = "master")
+library(SVbyEye)
+
+# ==============================================
+# SVbyEye Full Visualization Workflow: Addra vs Mohrr
+# As per SVbyEye paper (pairwise, self, stacked, genome overview, SV sizes)
+# ==============================================
+
+# 1️⃣ Install and load required packages
+if(!require("devtools")) install.packages("devtools")
+if(!require("ggplot2")) install.packages("ggplot2")
+if(!require("scales")) install.packages("scales")  # for comma formatting
+
+library(devtools)
+library(ggplot2)
+library(scales)
+
+# Install SVbyEye from GitHub if not already installed
+devtools::install_github("daewoooo/SVbyEye", branch = "master")
+library(SVbyEye)
+
+# ==============================================
+# 2️⃣ Load genome sequences (FASTA)
+# ==============================================
+addra_genome <- readFasta("Addra_complete.genomic.fna")
+mhorr_genome <- readFasta("Mohrr_complete.genomic.fna")
+
+# ==============================================
+##### Step 3. Load PAF alignment
+##### A. Generate with minimap2 in terminal if not done:
+```bash
+./minimap2-2.30_x64-linux/minimap2 -x asm5 -c Addra_complete.genomic.fna Mohrr_complete.genomic.fna > Addra_vs_Mohrr.paf
+```
+##### B. Index the reference for faster repeated runs.
+```bash
+./minimap2-2.30_x64-linux/minimap2 -d Addra.mmi Addra_complete.genomic.fna
+./minimap2-2.30_x64-linux/minimap2 -x asm5 -c Addra.mmi Mohrr_complete.genomic.fna > Addra_vs_Mohrr.paf
+```
+
+##### Step 4. Read the .paf file
+paf <- readPaf("Addra_vs_Mohrr.paf")
+
+##### Step 5. Filter and Flip the alignment
+paf_filtered <- filterPaf(paf, minAln = 10000) # Keep only alignments >=10 kb
+paf_flipped <- flipPaf(paf_filtered)           # Make orientation consistent
+
+#### Step 5. Load teh annotation.
+```bash
+addra_gff <- readGff("Addra_complete.genomic.gff")
+mhorr_gff <- readGff("Mohrr_complete.genomic.gff")
+```
+##### Step 6. Pairwise Genome Alignment for Miropeats.
+pairwise_plot <- plotMiro(
+  paf_flipped,
+  ref_genome = addra_genome,   # Reference genome (top)
+  qry_genome = mhorr_genome,   # Query genome (bottom)
+  ref_annot = addra_gff,       # Overlay Addra annotation
+  qry_annot = mhorr_gff,       # Overlay Mohrr annotation
+  color_by = "strand",         # Color by orientation
+  minAln = 10000,              # Only plot alignments >=10 kb
+  highlightSV = TRUE           # Highlight insertions (blue) and deletions (red)
+)
+
+# Save pairwise plot
+ggsave("Addra_vs_Mohrr_pairwise.jpeg", pairwise_plot, width = 12, height = 6)
+ggsave("Addra_vs_Mohrr_pairwise.pdf", pairwise_plot, width = 12, height = 6)
+
+
+##### Self-alignment of Addra (horizontal dotplot)
+```bash
+self_plot <- plotSelf(
+  paf_flipped,         # Can use self-PAF or filtered PAF
+  genome = addra_genome,
+  minAln = 50000,      # Only show alignments >=50 kb
+  color_by = "identity" # Color by % identity
+)
+ggsave("Addra_self_dotplot.png", self_plot, width = 12, height = 6)
+```
+
+##### Step 8. Plot the stacked or all-versus-all OR AVA plot.
+```bash
+ava_plot <- plotAVA(
+  list(paf_flipped),               # List of PAF alignments
+  ref_list = list(addra_genome, mhorr_genome),
+  color_by = "identity",           # Color by % identity
+  binsize = 10000                  # 10 kb bins
+)
+ggsave("Addra_vs_Mohrr_stacked.jpeg", ava_plot, width = 12, height = 8)
+```
+##### Step 9. Plot the Whole-genome overview plot
+```bash
+genome_overview_plot <- plotGenome(
+  paf_flipped,
+  genomes = list(addra_genome, mhorr_genome)
+)
+ggsave("Addra_vs_Mohrr_genome_overview.jpeg", genome_overview_plot, width = 12, height = 6)
+```
+
+##### Step 10. Extract the structural variants-SVs and plot the size distribution.
+```bash
+sv_breaks <- breakPaf(paf_flipped, minSize = 1000) # SVs >=1 kb
+write.csv(sv_breaks, "Addra_vs_Mohrr_SVs.csv", row.names = FALSE)
+```
+##### Create SV size column
+```bash
+sv_breaks$SV_size <- abs(sv_breaks$end_qry - sv_breaks$start_qry)
+```
+##### Plot SV size distribution
+```bash
+sv_size_plot <- ggplot(sv_breaks, aes(x = SV_size)) +
+  geom_histogram(binwidth = 1000, fill = "steelblue", color = "black") +
+  scale_x_continuous(labels = scales::comma) +
+  labs(
+    title = "SV Size Distribution: Addra vs Mohrr",
+    x = "SV size (bp)", y = "Count"
+  ) +
+  theme_minimal()
+ggsave("Addra_vs_Mohrr_SV_size_distribution.png", sv_size_plot, width = 10, height = 6)
+```
+# ==============================================
+
+
+
