@@ -66,27 +66,25 @@ paf_filtered
 #### Step 5. Load teh annotation.
 ```bash
 library(rtracklayer)
-
-- Import Addra annotation
+```
+- Import Addra and Mohrr annotation
+```bash
 addra_gff <- import.gff("/scratch/bistbs/Synteny_Analysis/SVbyEye/Addra_complete.genomic.gff")
-
-- Import Mohrr annotation
 mhorr_gff <- import.gff("/scratch/bistbs/Synteny_Analysis/SVbyEye/Mohrr_complete.genomic.gff")
-
 ```
 ##### Step 6. Pairwise Genome Alignment for Miropeats.
 ```bash
 pairwise_plot <- SVbyEye:::plotMiro(
   paf.table = paf_filtered,
-  min.deletion.size = 1000,   # highlight deletions ≥5kb
-  min.insertion.size = 1000,  # highlight insertions ≥5kb
+  min.deletion.size = 1000,   # highlight deletions ≥1kb
+  min.insertion.size = 1000,  # highlight insertions ≥1kb
   highlight.sv = TRUE,        # turn on SV highlighting
   color.by = "strand"         # color by alignment direction
 )
 
+ggsave("Addra_vs_Mohrr_pairwise.jpeg", pairwise_plot, width = 12, height = 6, dpi = 300)
 
-ggsave("Addra_vs_Mohrr_pairwise.jpeg", pairwise_plot, width = 12, height = 6)
-ggsave("Addra_vs_Mohrr_pairwise.pdf", pairwise_plot, width = 12, height = 6)
+ggsave("Addra_vs_Mohrr_pairwise.pdf", pairwise_plot, width = 12, height = 6, dpi = 300)
 ```
 
 ##### Self-alignment of Addra (horizontal dotplot)
