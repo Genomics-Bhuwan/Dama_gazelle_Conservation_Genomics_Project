@@ -120,25 +120,37 @@ mhorr_self_filtered <- SVbyEye:::filterPaf(mhorr_self_paf, min.align.len = 1000)
 ```bash
 library(dplyr)    # for pipes and data manipulation
 library(magrittr) # also provides %>% (optional if dplyr is loaded)
-### I am not removing or filtering cause a lot less.
-self_plot <- plotSelf(
-  paf.table = addra_self_filtered,
-  color.by = "identity",
-  shape = "segment",
-  sort.by = "position"
-)
-
-ggsave("Addra_self_dotplot.jpeg", self_plot, width = 12, height = 6)
-
 ```
+##### I am not removing or filtering cause a lot less.
+###### Addra self-dotplot
 ```bash
 self_plot <- plotSelf(
-  paf.table = mhorr_self_filtered,
+  paf.table = addra_self_paf,  # raw self-PAF
   color.by = "identity",
   shape = "segment",
   sort.by = "position"
 )
-ggsave("Mhorr_self_dotplot.jpeg", self_plot, width = 12, height = 6)
+
+ggsave("Addra_self_dotplot.jpeg", self_plot, width = 12, height = 6, dpi = 300)
+
+ggsave("Addra_self_dotplot.pdf", self_plot, width = 12, height = 6)
+```
+
+##### Mohrr self-dotplot
+
+mhorr_self_plot <- plotSelf(
+  paf.table = mhorr_self_paf,  # raw self-PAF
+  color.by = "identity",
+  shape = "segment",
+  sort.by = "position"
+)
+
+# Save high-res JPEG
+ggsave("Mohrr_self_dotplot.jpeg", mhorr_self_plot, width = 12, height = 6, dpi = 300)
+
+# Save PDF
+ggsave("Mohrr_self_dotplot.pdf", mhorr_self_plot, width = 12, height = 6)
+
 ```
 
 ###### Step 8. Plot the stacked or all-versus-all OR AVA plot.
@@ -146,21 +158,26 @@ ggsave("Mhorr_self_dotplot.jpeg", self_plot, width = 12, height = 6)
 # I am using paf without filtering.
 # Use the raw PAF tibble directly
 ava_plot <- SVbyEye:::plotAVA(
-  paf.table = paf_filtered,       # just the tibble, not list(paf)
-  binsize = 5000,        # 5 kb bins
-  color.by = "identity"  # color by % identity
+  paf.table = paf_filtered,   # use your PAF tibble directly
+  binsize = 5000,             # 5 kb bins
+  color.by = "identity",      # color by % identity
+  highlight.sv = TRUE         # optionally highlight SVs
 )
 
-# Save the plot
 ggsave("Addra_vs_Mohrr_AVA_stacked.jpeg", ava_plot, width = 12, height = 8)
 
 ```
 ##### Step 9. Plot the Whole-genome overview plot
 ```bash
-genome_overview_plot <- plotGenome(
-  paf,
-  genomes = list(addra_genome, mhorr_genome)
+genome_overview_plot <- SVbyEye:::plotGenome(
+  paf.table = paf_filtered, 
+  binsize = 5000,
+  color.by = "identity",
+  highlight.sv = TRUE,
+  min.deletion.size = 1000,   # 1 kb
+  min.insertion.size = 1000   # 1 kb
 )
+
 ggsave("Addra_vs_Mohrr_genome_overview.jpeg", genome_overview_plot, width = 12, height = 6)
 ```
 
