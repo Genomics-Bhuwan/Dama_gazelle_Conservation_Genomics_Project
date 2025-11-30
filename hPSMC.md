@@ -89,8 +89,13 @@ cat SRR17129394_chr*.fa > SRR17129394_all.fa
 cat SRR17134087_chr*.fa > SRR17134087_all.fa
 ```
 ##### Step 4.  Run Python for two samples to combine.
+- The python script for hPSMC got corrupted that is why I had to fix it and it started running. 
 ```bash
-cd /scratch/bistbs/Population_Genomic_Analysis/PSMC/haploidized
+python /scratch/bistbs/Population_Genomic_Analysis/hPSMC/hPSMC/psmcfa_from_2_fastas_try.py \
+    -b 10 \
+    -m 5 \
+    SRR17129394_all.fa \
+    SRR17134087_all.fa \
+    > hPSMC.psmcfa
 
-python psmcfa_from_2_fastas.py -b10 -m5 SRR17129394_all.fa SRR17134087_all.fa > hPSMC.psmcfa
 ```
