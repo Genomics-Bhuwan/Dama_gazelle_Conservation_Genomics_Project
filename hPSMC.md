@@ -81,4 +81,16 @@ cat chromosomes.txt | parallel -j 24 '
 '
 ```
 
+##### Step 3.  Combine the chromosomes for each sapmles independently.
+```bash
+cd /scratch/bistbs/Population_Genomic_Analysis/PSMC/haploidized
 
+cat SRR17129394_chr*.fa > SRR17129394_all.fa
+cat SRR17134087_chr*.fa > SRR17134087_all.fa
+```
+##### Step 4.  Run Python for two samples to combine.
+```bash
+cd /scratch/bistbs/Population_Genomic_Analysis/PSMC/haploidized
+
+python psmcfa_from_2_fastas.py -b10 -m5 SRR17129394_all.fa SRR17134087_all.fa > hPSMC.psmcfa
+```
