@@ -48,4 +48,37 @@ cat chromosomes.txt | parallel -j 24 --env SAMPLE,REF,PU2FA '
 '
 ```
 
+###### For sample 87
+```bash
+#!/bin/bash -l
+#SBATCH --job-name=hPSMC_sample87
+#SBATCH --time=200:00:00
+#SBATCH --cpus-per-task=24
+#SBATCH --mem=128G
+#SBATCH --partition=batch
+#SBATCH --output=psmc_sample87.log
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=bistbs@miamioh.edu
+
+module load bcftools-1.15
+module load samtools-1.22.1
+module load parallel
+
+cd /scratch/bistbs/Population_Genomic_Analysis/PSMC
+mkdir -p haploidized
+
+SAMPLE="SRR17134087"
+REF="Dama_gazelle_hifiasm-ULONT_primary.fasta"
+PU2FA="/scratch/bistbs/Population_Genomic_Analysis/PSMC/Chrom-Compare/pu2fa"
+
+export SAMPLE REF PU2FA  # Export for parallel
+
+# Run each chromosome in parallel using 24 threads
+cat chromosomes.txt | parallel -j 24 '
+    echo "Processing '"$SAMPLE"' chromosome {}..."
+    samtools mpileup -s -f $REF -q30 -Q30 -r {} $SAMPLE.bam | \
+    $PU2FA -c {} -C 100 > haploidized/${SAMPLE}_chr{}.fa
+'
+```
+
 
