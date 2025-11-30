@@ -1,14 +1,14 @@
 ##### hPSMC
 ---
-#!/bin/bash -l
-#SBATCH --job-name=hPSMC_all
-#SBATCH --time=120:00:00
-#SBATCH --cpus-per-task=10
-#SBATCH --mem=128G
-#SBATCH --partition=batch
-#SBATCH --output=hpsmc_run_%A_%a.log
-#SBATCH --mail-type=END,FAIL
-#SBATCH --mail-user=bistbs@miamioh.edu
+-!/bin/bash -l
+- SBATCH --job-name=hPSMC_all
+- SBATCH --time=120:00:00
+- SBATCH --cpus-per-task=10
+- SBATCH --mem=128G
+- SBATCH --partition=batch
+- SBATCH --output=hpsmc_run_%A_%a.log
+- SBATCH --mail-type=END,FAIL
+- SBATCH --mail-user=bistbs@miamioh.edu
 ---
 
 ###### Step 1 & 2: Haploidize BAMs and concatenate chromosome FASTAs
