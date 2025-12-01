@@ -99,3 +99,35 @@ python /scratch/bistbs/Population_Genomic_Analysis/hPSMC/hPSMC/psmcfa_from_2_fas
     > hPSMC.psmcfa
 
 ```
+
+##### Step 5. PSMC for hPSMC
+```bash
+#!/bin/bash -l
+#SBATCH --job-name=hPSMC_all
+#SBATCH --time=150:00:00
+#SBATCH --cpus-per-task=24
+#SBATCH --mem=90G
+#SBATCH --partition=batch
+#SBATCH --output=hpsmc_run_%A_%a.log
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=bistbs@miamioh.edu
+
+## Demographic modelling using HPSMC
+```bash
+#!/bin/bash -l
+#SBATCH --job-name=hPSMC_all
+#SBATCH --time=150:00:00
+#SBATCH --cpus-per-task=24
+#SBATCH --mem=90G
+#SBATCH --partition=batch
+#SBATCH --output=hpsmc_run_%A_%a.log
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=bistbs@miamioh.edu
+
+## Demographic modelling using HPSMC
+
+/scratch/bistbs/Population_Genomic_Analysis/PSMC/psmc/psmc \
+  -N25 -t15 -r5 -p "4+25*2+4+6" \
+  -o /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output/hPSMC.psmc \
+  /scratch/bistbs/Population_Genomic_Analysis/PSMC/haploidized/hPSMC.psmcfa
+```
