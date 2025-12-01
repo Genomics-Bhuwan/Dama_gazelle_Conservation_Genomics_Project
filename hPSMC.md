@@ -131,3 +131,12 @@ python /scratch/bistbs/Population_Genomic_Analysis/hPSMC/hPSMC/psmcfa_from_2_fas
   -o /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output/hPSMC.psmc \
   /scratch/bistbs/Population_Genomic_Analysis/PSMC/haploidized/hPSMC.psmcfa
 ```
+##### Step 6. Plotting.
+- Visualize hPSMC.psmc and estimate pre-diverence population size. Standard PSMC method.
+
+psmc_directory/utils/psmc_plot.pl hPSMC hPSMC.psmc
+
+Alternative script included here. The -s -g and -m flags show their default values.
+
+python hPSMC/PSMC_emit_last_iteration_coord.py -s10 -g25 -m0.000000001 hPSMC.psmc
+Once we have plotted the psmc result using one of the two above methods estimate the pre-divergence population size which will be input for step 4.
