@@ -1,4 +1,14 @@
 # Mitogenome Assembly & Phylogenomic Tutorial
+  - Outgroups used is:
+ ---
+  Gazella dorcas – Dorcas gazelle		
+     a. isolate 1 subspecies osiris	Mali- JN632637*
+     b. isolate 2 subspecies pelzelnii AWWP 5722, Somalia- JN632638*
+    - Downloaded from the paper: https://www.sciencedirect.com/science/article/pii/S1631069111002800
+- Used sample:
+Nanger soemmerringii isolate AWWP mitochondrion, complete genome
+GenBank: JN632667.1
+---
 
 Heterozygosity is a simple and informative statistic that can be obtained by analyzing whole-genome data. You can calculate the average heterozygosity of an individual or assess the local heterozygosity throughout the genome to answer more specific questions.
 
