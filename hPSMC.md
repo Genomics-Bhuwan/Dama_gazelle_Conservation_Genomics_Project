@@ -225,6 +225,8 @@ ggsave("hPSMC_PSMC_Main_20K_2M_7k_110k.jpeg", p_main, width=14, height=8, dpi=30
 ```
 
 ##### Step 7. Pre-divergence analysis
+- Use this paper as reference for looking the script for hPSMC.
+- https://academic.oup.com/zoolinnean/article/204/3/zlaf059/8194500#525155301
 - Ancestral $N_e$ (Observed): $55,000$Mutation Rate ($\mu$): $2.96 \times 10^{-9}$ per site per generationGeneration Time ($g$): $5.85$ yearsTotal Sequence Length ($L$): $255,813,793$ basesTarget Divergence Range: 1 kya to 4 Mya
 
 
