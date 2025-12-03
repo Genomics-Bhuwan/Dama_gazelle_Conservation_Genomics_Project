@@ -305,10 +305,17 @@ wait
 ---
 
 ### Estimate Divergence time with hPSMC ###
-ls ./hPSMC_sim_*psmc | python /scratch/bistbs/Population_Genomic_Analysis/hPSMC/hPSMC/compare_sims_to_data.py -i 10 /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output/hPSMC.psmc > ./hPSMC_gazelle_assessment_FINAL.txt
+```bash
+ls hPSMC_sim_*psmc | \
+python2 /scratch/bistbs/Population_Genomic_Analysis/hPSMC/hPSMC/compare_sims_to_data.py \
+    -i /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output/hPSMC.psmc \
+    -N 15000 \
+    -g 5 \
+    -o hPSMC_gazelle_assessment_FINAL.txt
+
 ```
 
-```bash
+
 
 
 
