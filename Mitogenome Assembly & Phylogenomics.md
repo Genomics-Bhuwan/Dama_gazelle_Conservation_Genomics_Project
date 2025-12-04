@@ -1,5 +1,5 @@
 # Mitogenome Assembly & Phylogenomic Tutorial
-  - Outgroups used is:
+  - Note on the project to know before running the complete pipeline.
  ---
   Gazella dorcas – Dorcas gazelle		
      a. isolate 1 subspecies osiris	Mali- JN632637*
@@ -8,6 +8,12 @@
 - Used sample:
 Nanger soemmerringii isolate AWWP mitochondrion, complete genome
 GenBank: JN632667.1
+- Even when using tools such as MitoZ(or similar programs like GetOrganelle), it's imporatant to check the accuracy of the assemblies first by annotating them (using something like the MITOS2 tool in Galaxy: https://usegalaxy.org/root?tool_id=toolshed.g2.bx.psu.edu%2Frepos%2Fiuc%2Fmitos2%2Fmitos2%2F2.1.3%20galaxy0) and then comparing it with a known mitogenome assembly, in this case dama gazelle mitogenome JN632665.
+- I imported your alignment into Geneious Prime. Attached is a zoom-out image of the alignment. You can clearly see that there is a problem with sequences SRR17129394 and SRR17134085.
+- I generated consensus mitogenome assemblies of the 5 reseqeunced dama gazelles by first downsampling the SRA file to about 20M reads with the seqtk tool (https://github.com/lh3/seqtk) and then mapping them to the JN632665 mitogenome using the Geneious Mapper tool in Geneious Prime.
+- I then used MAFFT in Geneious Prime to align these with the other sequences from Nanger and Eudorcas and deleted the control region due to ambiguous alignment across this region.
+- I then generated a phylogeny using RAxML hill-climbing plus 1000 rapid bootstraps (again, in Geneious Prime).
+- I rooted the tree using the sequences from the 2 Eudorcas species.
 ---
 
 Heterozygosity is a simple and informative statistic that can be obtained by analyzing whole-genome data. You can calculate the average heterozygosity of an individual or assess the local heterozygosity throughout the genome to answer more specific questions.
@@ -440,4 +446,3 @@ iqtree2 -s Dama_gazelle_PCGs_aligned_with_Nanger.fasta -q partitions.txt -m MFP 
 ```
 
 
-Label your samples clearly (Dama_1 … Dama_5).
