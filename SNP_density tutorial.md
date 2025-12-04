@@ -12,60 +12,61 @@
 - Input .vcf
 
 ```bash
-/scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Dama_gazelle_biallelic_snps_autosomes.vcf
+cd /scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden
 
-# Samples in your VCF
-SAMPLES=("SRR17129394" "SRR17134085" "SRR17134086" "SRR17134087" "SRR17134088")
+VCF=Dama_gazelle_biallelic_snps_autosomes.vcf
 
-# Parameters
-MAF_THRESHOLD=0.1          # Minimum allele frequency
-WINDOW_SIZE=1000000        # SNP density window size in bp (1 Mb)
+for sample in SRR17129394 SRR17134085 SRR17134086 SRR17134087 SRR17134088
+do
+    echo "Processing $sample ..."
 
-# Create working directories
-mkdir -p snpden/plots
+    bcftools view \
+        -s $sample \
+        -g het \
+        -v snps \
+        $VCF \
+        -Oz -o ${sample}_HET.vcf.gz
 
-# Step 1: Extract heterozygous sites for all samples
-echo "Extracting heterozygous sites (MAF >= $MAF_THRESHOLD)..."
-vcftools --vcf $VCF --recode --out snpden/AllSamples_hetsites --maf $MAF_THRESHOLD
-
-# Corrected Step 2: Calculate SNP density for each individual
-
-echo "Calculating *unique* SNP density per sample..."
-for sample in "${SAMPLES[@]}"; do
-    echo "Processing sample: $sample"
-
-    # 1. Extract sample-specific SNPs (columns) from VCF
-    echo $sample > snpden/${sample}_keep.txt
-    vcftools --vcf snpden/AllSamples_hetsites.recode.vcf \
-             --keep snpden/${sample}_keep.txt \
-             --recode --out snpden/${sample}_hetsites
-
-    # 2. **CRITICAL FIX: Filter rows by Genotype (Only keep HET sites for THIS sample)**
-    # This command removes any site from the VCF where the kept sample's genotype is NOT heterozygous (i.e., removes 0/0 and 1/1 sites, and missing data)
-    # The --min-alleles 2 and --max-alleles 2 constraints also help ensure we look at bi-allelic sites, but the primary filter for heterozygosity is --extract-FORMAT-info GT.
-    
-    vcftools --vcf snpden/${sample}_hetsites.recode.vcf \
-             --remove-filtered-all \
-             --max-alleles 2 \
-             --min-alleles 2 \
-             --recode --out snpden/${sample}_filtered_by_geno
-
-    # 3. Calculate SNP density in windows (using the clean, filtered VCF)
-    vcftools --vcf snpden/${sample}_filtered_by_geno.recode.vcf \
-             --SNPdensity $WINDOW_SIZE \
-             --out snpden/${sample}_hetsites
-
-    # 4. Add sample name to the output file (unchanged)
-    awk -v sample="$sample" 'NR==1{print $0"\tIndiv"} NR>1{print $0"\t"sample}' \
-        snpden/${sample}_hetsites.snpden > snpden/${sample}_hetsites_id.snpden
+    bcftools index ${sample}_HET.vcf.gz
 done
 
-# Step 3: Combine all sample SNP density files into one (unchanged)
-echo "Combining all samples into a single SNP density file..."
-head -n 1 snpden/${SAMPLES[0]}_hetsites_id.snpden > snpden/Dama_gazelle_hetsites.snpden
-tail -q -n +2 snpden/*_id.snpden >> snpden/Dama_gazelle_hetsites.snpden
+###Checking the coutns of the heterozygous SNPs for each sample.
+for s in SRR17129394 SRR17134085 SRR17134086 SRR17134087 SRR17134088
+do
+    echo -n "$s: "
+    bcftools view -H ${s}_HET.vcf.gz | wc -l
+done
 
-echo "✅ SNP density pipeline ready for re-run."
+###### I want to have the bin size of 1 Mb.
+SNP density window = 1 Mb
+WINDOW=1000000
+
+for sample in SRR17129394 SRR17134085 SRR17134086 SRR17134087 SRR17134088
+do
+    echo "Calculating SNP density for $sample ..."
+
+    vcftools --gzvcf ${sample}_HET.vcf.gz \
+             --SNPdensity $WINDOW \
+             --out ${sample}_density
+
+done
+
+####Verify per-sample SNP density differs. Previously, all the SNP density plot were same. I want to make it different.
+#### This checks how many windows each sample has:
+
+for s in SRR17129394 SRR17134085 SRR17134086 SRR17134087 SRR17134088
+do
+    echo -n "$s: "
+    awk 'NR>1 {print $4}' ${s}_density.snpden | sort -u | wc -l
+done
+### Combine all samples into one .snpden file.
+echo -e "CHROM\tBIN_START\tBIN_END\tVARIANTS.KB\tIndiv" > combined_snpden.txt
+
+for s in SRR17129394 SRR17134085 SRR17134086 SRR17134087 SRR17134088
+do
+    awk -v name=$s 'NR>1 {print $0"\t"name}' ${s}_density.snpden >> combined_snpden.txt
+done
+
 ```
 
 ##### Visualization of SNP density plot using painted chromosomes.
