@@ -260,18 +260,19 @@ ggsave("hPSMC_PSMC_Main_20K_2M_7k_110k.jpeg", p_main, width=14, height=8, dpi=30
 ### Begin MSPRIME/ms simulations (10 simulations) ###
 # CORRECTED PATH FOR mspms 
 
-/home/users/bistbs/miniconda3/bin/mspms 4 40 -p 8 -t 166583.8 -r 60000.0 5000000 -I 2 2 2 -ej 0.000777 2 1 > ./hPSMC_sim_1kya.ms_sim &
-/home/users/bistbs/miniconda3/bin/mspms 4 40 -p 8 -t 166583.8 -r 60000.0 5000000 -I 2 2 2 -ej 0.003885 2 1 > ./hPSMC_sim_5kya.ms_sim &
-/home/users/bistbs/miniconda3/bin/mspms 4 40 -p 8 -t 166583.8 -r 60000.0 5000000 -I 2 2 2 -ej 0.011655 2 1 > ./hPSMC_sim_15kya.ms_sim &
-/home/users/bistbs/miniconda3/bin/mspms 4 40 -p 8 -t 166583.8 -r 60000.0 5000000 -I 2 2 2 -ej 0.03108 2 1 > ./hPSMC_sim_40kya.ms_sim &
-/home/users/bistbs/miniconda3/bin/mspms 4 40 -p 8 -t 166583.8 -r 60000.0 5000000 -I 2 2 2 -ej 0.0777 2 1 > ./hPSMC_sim_100kya.ms_sim &
-/home/users/bistbs/miniconda3/bin/mspms 4 40 -p 8 -t 166583.8 -r 60000.0 5000000 -I 2 2 2 -ej 0.19425 2 1 > ./hPSMC_sim_250kya.ms_sim &
-/home/users/bistbs/miniconda3/bin/mspms 4 40 -p 8 -t 166583.8 -r 60000.0 5000000 -I 2 2 2 -ej 0.3885 2 1 > ./hPSMC_sim_500kya.ms_sim &
-/home/users/bistbs/miniconda3/bin/mspms 4 40 -p 8 -t 166583.8 -r 60000.0 5000000 -I 2 2 2 -ej 0.777 2 1 > ./hPSMC_sim_1mya.ms_sim &
-/home/users/bistbs/miniconda3/bin/mspms 4 40 -p 8 -t 166583.8 -r 60000.0 5000000 -I 2 2 2 -ej 1.554 2 1 > ./hPSMC_sim_2mya.ms_sim &
-/home/users/bistbs/miniconda3/bin/mspms 4 40 -p 8 -t 166583.8 -r 60000.0 5000000 -I 2 2 2 -ej 3.108 2 1 > ./hPSMC_sim_4mya.ms_sim &
-wait
+# Run all simulations in background (corrected for Dama gazelle recombination)
+/home/bistbs/miniconda3/bin/mspms 4 40 -p 8 -t 166583.8 -r 562811 255813793 -I 2 2 2 -ej 0.000777 2 1 > /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/hPSMC_sim_1kya.ms_sim &
+/home/bistbs/miniconda3/bin/mspms 4 40 -p 8 -t 166583.8 -r 562811 255813793 -I 2 2 2 -ej 0.003885 2 1 > /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/hPSMC_sim_5kya.ms_sim &
+/home/bistbs/miniconda3/bin/mspms 4 40 -p 8 -t 166583.8 -r 562811 255813793 -I 2 2 2 -ej 0.011655 2 1 > /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/hPSMC_sim_15kya.ms_sim &
+/home/bistbs/miniconda3/bin/mspms 4 40 -p 8 -t 166583.8 -r 562811 255813793 -I 2 2 2 -ej 0.03108 2 1 > /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/hPSMC_sim_40kya.ms_sim &
+/home/bistbs/miniconda3/bin/mspms 4 40 -p 8 -t 166583.8 -r 562811 255813793 -I 2 2 2 -ej 0.0777 2 1 > /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/hPSMC_sim_100kya.ms_sim &
+/home/bistbs/miniconda3/bin/mspms 4 40 -p 8 -t 166583.8 -r 562811 255813793 -I 2 2 2 -ej 0.19425 2 1 > /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/hPSMC_sim_250kya.ms_sim &
+/home/bistbs/miniconda3/bin/mspms 4 40 -p 8 -t 166583.8 -r 562811 255813793 -I 2 2 2 -ej 0.3885 2 1 > /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/hPSMC_sim_500kya.ms_sim &
+/home/bistbs/miniconda3/bin/mspms 4 40 -p 8 -t 166583.8 -r 562811 255813793 -I 2 2 2 -ej 0.777 2 1 > /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/hPSMC_sim_1mya.ms_sim &
+/home/bistbs/miniconda3/bin/mspms 4 40 -p 8 -t 166583.8 -r 562811 255813793 -I 2 2 2 -ej 1.554 2 1 > /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/hPSMC_sim_2mya.ms_sim &
+/home/bistbs/miniconda3/bin/mspms 4 40 -p 8 -t 166583.8 -r 562811 255813793 -I 2 2 2 -ej 3.108 2 1 > /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/hPSMC_sim_4mya.ms_sim &
 
+wait
 ---
 ---
 ### Convert ms to psmcfa format (10 conversions) ###
@@ -309,12 +310,100 @@ wait
 ls hPSMC_sim_*psmc | \
 python2 /scratch/bistbs/Population_Genomic_Analysis/hPSMC/hPSMC/compare_sims_to_data.py \
     -i /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output/hPSMC.psmc \
-    -N 15000 \
-    -g 5 \
+    -N 55000 \
+    -g 5.85 \
     -o hPSMC_gazelle_assessment_FINAL.txt
+
+###Try this one not above. This is how it has been shown in the given code.
+ls ./hPSMC_sim_*psmc | python ./hPSMC_compare_sims_to_data.py -i 18 > ./hPSMC_sim_result.txt
 
 ```
 
+##### For the pair 85*88
+```bash
+#!/bin/bash -l
+#SBATCH --job-name=hPSMC_85*88
+#SBATCH --time=150:00:00
+#SBATCH --cpus-per-task=24
+#SBATCH --mem=90G
+#SBATCH --partition=batch
+#SBATCH --output=hpsmc_run_%A_%a.log
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=bistbs@miamioh.edu
+
+# PARAMETER SUMMARY:
+# Ne = 55,000
+# μ = 2.96e-9 (as before)
+# Sequence length = 255,823,336 bp
+# Scaled mutation rate = 166583.8 (as before)
+# Scaled recombination rate = 562811
+# Divergence times: 1 kya → 4 Mya
+---
+
+### Begin MSPRIME/ms simulations (10 simulations) ###
+# CORRECTED PATH FOR mspms 
+
+# Run all simulations in background for Dama gazelle (85_88simulation)
+~/miniconda3/bin/mspms 4 40 -p 8 -t 166583.8 -r 562811 255823336 -I 2 2 2 -ej 0.000777 2 1 > /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_85_88/85_88simulation/hPSMC_sim_1kya.ms_sim &
+~/miniconda3/bin/mspms 4 40 -p 8 -t 166583.8 -r 562811 255823336 -I 2 2 2 -ej 0.003885 2 1 > /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_85_88/85_88simulation/hPSMC_sim_5kya.ms_sim &
+~/miniconda3/bin/mspms 4 40 -p 8 -t 166583.8 -r 562811 255823336 -I 2 2 2 -ej 0.011655 2 1 > /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_85_88/85_88simulation/hPSMC_sim_15kya.ms_sim &
+~/miniconda3/bin/mspms 4 40 -p 8 -t 166583.8 -r 562811 255823336 -I 2 2 2 -ej 0.03108 2 1 > /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_85_88/85_88simulation/hPSMC_sim_40kya.ms_sim &
+~/miniconda3/bin/mspms 4 40 -p 8 -t 166583.8 -r 562811 255823336 -I 2 2 2 -ej 0.0777 2 1 > /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_85_88/85_88simulation/hPSMC_sim_100kya.ms_sim &
+~/miniconda3/bin/mspms 4 40 -p 8 -t 166583.8 -r 562811 255823336 -I 2 2 2 -ej 0.19425 2 1 > /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_85_88/85_88simulation/hPSMC_sim_250kya.ms_sim &
+~/miniconda3/bin/mspms 4 40 -p 8 -t 166583.8 -r 562811 255823336 -I 2 2 2 -ej 0.3885 2 1 > /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_85_88/85_88simulation/hPSMC_sim_500kya.ms_sim &
+~/miniconda3/bin/mspms 4 40 -p 8 -t 166583.8 -r 562811 255823336 -I 2 2 2 -ej 0.777 2 1 > /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_85_88/85_88simulation/hPSMC_sim_1mya.ms_sim &
+~/miniconda3/bin/mspms 4 40 -p 8 -t 166583.8 -r 562811 255823336 -I 2 2 2 -ej 1.554 2 1 > /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_85_88/85_88simulation/hPSMC_sim_2mya.ms_sim &
+~/miniconda3/bin/mspms 4 40 -p 8 -t 166583.8 -r 562811 255823336 -I 2 2 2 -ej 3.108 2 1 > /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_85_88/85_88simulation/hPSMC_sim_4mya.ms_sim &
+
+# Wait for all background jobs to finish
+wait
+
+
+---
+---
+### Convert ms to psmcfa format (10 conversions) ###
+python2 /scratch/bistbs/Population_Genomic_Analysis/hPSMC/hPSMC/ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_1kya.ms_sim > ./hPSMC_sim_1kya.ms_sim.psmcfa &
+python2 /scratch/bistbs/Population_Genomic_Analysis/hPSMC/hPSMC/ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_5kya.ms_sim > ./hPSMC_sim_5kya.ms_sim.psmcfa &
+python2 /scratch/bistbs/Population_Genomic_Analysis/hPSMC/hPSMC/ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_15kya.ms_sim > ./hPSMC_sim_15kya.ms_sim.psmcfa &
+python2 /scratch/bistbs/Population_Genomic_Analysis/hPSMC/hPSMC/ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_40kya.ms_sim > ./hPSMC_sim_40kya.ms_sim.psmcfa &
+python2 /scratch/bistbs/Population_Genomic_Analysis/hPSMC/hPSMC/ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_100kya.ms_sim > ./hPSMC_sim_100kya.ms_sim.psmcfa &
+python2 /scratch/bistbs/Population_Genomic_Analysis/hPSMC/hPSMC/ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_250kya.ms_sim > ./hPSMC_sim_250kya.ms_sim.psmcfa &
+python2 /scratch/bistbs/Population_Genomic_Analysis/hPSMC/hPSMC/ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_500kya.ms_sim > ./hPSMC_sim_500kya.ms_sim.psmcfa &
+python2 /scratch/bistbs/Population_Genomic_Analysis/hPSMC/hPSMC/ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_1mya.ms_sim > ./hPSMC_sim_1mya.ms_sim.psmcfa &
+python2 /scratch/bistbs/Population_Genomic_Analysis/hPSMC/hPSMC/ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_2mya.ms_sim > ./hPSMC_sim_2mya.ms_sim.psmcfa &
+python2 /scratch/bistbs/Population_Genomic_Analysis/hPSMC/hPSMC/ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_4mya.ms_sim > ./hPSMC_sim_4mya.ms_sim.psmcfa &
+wait
+
+---
+---
+### Run PSMC (10 PSMC runs) ###
+/scratch/bistbs/Population_Genomic_Analysis/PSMC/psmc/psmc -N25 -t15 -r5 -p "4+25*2+4+6" -o ./hPSMC_sim_1kya.ms_sim.psmc ./hPSMC_sim_1kya.ms_sim.psmcfa &
+/scratch/bistbs/Population_Genomic_Analysis/PSMC/psmc/psmc -N25 -t15 -r5 -p "4+25*2+4+6" -o ./hPSMC_sim_5kya.ms_sim.psmc ./hPSMC_sim_5kya.ms_sim.psmcfa &
+/scratch/bistbs/Population_Genomic_Analysis/PSMC/psmc/psmc -N25 -t15 -r5 -p "4+25*2+4+6" -o ./hPSMC_sim_15kya.ms_sim.psmc ./hPSMC_sim_15kya.ms_sim.psmcfa &
+/scratch/bistbs/Population_Genomic_Analysis/PSMC/psmc/psmc -N25 -t15 -r5 -p "4+25*2+4+6" -o ./hPSMC_sim_40kya.ms_sim.psmc ./hPSMC_sim_40kya.ms_sim.psmcfa &
+/scratch/bistbs/Population_Genomic_Analysis/PSMC/psmc/psmc -N25 -t15 -r5 -p "4+25*2+4+6" -o ./hPSMC_sim_100kya.ms_sim.psmc ./hPSMC_sim_100kya.ms_sim.psmcfa &
+/scratch/bistbs/Population_Genomic_Analysis/PSMC/psmc/psmc -N25 -t15 -r5 -p "4+25*2+4+6" -o ./hPSMC_sim_250kya.ms_sim.psmc ./hPSMC_sim_250kya.ms_sim.psmcfa &
+/scratch/bistbs/Population_Genomic_Analysis/PSMC/psmc/psmc -N25 -t15 -r5 -p "4+25*2+4+6" -o ./hPSMC_sim_500kya.ms_sim.psmc ./hPSMC_sim_500kya.ms_sim.psmcfa &
+/scratch/bistbs/Population_Genomic_Analysis/PSMC/psmc/psmc -N25 -t15 -r5 -p "4+25*2+4+6" -o ./hPSMC_sim_1mya.ms_sim.psmc ./hPSMC_sim_1mya.ms_sim.psmcfa &
+/scratch/bistbs/Population_Genomic_Analysis/PSMC/psmc/psmc -N25 -t15 -r5 -p "4+25*2+4+6" -o ./hPSMC_sim_2mya.ms_sim.psmc ./hPSMC_sim_2mya.ms_sim.psmcfa &
+/scratch/bistbs/Population_Genomic_Analysis/PSMC/psmc/psmc -N25 -t15 -r5 -p "4+25*2+4+6" -o ./hPSMC_sim_4mya.ms_sim.psmc ./hPSMC_sim_4mya.ms_sim.psmcfa &
+wait
+---
+---
+
+### Estimate Divergence time with hPSMC ###
+
+ls hPSMC_sim_*psmc | \
+python2 /scratch/bistbs/Population_Genomic_Analysis/hPSMC/hPSMC/compare_sims_to_data.py \
+    -i /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output/hPSMC.psmc \
+    -N 55000 \
+    -g 5.85 \
+    -o hPSMC_gazelle_assessment_FINAL.txt
+
+###Try this one not above. This is how it has been shown in the given code.
+ls ./hPSMC_sim_*psmc | python ./hPSMC_compare_sims_to_data.py -i 18 > ./hPSMC_sim_result.txt
+
+```
 
 
 
