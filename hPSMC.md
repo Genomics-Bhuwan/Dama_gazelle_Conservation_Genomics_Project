@@ -477,3 +477,6 @@ wait
 ```bash
 ls ./hPSMC_sim_*psmc | python ./hPSMC_compare_sims_to_data.py -i 55000 > ./hPSMC_sim_result.txt
 ```
+
+##### Do the same as you did for above two samples.
+- For sample 85 and 88, I will use the same above simulated result with the empirical psmc file with the pairs: 94 and 87(Addra 1 vs. Mhorr1) and 85 and 88(Addra 2 vs Mhorr 2)
