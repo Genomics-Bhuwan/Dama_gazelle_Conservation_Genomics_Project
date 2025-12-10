@@ -227,15 +227,8 @@ ggsave("hPSMC_PSMC_Main_20K_2M_7k_110k.jpeg", p_main, width=14, height=8, dpi=30
 ##### Step 7. Pre-divergence analysis
 - Use this paper as reference for looking the script for hPSMC.
 - https://academic.oup.com/zoolinnean/article/204/3/zlaf059/8194500#525155301
-- Ancestral $N_e$ (Observed): $55,000$Mutation Rate ($\mu$): $2.96 \times 10^{-9}$ per site per generationGeneration Time ($g$): $5.85$ yearsTotal Sequence Length ($L$): $255,813,793$ basesTarget Divergence Range: 1 kya to 4 Mya
-
-
-
-- Run simulations of divergence without post-divergence migration to compare to the hPSMC plot.
-- To compare and interpret hPSMC results, we need to compare our data to simulations.
-- Since, the visual interpretation of hPSMC plots is suspectible to user bias and not replicable.
-- To conduct simulations, the user should estimate the ancestral population size and estimate the a recent and ancient bound for when the sample might have diverged.
 - Run it uing Python2 not Python3. I used Python 2.7.5
+- Just change Ne, mutation rate and generation time only. Rest keep same. They are intentionally kept there.
 
 #### This is the hPSMC_quantify_split_time_Dama_gazelle.py that needs to be run in python2.
 ##### This is to be done for 94-87 sample.
