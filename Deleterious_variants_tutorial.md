@@ -42,18 +42,7 @@ Individuals:
 ```
 #### a) Create a directory in your scratch to work in
 ```bash
-cd /scratch/genomics/YOUR_USER/
-mkdir Deleterious
-cd Deleterious
-```
 
-The code below for step 1b, 1c and 2 can be copied from
-
-```bash
- cp /data/genomics/workshops/smsc_2024/Deleterious/01_preparations.job .
- cp /data/genomics/workshops/smsc_2024/Deleterious/02_vcftools.job .
- cp /data/genomics/workshops/smsc_2024/Deleterious/03_vep.job .
- ```
 
 #### b) Indexing the annotation file
 Vep requires that exons are annotated. Since our annotation file lacks exons, we will duplicate the CDS annotation and just replace the "CDS" with "exon" before we index the file.
@@ -68,6 +57,17 @@ perl INSTALL.pl
 
 ##### Test if the installed VEP works or not.
 ./vep -i examples/homo_sapiens_GRCh38.vcf --cache
+
+##### OR if you have singularity. You can directly run using Singularity.
+```bash
+singularity pull docker://ensemblorg/ensembl-vep
+
+singularity exec ../ensembl-vep_latest.sif \
+  vep -i homo_sapiens_GRCh38.vcf \
+      --cache --offline \
+      -o homo_sapiens_GRCh38.vep.vcf
+
+```
 ```
 
 module load ensembl-vep
