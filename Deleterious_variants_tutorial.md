@@ -1,8 +1,11 @@
-# Deleterious variants analyses
+#### Deleterious variants analyses
+- I am using this tutorial from SMSC Workshop 2024 from my amazing instructors.
 
-## Introduction
-
-Ensembl's Variant Effect Predictor, __[VEP](https://useast.ensembl.org/info/docs/tools/vep/index.html)__, is a tool for annotating and analyzing genetic variants, with a focus on deleterious variants. There are prebuild databases for thousands of species, and using the tool on these provides some extra features, such as prediction score for deleteriousness of non-synonymous sites, calculated from large sets of homologous proteins. However, it is possible to use the tool on novel genomes as well, using just the fasta sequence and a gene annotation file. This will provide one of the following _impact factors_ for all our variants:
+##### Introduction
+- Ensembl's Variant Effect Predictor, __[VEP](https://useast.ensembl.org/info/docs/tools/vep/index.html)__, is a tool for annotating and analyzing genetic variants, with a focus on deleterious variants. 
+- There are prebuild databases for thousands of species, and using the tool on these provides some extra features, such as prediction score for deleteriousness of non-synonymous sites, calculated from large sets of homologous proteins.
+- However, it is possible to use the tool on novel genomes as well, using just the fasta sequence and a gene annotation file.
+- This will provide one of the following _impact factors_ for all our variants:
 
 | Impact factor | Description |
 | --- | ----|
@@ -11,26 +14,31 @@ Ensembl's Variant Effect Predictor, __[VEP](https://useast.ensembl.org/info/docs
 | HIGH | non-sense variants (affect start, stop or reading frame) |
 | MODIFIER | all other variants (for example intronic, UTRs, intergenic) |
 
-We will consider the classes 'MODERATE' and 'HIGH' as potentially deleterious. (This will not always be true, but we will never know the exact effect of all mutations, not even in model organisms, and that's just something we have to live with!)
+- We will consider the classes 'MODERATE' and 'HIGH' as potentially deleterious. (This will not always be true, but we will never know the exact effect of all mutations, not even in model organisms, and that's just something we have to live with!)
 
-In this tutorial we will first annotate the SNP variants in the Guam rail, and then extract the classes LOW, MODERATE and HIGH to analyze them further.
+- In this tutorial we will first annotate the SNP variants in the Dama gazelle, and then extract the classes LOW, MODERATE and HIGH to analyze them further.
 
-## Run VEP  
+##### Run VEP  
+###### 1. Preparing the reference genome and annotation
 
-### 1. Preparing the reference genome and annotation
+- To run VEP on a non-model organism, you need to have a reference genome and an annotation file.
+- The annotation file usually include gene models in GFF or GTF format.
+- The annotation file further needs to be indexed with tabix.
 
-To run VEP on a non-model organism, you need to have a reference genome and an annotation file. The annotation file usually include gene models in GFF or GTF format. The annotation file further needs to be indexed with tabix.
-
-Paths to files:
+##### Files and their paths is in:
 ```bash
-# assembly file in fasta format
-/data/genomics/workshops/smsc_2024/Guam_rail_assembly/bHypOws1_hifiasm.bp.p_ctg.fasta
-# Annotation file in gff format
-/data/genomics/workshops/smsc_2024/Guam_rail_assembly/Guam_rail.gff
-# Variation data for our resequenced individuals in vcf format
-/data/genomics/workshops/smsc_2024/VCF/gatk_GuamRails_autosomes_header.vcf
-# Variation data for only one scaffold (for testing)
-/data/genomics/workshops/smsc_2024/Deleterious/GuamRails_ptg000009l.vcf
+cd /scratch/bistbs/Population_Genomic_Analysis/VEP 
+Reference genome: Dama_gazelle_hifiasm-ULONT_primary.fasta
+Addra annotation: Addra_complete.genomic.gff
+Mhorr annotation: Mohrr_complete.genomic.gff
+VCF (biallelic SNPs + indels): Dama_gazelle_biallelic_snps_autosomes.vcf
+Individuals:
+  Addra: SRR17129394, SRR17134085, SRR17134086
+  Mhorr: SRR17134087, SRR17134088
+- Since, we are doing VEP and using referecne genome assembly of Addra. Therefore, we will only use Addra.gff. We could have also used Mhorr.gff but for easiness we will use Addra.gff.
+- VEP requires exons but my annotation has only CDS.
+- We will duplicate the CDS as exons.
+
 ```
 #### a) Create a directory in your scratch to work in
 ```bash
@@ -51,16 +59,35 @@ The code below for step 1b, 1c and 2 can be copied from
 Vep requires that exons are annotated. Since our annotation file lacks exons, we will duplicate the CDS annotation and just replace the "CDS" with "exon" before we index the file.
 ```bash
 # Tabix should be included in the vep module
-module load bio/ensembl-vep
+- I cloned ensembl-vep from:
+```bash
+git clone https://github.com/Ensembl/ensembl-vep.git
+cd ensembl-vep
+#### Install it
+perl INSTALL.pl
+
+##### Test if the installed VEP works or not.
+./vep -i examples/homo_sapiens_GRCh38.vcf --cache
+```
+
+module load ensembl-vep
 module unload gcc/8.5.0                                                                                            
-module load bio/htslib
+module load htslib
 # Sort file and add exons before compressing
-grep -v "#" /data/genomics/workshops/smsc_2024/Guam_rail_assembly/Guam_rail.gff | \
+# Prepare Addra GFF with exons, sort, compress and index
+grep -v "#" Addra_complete.genomic.gff | \
 sort -k1,1 -k4,4n -k5,5n -t$'\t' | \
-awk -v OFS="\t" '{if($3=="CDS"){line=$0; $3="exon"; $8="."; print line"\n"$0}else{print $0}}' | \
-bgzip -c >Guam_rail.withExons.gff.gz
-# Index
-tabix -p gff Guam_rail.withExons.gff.gz
+awk -v OFS="\t" '{
+    if($3=="CDS"){
+        line=$0;
+        $3="exon";
+        $8=".";
+        print line "\n"$0
+    } else { print $0 }
+}' | bgzip -c > Addra.withExons.gff.gz
+
+# Index the GFF
+tabix -p gff Addra.withExons.gff.gz
 ```
 
 
