@@ -77,7 +77,7 @@ mhorr_gff <- import.gff("/scratch/bistbs/Synteny_Analysis/SVbyEye/Mohrr_complete
 pairwise_plot <- SVbyEye:::plotMiro(
   paf.table = paf_filtered,
   min.deletion.size = 1000,   # highlight deletions ≥1kb
-  min.insertion.size = 1000,  # highlight insertions ≥1kb
+  min.insertion.size = 100,  # highlight insertions ≥1kb
   highlight.sv = TRUE,        # turn on SV highlighting
   color.by = "strand"         # color by alignment direction
 )
