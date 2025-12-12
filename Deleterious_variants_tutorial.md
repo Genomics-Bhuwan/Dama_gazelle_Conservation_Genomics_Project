@@ -49,14 +49,7 @@ Vep requires that exons are annotated. Since our annotation file lacks exons, we
 ```bash
 # Tabix should be included in the vep module
 - I cloned ensembl-vep from:
-```bash
-git clone https://github.com/Ensembl/ensembl-vep.git
-cd ensembl-vep
-#### Install it
-perl INSTALL.pl
-
-##### Test if the installed VEP works or not.
-./vep -i examples/homo_sapiens_GRCh38.vcf --cache
+- Install it from Singularity. It is easy as compared to manual intallation or other cause of issues with the perl and other dependencies.
 
 ##### OR if you have singularity. You can directly run using Singularity.
 ```bash
@@ -68,39 +61,46 @@ singularity exec ../ensembl-vep_latest.sif \
       -o homo_sapiens_GRCh38.vep.vcf
 
 ```
-```
-
+---bash
 module load ensembl-vep
 module unload gcc/8.5.0                                                                                            
 module load htslib
-# Sort file and add exons before compressing
-# Prepare Addra GFF with exons, sort, compress and index
+```
+#### Sort file and add exons before compressing
+#### Prepare Addra GFF with exons, sort, compress and index
+```bash
 grep -v "#" Addra_complete.genomic.gff | \
 sort -k1,1 -k4,4n -k5,5n -t$'\t' | \
 awk -v OFS="\t" '{
-    if($3=="CDS"){
-        line=$0;
-        $3="exon";
-        $8=".";
-        print line "\n"$0
+    if ($3=="CDS") {
+        print $0
+        $3="exon"
+        $8="."
+        print $0
     } else { print $0 }
 }' | bgzip -c > Addra.withExons.gff.gz
 
-# Index the GFF
 tabix -p gff Addra.withExons.gff.gz
+
 ```
 
 
 #### c) Prepare the vcf file
-If we want we could just use the vcf file as it is, but we can also do some more filtering. Here I decided to remove indels, and only keep bi-allelic sites (SNPs with two alleles, not more) with no missing data:
+- If we want we could just use the vcf file as it is, but we can also do some more filtering.
+- Here I decided to remove indels, and only keep bi-allelic sites (SNPs with two alleles, not more) with no missing data:
+-  I had already done this but keeping below code jsut for reference.
+-   I am using the vcf file already accounted for missingness and only keeping biallelic SNPs and also removing the INDELS.
+-   It's upto you to decide if you want to include indels or not. I decided not.
+- Use vcftools to filter if needed.
+  
 ```bash
-ml bio/vcftools/0.1.16
-vcftools --vcf /data/genomics/workshops/smsc_2024/Deleterious/GuamRails_ptg000009l.vcf --remove-indels  \
- --max-missing 1.0 --max-alleles 2 --recode --out GuamRails_ptg000009l_SNPs
+/scratch/bistbs/Population_Genomic_Analysis/VEP/Dama_gazelle_biallelic_snps_autosomes.vcf
 ```
 
 ### 2. Run the variant predictor
-This code should be placed in a script and run as a job. It took around ~30 min for the full genome using 8 cores. For this test chromosome it only took a couple of minutes. 
+- This code should be placed in a script and run as a job.
+- It took around ~30 min for the full genome using 8 cores.
+- For this test chromosome it only took a couple of minutes. 
 ```bash
 # Load ensembl module
 module load bio/ensembl-vep
@@ -112,6 +112,24 @@ vep -i GuamRails_ptg000009l_SNPs.recode.vcf --fork 8 --offline --gff Guam_rail.w
 #-- cache is the path to the VEP database (not used in our case)
 #--species gallus_gallus.. means... well, we know it's not a chicken, but without this flag
 # vep assumes a human genome, and giving it a custom name returned an error when I tested the code.
+
+
+
+
+singularity exec vep.sif vep \
+  --fasta Dama_gazelle_hifiasm-ULONT_primary.fasta \
+  --species gallus_gallus_gca000002315v5 \
+  --custom file=Addra.withExons.gff.gz,short_name=ADDRA_EXONS,format=gff \
+  --input_file /scratch/bistbs/Population_Genomic_Analysis/VEP/Dama_gazelle_biallelic_snps_autosomes.vcf \
+  --output_file /scratch/bistbs/Population_Genomic_Analysis/VEP/Dama_gazelle_vep_biallelic_snps.txt \
+  --force_overwrite \
+  --no_stats \
+  --offline \
+  --fork 8
+
+
+
+
 ```
 
 ## Analyze the output
