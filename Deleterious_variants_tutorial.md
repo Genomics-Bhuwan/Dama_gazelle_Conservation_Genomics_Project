@@ -1,4 +1,4 @@
-#### Deleterious variants analyses
+#### Deleterious variants analyses using *VEP*
 - I am using this tutorial from SMSC Workshop 2024 from my amazing instructors.
 
 ##### Introduction
