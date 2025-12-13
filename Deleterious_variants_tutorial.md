@@ -102,101 +102,84 @@ tabix -p gff Addra.withExons.gff.gz
 - It took around ~30 min for the full genome using 8 cores.
 - For this test chromosome it only took a couple of minutes. 
 ```bash
-# Load ensembl module
-module load bio/ensembl-vep
-# Run vep
-vep -i GuamRails_ptg000009l_SNPs.recode.vcf --fork 8 --offline --gff Guam_rail.withExons.gff.gz \
- --fasta /data/genomics/workshops/smsc_2024/Guam_rail_assembly/bHypOws1_hifiasm.bp.p_ctg.fasta --cache /data/genomics/workshops/smsc_2024/VEP/ -o vep_rail.txt --species gallus_gallus_gca000002315v5 --force_overwrite
-#--fork 8 tells vep to use 8 cores - make sure to give it as many cores when you start the script.
-#--offline means we don't want to use the vep database but our own data
-#-- cache is the path to the VEP database (not used in our case)
-#--species gallus_gallus.. means... well, we know it's not a chicken, but without this flag
-# vep assumes a human genome, and giving it a custom name returned an error when I tested the code.
-
-
-
-
 singularity exec vep.sif vep \
-  --fasta Dama_gazelle_hifiasm-ULONT_primary.fasta \
-  --species gallus_gallus_gca000002315v5 \
-  --custom file=Addra.withExons.gff.gz,short_name=ADDRA_EXONS,format=gff \
-  --input_file /scratch/bistbs/Population_Genomic_Analysis/VEP/Dama_gazelle_biallelic_snps_autosomes.vcf \
-  --output_file /scratch/bistbs/Population_Genomic_Analysis/VEP/Dama_gazelle_vep_biallelic_snps.txt \
-  --force_overwrite \
-  --no_stats \
-  --offline \
-  --fork 8
-
-
-
-
+    --dir_cache /scratch/bistbs/Population_Genomic_Analysis/VEP/dummy_vep_cache \
+    --fasta /scratch/bistbs/Population_Genomic_Analysis/VEP/Dama_gazelle_hifiasm-ULONT_primary.fasta \
+    --input_file /scratch/bistbs/Population_Genomic_Analysis/VEP/Dama_gazelle_biallelic_snps_autosomes.vcf \
+    --custom file=/scratch/bistbs/Population_Genomic_Analysis/VEP/Addra.withExons.gff.gz,short_name=ADDRA_EXONS,format=gff \
+    --output_file /scratch/bistbs/Population_Genomic_Analysis/VEP/Dama_gazelle_vep_biallelic_snps.txt \
+    --offline \
+    --everything \
+    --fork 8 \
+    --no_stats \
+    --quiet \
+    --buffer_size 10000
 ```
 
-## Analyze the output
+##### Analyze the output
 
 ### 1. Familiarize yourself with the output
-If VEP worked, it will produce two or three output files: vep_rail.txt, vep_rail.txt_summary.html and possibly vep_rail.txt_warnings.txt. The first file contains the raw output. The second file contains a neat summary suitable to open in a web browser (if the hydra cluster doesn't support opening this file, one option is to save the file locally on your laptop). (A copy of the summary file can be found [HERE](https://github.com/SmithsonianWorkshops/SMSC_2024_Conservation_Genomics/blob/main/Deleterious_variants/vep_GuamRails_summary.html)). The third file shows any warnings, for example if there are annotations in the gff file not recognized by VEP.
+- If VEP worked, it will produce two or three output files: vep_rail.txt, vep_rail.txt_summary.html and possibly vep_rail.txt_warnings.txt. 
+- The first file contains the raw output.
+- The second file contains a neat summary suitable to open in a web browser (if the hydra cluster doesn't support opening this file, one option is to save the file locally on your laptop).
+- (A copy of the summary file can be found [HERE](https://github.com/SmithsonianWorkshops/SMSC_2024_Conservation_Genomics/blob/main/Deleterious_variants/vep_GuamRails_summary.html)).
+- The third file shows any warnings, for example if there are annotations in the gff file not recognized by VEP.
 
-==Copy the file to your computer==
-Open a terminal on your ON computer (not connected to hydra) and type 
+- All the information in the summary can also be found in the raw output. We can use a variety of unix tools to check it out:
+##### Count the number of annotated variants as annotated by VEP 
+##### (Grep -v removes the header lines: the ones that start with #)
+- The total annotated variants is:9435988
 ```bash
-scp YOUR_USER@160.111.215.42://scratch/genomics/YOUR_FOLDER/Deleterious/vep_rail.txt_summary.html .
+ grep -v "^#" /scratch/bistbs/Population_Genomic_Analysis/VEP/Dama_gazelle_vep_biallelic_snps.txt | wc -l 
 ```
-(Replace YOUR_USER and YOUR_FOLDER to your own username and folder name) 
-
-_For all the commands below, make it a habit of looking at the output files, for example with `less`!_
-
-All the information in the summary can also be found in the raw output. We can use a variety of unix tools to check it out:
+##### How does this relate to the number variants in your input file?
+- Count the number of unique annotated variants
+- (cut -f1 extracts the first column only, uniq take only unique lines, and wc -l counts the lines)
+- 19,638 variants have multiple annotations and 9416350 had unqiue variants.
 ```bash
-# Count the number of annotated variants
-# (Grep -v removes the header lines: the ones that start with #)
-grep -v "^#" vep_rail.txt |wc -l
+grep -v "^#" /scratch/bistbs/Population_Genomic_Analysis/VEP/Dama_gazelle_vep_biallelic_snps.txt | cut -f1 | uniq | wc -l
+
 ```
-How does this relate to the number variants in your input file?
+##### Many variants are annotated several times, for example if a gene has multiple transcripts, or if two genes are overlapping.
+- Check what annotations are classified as having a low impact, and how many there are of each type
+- (sort will sort the output in alphabetical order, and uniq -c will count all unique lines)
+- 3745 synonymous_variant or low impact variant.
 ```bash
-# Count the number of unique annotated variants
-# (cut -f1 extracts the first column only, uniq take only unique lines, and wc -l counts the lines)
-grep -v "^#" vep_rail.txt |cut -f1 |uniq |wc -l
+grep "IMPACT=LOW" /scratch/bistbs/Population_Genomic_Analysis/VEP/Dama_gazelle_vep_biallelic_snps.txt  |cut -f7 |sort |uniq -c
 ```
+- Now you can do the same with for the other impact types.
 
-Many variants are annotated several times, for example if a gene has multiple transcripts, or if two genes are overlapping.
+##### 2. Extract subsets of data
+- As we are interested in the deleterious variants, we will mainly focus on the MODERATE and the HIGH impact category.
+- However, to have something potentially neutral to compare with, we will keep the LOW category for a little bit longer.
 
-```bash
-# Check what annotations are classified as having a low impact, and how many there are of each type
-# (sort will sort the output in alphabetical order, and uniq -c will count all unique lines)
-grep "IMPACT=LOW" vep_rail.txt  |cut -f7 |sort |uniq -c
-```
-
-Now you can do the same with for the other impact types.
-
-### 2. Extract subsets of data
-As we are interested in the deleterious variants, we will mainly focus on the MODERATE and the HIGH impact category. However, to have something potentially neutral to compare with, we will keep the LOW category for a little bit longer.
-
-First we extract the most severe category - nonsense variants
-```bash
+##### First we extract the most severe category - nonsense variants
 # Extract variants with a high predicted impact.
-grep "IMPACT=HIGH" vep_rail.txt |cut -f2 |uniq >high_impact.pos.txt
-```
-Now do the same for the non-synonymous variants
+
 ```bash
-grep "IMPACT=MODERATE" vep_rail.txt |cut -f2 |uniq >moderate_impact.pos.txt
+grep "IMPACT=HIGH" /scratch/bistbs/Population_Genomic_Analysis/VEP/Dama_gazelle_vep_biallelic_snps.txt |cut -f2 |uniq >high_impact.pos.txt
 ```
-Are there any sites annotated as both HIGH and MODERATE? We can check this by joining the two files:
+- Now do the same for the non-synonymous variants or moderate effect variant.
+```bash
+grep "IMPACT=MODERATE" /scratch/bistbs/Population_Genomic_Analysis/VEP/Dama_gazelle_vep_biallelic_snps.txt |cut -f2 |uniq >moderate_impact.pos.txt
+```
+- Are there any sites annotated as both HIGH and MODERATE? We can check this by joining the two files:
 ```bash
 join <(sort high_impact.pos.txt) <(sort moderate_impact.pos.txt)
 ```
-If there are, we should remove the shared variants from the less severe impact class.
+- If there are, we should remove the shared variants from the less severe impact class.
+- Re-run extracting moderate variants, removing positions overlapping with high impact
+- join -v1 will return all lines in file 1 not overlapping with file 2.
 ```bash
-# Re-run extracting moderate variants, removing positions overlapping with high impact
-# join -v1 will return all lines in file 1 not overlapping with file 2.
-grep "IMPACT=MODERATE" vep_rail.txt |cut -f2 |uniq |join -v1 <(sort -) <(sort high_impact.pos.txt) >moderate_impact.pos.txt
+grep "IMPACT=MODERATE" /scratch/bistbs/Population_Genomic_Analysis/VEP/Dama_gazelle_vep_biallelic_snps.txt |cut -f2 |uniq |join -v1 <(sort -) <(sort high_impact.pos.txt) >moderate_impact.pos.txt
 ```
-We can do the same for the LOW impact variants, removing any overlaps with either of the two previous files.
+- We can do the same for the LOW impact variants, removing any overlaps with either of the two previous files.
 ```bash
-grep "IMPACT=LOW" vep_rail.txt |cut -f2 |uniq |join -v1 <(sort -) <(sort high_impact.pos.txt) |join -v1 - <(sort moderate_impact.pos.txt) >low_impact.pos.txt
+grep "IMPACT=LOW" /scratch/bistbs/Population_Genomic_Analysis/VEP/Dama_gazelle_vep_biallelic_snps.txt |cut -f2 |uniq |join -v1 <(sort -) <(sort high_impact.pos.txt) |join -v1 - <(sort moderate_impact.pos.txt) >low_impact.pos.txt
 ```
 
-If we want to extract the variants from the vcf file using vcftools, we need tab separated positions files. We can use the Stream EDitor sed to replace the ":" to tabs (\t).
+#### If we want to extract the variants from the vcf file using vcftools, we need tab separated positions files. 
+- We can use the Stream EDitor sed to replace the ":" to tabs (\t).
 ```bash
 sed -i 's/:/\t/g' low_impact.pos.txt
 sed -i 's/:/\t/g' moderate_impact.pos.txt
@@ -207,41 +190,44 @@ Create new vcf files with the variants we are interested in.
 ```bash
 module unload gcc/8.5.0  
 module load bio/vcftools/0.1.16
-vcftools --vcf GuamRails_ptg000009l_SNPs.recode.vcf --positions low_impact.pos.txt --recode --out GuamRail_low_impact
-vcftools --vcf GuamRails_ptg000009l_SNPs.recode.vcf --positions moderate_impact.pos.txt --recode --out GuamRail_moderate_impact
-vcftools --vcf GuamRails_ptg000009l_SNPs.recode.vcf --positions high_impact.pos.txt --recode --out GuamRail_high_impact
+vcftools --vcf Dama_gazelle_biallelic_snps_autosomes.vcf  --positions low_impact.pos.txt --recode --out Dama_gazelle_low_impact
+vcftools --vcf Dama_gazelle_biallelic_snps_autosomes.vcf  --positions moderate_impact.pos.txt --recode --out Dama_gazelle_moderate_impact
+vcftools --vcf Dama_gazelle_biallelic_snps_autosomes.vcf  --positions high_impact.pos.txt --recode --out Dama_gazelle_high_impact
 ```
 
 ### 3. Analyze the alleles
-Before we start investigating genetic load, there is one important thing we need to think about: _Which_ of the two alleles in a site is the deleterious one?? Vep doesn't provide us with this information. We know that a mutation in a certain position causes a non-synonymous variation, and that this could be harmful. But for all we know, it could be our reference individual who is carrying the deleterious allele, and the other individuals carrying the 'normal' variant.
-
-There are a few different ways to figure this out (see further below*), but for now we will assume that the REFERENCE allele is 'normal', and that the ALTERNATIVE allele is deleterious.
-
-A very convenient tool to count allele types and plot results is the vcfR package in R. As this course is not focusing on R, I'll show how we can look at genotypes and count alleles using different unix tools and vcftools. For those interested in the vcfR code, it can be found at the bottom of this page**.
+- Before we start investigating genetic load, there is one important thing we need to think about: _Which_ of the two alleles in a site is the deleterious one??
+- Vep doesn't provide us with this information.
+- We know that a mutation in a certain position causes a non-synonymous variation, and that this could be harmful.
+- But for all we know, it could be our reference individual who is carrying the deleterious allele, and the other individuals carrying the 'normal' variant.
+- There are a few different ways to figure this out (see further below*), but for now we will assume that the REFERENCE allele is 'normal', and that the ALTERNATIVE allele is deleterious.
+- A very convenient tool to count allele types and plot results is the vcfR package in R.
+- As this course is not focusing on R, I'll show how we can look at genotypes and count alleles using different unix tools and vcftools. For those interested in the vcfR code, it can be found at the bottom of this page**.
 
 #### a) Allele frequency spectrum
-A good method to see if our potentially deleterious sites are under more selective constraints than for example synonymous mutations, is to compare their allele frequency spectra. With only two individuals we only have four alleles to work with, but let's give it a try!
+- A good method to see if our potentially deleterious sites are under more selective constraints than for example synonymous mutations, is to compare their allele frequency spectra. 
+- With only give individuals we only have four alleles to work with, but let's give it a try!
 
 ```bash
 # First we'll just look at the genotypes (remove everything else)
-grep -v "##" GuamRail_moderate_impact.recode.vcf | awk '{out=$1"\t"$2; for(i=10; i<=11; i++){split($i,s,":"); out=out"\t"s[1]}; print out}' |less
+grep -v "##" Dama_gazelle_moderate_impact.recode.vcf | awk '{out=$1"\t"$2; for(i=10; i<=11; i++){split($i,s,":"); out=out"\t"s[1]}; print out}' |less
 ```
-This is a good start to just get a feeling for the data.
-
-Now we will use vcftools to calculate allele frequency for each site. This will create .frq output files that we can summarize into a little table.
+- This is a good start to just get a feeling for the data.
+- Now we will use vcftools to calculate allele frequency for each site. This will create .frq output files that we can summarize into a little table.
 ``` bash
 # Create a table header
 echo "Type Number Ref_freq Alt_freq" |sed 's/ /\t/g' >SFS.txt
 # Loop over the types, create a frequency table and summarize
 for type in "low" "moderate" "high"
 do
-  vcftools --vcf GuamRail_${type}_impact.recode.vcf --freq --out GuamRail_${type}_impact
-  tail -n+2 GuamRail_${type}_impact.frq  |cut -f5,6 |sed 's/:/\t/g' | cut -f2,4 |sort |uniq -c |awk -v t=$type -v OFS="\t" '{print t,$0}' >>SFS.txt
+  vcftools --vcf Dama_gazelle_${type}_impact.recode.vcf --freq --out Dama_gazelle_${type}_impact
+  tail -n+2 Dama_gazelle_${type}_impact.frq  |cut -f5,6 |sed 's/:/\t/g' | cut -f2,4 |sort |uniq -c |awk -v t=$type -v OFS="\t" '{print t,$0}' >>SFS.txt
 done
 # A lot of different unix tools here, including an awk script..
 # Make sure you know what each step does!
 ```
-The file SFS.txt contains the site frequency spectra for all the three types of mutations. Below is some R code you can use for plotting, but you can use any tool you like (even Excel)
+- The file SFS.txt contains the site frequency spectra for all the three types of mutations.
+- Below is some R code you can use for plotting, but you can use any tool you like (even Excel)
 
 ```R
 require(tidyverse)
@@ -272,27 +258,37 @@ From the lectures, we recall that masked load comes from heterozygous deleteriou
 
 ```bash
 # First individual in column 10 (cut -f10 means extract the 10th column)
-grep -v "##" GuamRail_moderate_impact.recode.vcf |cut -f10 |cut -f1 -d":" |sort |uniq -c
+grep -v "##" Dama_gazelle_moderate_impact.recode.vcf |cut -f10 |cut -f1 -d":" |sort |uniq -c
 ```
 To look at the next individual we can replace `cut -f10` with `cut -f11`. If we haven't noticed it before, some sites are _phased_, with a '|' between the alleles instead of the standard '/'. When we count for example heterozygous sites, we take both "0/1" and "0|1". Do you notice some striking difference between the individuals?
 
 Now we use some more awk and unix tools to save heterozygous and homozygous alternative sites from high and moderate separately
 ```bash
 # Create a new file with just a header
-echo "Type Ind Load Number" |sed 's/ /\t/g' >Load_table.txt
-# Loop over the types, create a frequency table and summarize
+# Create a new file with header
+echo -e "Type\tInd\tLoad\tNumber" > Load_table.txt
+
+# Loop over types
 for type in "moderate" "high"
 do
-  # Loop over the individuals (in column 10 and 11)
-  for col in {10..11}
-  do
-    # Save the name of the individual
-    ind=`grep "#CHR" GuamRail_${type}_impact.recode.vcf |cut -f $col`
-    # Extract the genotypes and use awk to count the heterozygous and
-    # homozygous as masked and realized respctively
-    grep -v "#" GuamRail_${type}_impact.recode.vcf |cut -f$col |cut -f1 -d":" | awk -v OFS="\t" -v t=$type -v i=$ind -v masked=0 -v realized=0 '{if($1=="0/1" || $1=="0|1"){masked++}else if($1=="1/1" || $1=="1|1"){realized++}}END{print t,i,"masked",masked,"\n"t,i,"realized",realized}' >>Load_table.txt
-  done
+    # Get the sample columns (all columns after the 9th in VCF)
+    samples=($(grep "#CHROM" Dama_gazelle_${type}_impact.recode.vcf | cut -f10-))
+    
+    # Loop over each individual
+    for idx in $(seq 0 $((${#samples[@]} - 1)))
+    do
+        ind=${samples[$idx]}
+        col=$((idx + 10))  # VCF columns start at 1
+        
+        # Count masked (heterozygous) and realized (homozygous alt) load
+        grep -v "^#" Dama_gazelle_${type}_impact.recode.vcf | \
+        cut -f$col | cut -f1 -d":" | \
+        awk -v OFS="\t" -v t=$type -v i=$ind -v masked=0 -v realized=0 \
+        '{if($1=="0/1" || $1=="0|1"){masked++}else if($1=="1/1" || $1=="1|1"){realized++}} \
+        END{print t,i,"masked",masked; print t,i,"realized",realized}' >> Load_table.txt
+    done
 done
+
 ```
 
 Again, we can plot this with R:
@@ -321,6 +317,8 @@ Another option is to _polarize_ the variants (i.e. to determine the ancestral al
 Do we have enough data in the Guam Rail project to polarize our variants?
 
 ---------
+
+
 ### ** Repeat Analysis part 3. in R with the vcfR package
 This code is adapted from the github [https://github.com/linneas/wolf-deleterious](https://github.com/linneas/wolf-deleterious) (Smeds et al. 2023).
 When using vcfR it is more convenient to have all variants in a single vcf file:
