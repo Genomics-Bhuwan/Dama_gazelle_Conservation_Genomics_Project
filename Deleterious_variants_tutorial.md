@@ -290,31 +290,88 @@ do
 done
 
 ```
-
-Again, we can plot this with R:
+##### This script is used for plotting the load(Masked and Realized load in Dama gazelle.
 ```R
-require(tidyverse)
-file<-"Load_table.txt"
-LOAD<-file %>% read.table(header=TRUE) %>% as_tibble()
+# Get working directory
+getwd()
 
-# Make one bar for each individual, and one plot for each mutation type
-ggplot(LOAD, aes(x=Load, y=Number, fill=Ind)) +
-  geom_bar(stat="identity", position=position_dodge(), alpha=0.8) +
-  facet_wrap(Type~., nrow=2, scales='free_y')
+# Load the library
+library(tidyverse)
+
+## Load the Load table.
+file <- "Load_table.txt"
+LOAD <- read.table(file, header=TRUE) %>% as_tibble()
+
+# Capitalize Load and Type labels
+LOAD <- LOAD %>%
+  mutate(
+    Load = ifelse(Load == "masked", "Masked", "Realized"),
+    Type = ifelse(Type == "high", "High", 
+                  ifelse(Type == "moderate", "Moderate", Type))
+  )
+
+# Custom colors for the five samples
+sample_colors <- c(
+  "SRR17129394" = "#1b9e77",
+  "SRR17134085" = "#d95f02",
+  "SRR17134086" = "#7570b3",
+  "SRR17134087" = "#e7298a",
+  "SRR17134088" = "#66a61e"
+)
+
+# Legend labels with species
+sample_labels <- c(
+  "SRR17129394" = "SRR17129394 (Addra gazelle)",
+  "SRR17134085" = "SRR17134085 (Addra gazelle)",
+  "SRR17134086" = "SRR17134086 (Addra gazelle)",
+  "SRR17134087" = "SRR17134087 (Mhorr gazelle)",
+  "SRR17134088" = "SRR17134088 (Mhorr gazelle)"
+)
+
+# Plot
+p <- ggplot(LOAD, aes(x=Load, y=Number, fill=Ind)) +
+  geom_bar(stat="identity", position=position_dodge(width=0.8), alpha=0.9) +
+  geom_text(aes(label=Number), 
+            position=position_dodge(width=0.8), 
+            vjust=-0.3, size=6) +
+  facet_wrap(Type ~ ., nrow=2, scales='free_y') +
+  scale_fill_manual(values = sample_colors, labels = sample_labels) +
+  theme_classic() +
+  theme(
+    axis.title.x = element_text(size=24, face="bold"),
+    axis.title.y = element_text(size=24, face="bold"),
+    axis.text.x = element_text(size=20, face="bold"),
+    axis.text.y = element_text(size=20, face="bold"),
+    legend.title = element_text(size=22, face="bold"),
+    legend.text = element_text(size=20),
+    strip.text = element_text(size=26, face="bold"),
+    panel.grid.major = element_line(color="grey80", linetype="dashed"),
+    panel.grid.minor = element_line(color="grey90", linetype="dashed"),
+    axis.ticks = element_line(size=1.2),
+    panel.border = element_rect(color="black", fill=NA, size=1.2)
+  ) +
+  labs(x="Load Type", y="Number of Sites", fill="Individual")
+
+# Save figure
+ggsave("GeneticLoad_Figure_SampleID_Species.png", plot = p, 
+       width = 180, height = 130, units = "mm", dpi = 300)
+
 ```
-Do you see a difference between the individuals? Or a difference between 'HIGH' impact mutations and 'MODERATE' impact mutations?
+- Do you see a difference between the individuals? Or a difference between 'HIGH' impact mutations and 'MODERATE' impact mutations?
 
-Remenber, this is just a very rough estimation of genetic load! Apart from finding the correct deleterious allele (which we ignored above), it might be necessary to account for differences in sequencing (if some individuals have more missing data, for example). One way to do this is to calculate load as the number of deleterious alleles per genotyped sites.  
-
-
-This is the end of this tutorial! For the interested there are some extra information and code below.
+- Remenber, this is just a very rough estimation of genetic load! Apart from finding the correct deleterious allele (which we ignored above), it might be necessary to account for differences in sequencing (if some individuals have more missing data, for example). 
+- One way to do this is to calculate load as the number of deleterious alleles per genotyped sites.  
+- This is the end of this tutorial! For the interested there are some extra information and code below.
 
 ---------
 ### *About finding out which allele is deleterious
-In a large population, deleterious variants will most likely be selected against, and will never reach high frequencies. Therefore it is often safe to assume that the _minor_ allele is the deleterious variant. But in a small population, we know that also deleterious variants can reach high frequencies just due to drift. And what if we only have a couple of samples in the first place! With only 4 alleles in total, it is hard to tell which is the minor!
-Another option is to _polarize_ the variants (i.e. to determine the ancestral allele), and assume the ancestral allele is the 'normal' variant. This approach has been used in many conservation studies. Can you think of caveats with this method?
-
-Do we have enough data in the Guam Rail project to polarize our variants?
+- In a large population, deleterious variants will most likely be selected against, and will never reach high frequencies. 
+- Therefore it is often safe to assume that the _minor_ allele is the deleterious variant.
+- But in a small population, we know that also deleterious variants can reach high frequencies just due to drift.
+- And what if we only have a couple of samples in the first place! With only 4 alleles in total, it is hard to tell which is the minor!
+- Another option is to _polarize_ the variants (i.e. to determine the ancestral allele), and assume the ancestral allele is the 'normal' variant.
+- This approach has been used in many conservation studies. Can you think of caveats with this method?
+- Do we have enough data in the Dama gazelle project to polarize our variants?
 
 ---------
 
@@ -328,8 +385,8 @@ for type in "low" "moderate" "high"
 do
   awk -v t=$type '{print $0"\t"t}' ${type}_impact.pos.txt |uniq >>all_three.pos.txt
 done
-vcftools --vcf GuamRails_SNPs.recode.vcf --positions all_three.pos.txt \
---recode --out GuamRail_all_three
+vcftools --vcf Dama_gazelle_SNPs.recode.vcf --positions all_three.pos.txt \
+--recode --out Dama_gazelle_all_three
 ```
 Read the vcf into R and perform the same analysis as above:
 ```R
@@ -339,7 +396,7 @@ require(vcfR)
 require(tidyverse)
 
 # Reading the two files
-vcf_file="GuamRail_all_three.recode.vcf"
+vcf_file="Dama_gazelle_all_three.recode.vcf"
 type_file="all_three.pos.txt"
 vcf <- read.vcfR(vcf_file)
 vep_types <- type_file %>% read.table(header=FALSE) %>% as_tibble() %>%
