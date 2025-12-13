@@ -294,11 +294,7 @@ done
 ```R
 # Load libraries
 library(tidyverse)
-library(grid)  # for unit()
-
-# Set working directory if needed
-#getwd()
-
+library(grid)
 
 # Load the Load table
 LOAD <- read.table("Load_table.txt", header=TRUE) %>% as_tibble()
@@ -311,46 +307,30 @@ LOAD <- LOAD %>%
                   ifelse(Type == "moderate", "Moderate", Type))
   )
 
-# Colors for each sample ID
-sample_colors <- c(
-  "SRR17129394" = "#1b9e77",
-  "SRR17134085" = "#d95f02",
-  "SRR17134086" = "#7570b3",
-  "SRR17134087" = "#e7298a",
-  "SRR17134088" = "#66a61e"
-)
-
-# Legend labels with sample IDs
-sample_labels <- c(
-  "SRR17129394" = "SRR17129394",
-  "SRR17134085" = "SRR17134085",
-  "SRR17134086" = "SRR17134086",
-  "SRR17134087" = "SRR17134087",
-  "SRR17134088" = "SRR17134088"
-)
+# Colors for Load types
+load_colors <- c("Masked" = "#1b9e77", "Realized" = "#d95f02")
 
 # Create the plot
-p <- ggplot(LOAD, aes(x=Load, y=Number, fill=Ind)) +
+p <- ggplot(LOAD, aes(x=Ind, y=Number, fill=Load)) +
   geom_bar(stat="identity", position=position_dodge(width=0.75), width=0.7) +
   geom_text(aes(label=Number), 
             position=position_dodge(width=0.75), 
             vjust=-0.4, size=4) +
   facet_wrap(Type ~ ., nrow=2, scales='free_y', strip.position = "top") +
-  scale_fill_manual(values = sample_colors, labels = sample_labels) +
+  scale_fill_manual(values = load_colors) +
   theme_classic() +
   theme(
     axis.title.x = element_text(size=14, face="bold"),
     axis.title.y = element_text(size=14, face="bold"),
     axis.text.x = element_text(size=12, face="bold"),
-    axis.text.y = element_text(size=12),
-    legend.title = element_text(size=12, face="bold"),
-    legend.text = element_text(size=11),
-    legend.position = "top",          # top-centered legend
-    legend.justification = "center",
-    legend.direction = "horizontal",
+    axis.text.y = element_text(size=14, face="bold"),
+    legend.title = element_text(size=14, face="bold"),
+    legend.text = element_text(size=13),
+    legend.position = c(0.95, 0.95),          # top-right inside plot
+    legend.justification = c("right", "top"),
+    legend.direction = "vertical",            # vertical inside
     legend.key.size = unit(0.8, "lines"),
-    legend.spacing.x = unit(0.4, "lines"),
-    legend.spacing.y = unit(0.1, "lines"),
+    legend.background = element_rect(fill = alpha('white', 0.6), color = NA),
     strip.text = element_text(size=14, face="bold"),
     strip.background = element_rect(fill="grey95", color=NA),
     panel.grid.major = element_line(color="grey80", linetype="dashed"),
@@ -359,19 +339,19 @@ p <- ggplot(LOAD, aes(x=Load, y=Number, fill=Ind)) +
     panel.border = element_rect(color="black", fill=NA, size=0.8),
     panel.spacing.y = unit(6, "mm")
   ) +
-  labs(x="Load Type", y="Number of Sites", fill="Sample ID")
+  labs(x="Individual Sample", y="Number of Sites", fill="Load Type")
 
 # Set publication-ready dimensions
-fig_width <- 220  # in mm
-fig_height <- 260 # taller plot for better readability
+fig_width <- 220  # mm
+fig_height <- 260 # mm
 
 # Save as PDF
-ggsave("GeneticLoad_Figure_SampleID_TopLegend_HeightAdjusted.pdf", plot = p,
+ggsave("GeneticLoad_Figure_LoadTypeLegend_InsideTopRight.pdf", plot = p,
        width = fig_width, height = fig_height, units = "mm",
        dpi = 300, device = cairo_pdf)
 
 # Save as high-quality JPEG
-ggsave("GeneticLoad_Figure_SampleID_TopLegend_HeightAdjusted.jpeg", plot = p,
+ggsave("GeneticLoad_Figure_LoadTypeLegend_InsideTopRight.jpeg", plot = p,
        width = fig_width, height = fig_height, units = "mm",
        dpi = 600)
 
