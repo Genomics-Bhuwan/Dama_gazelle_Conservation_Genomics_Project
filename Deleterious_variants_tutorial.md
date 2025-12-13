@@ -292,15 +292,16 @@ done
 ```
 ##### This script is used for plotting the load(Masked and Realized load in Dama gazelle.
 ```R
-# Get working directory
-getwd()
-
-# Load the library
+# Load libraries
 library(tidyverse)
+library(grid)  # for unit()
 
-## Load the Load table.
-file <- "Load_table.txt"
-LOAD <- read.table(file, header=TRUE) %>% as_tibble()
+# Set working directory if needed
+#getwd()
+
+
+# Load the Load table
+LOAD <- read.table("Load_table.txt", header=TRUE) %>% as_tibble()
 
 # Capitalize Load and Type labels
 LOAD <- LOAD %>%
@@ -310,7 +311,7 @@ LOAD <- LOAD %>%
                   ifelse(Type == "moderate", "Moderate", Type))
   )
 
-# Custom colors for the five samples
+# Colors for each sample ID
 sample_colors <- c(
   "SRR17129394" = "#1b9e77",
   "SRR17134085" = "#d95f02",
@@ -319,42 +320,61 @@ sample_colors <- c(
   "SRR17134088" = "#66a61e"
 )
 
-# Legend labels with species
+# Legend labels with sample IDs
 sample_labels <- c(
-  "SRR17129394" = "SRR17129394 (Addra gazelle)",
-  "SRR17134085" = "SRR17134085 (Addra gazelle)",
-  "SRR17134086" = "SRR17134086 (Addra gazelle)",
-  "SRR17134087" = "SRR17134087 (Mhorr gazelle)",
-  "SRR17134088" = "SRR17134088 (Mhorr gazelle)"
+  "SRR17129394" = "SRR17129394",
+  "SRR17134085" = "SRR17134085",
+  "SRR17134086" = "SRR17134086",
+  "SRR17134087" = "SRR17134087",
+  "SRR17134088" = "SRR17134088"
 )
 
-# Plot
+# Create the plot
 p <- ggplot(LOAD, aes(x=Load, y=Number, fill=Ind)) +
-  geom_bar(stat="identity", position=position_dodge(width=0.8), alpha=0.9) +
+  geom_bar(stat="identity", position=position_dodge(width=0.75), width=0.7) +
   geom_text(aes(label=Number), 
-            position=position_dodge(width=0.8), 
-            vjust=-0.3, size=6) +
-  facet_wrap(Type ~ ., nrow=2, scales='free_y') +
+            position=position_dodge(width=0.75), 
+            vjust=-0.4, size=4) +
+  facet_wrap(Type ~ ., nrow=2, scales='free_y', strip.position = "top") +
   scale_fill_manual(values = sample_colors, labels = sample_labels) +
   theme_classic() +
   theme(
-    axis.title.x = element_text(size=24, face="bold"),
-    axis.title.y = element_text(size=24, face="bold"),
-    axis.text.x = element_text(size=20, face="bold"),
-    axis.text.y = element_text(size=20, face="bold"),
-    legend.title = element_text(size=22, face="bold"),
-    legend.text = element_text(size=20),
-    strip.text = element_text(size=26, face="bold"),
+    axis.title.x = element_text(size=14, face="bold"),
+    axis.title.y = element_text(size=14, face="bold"),
+    axis.text.x = element_text(size=12, face="bold"),
+    axis.text.y = element_text(size=12),
+    legend.title = element_text(size=12, face="bold"),
+    legend.text = element_text(size=11),
+    legend.position = "top",          # top-centered legend
+    legend.justification = "center",
+    legend.direction = "horizontal",
+    legend.key.size = unit(0.8, "lines"),
+    legend.spacing.x = unit(0.4, "lines"),
+    legend.spacing.y = unit(0.1, "lines"),
+    strip.text = element_text(size=14, face="bold"),
+    strip.background = element_rect(fill="grey95", color=NA),
     panel.grid.major = element_line(color="grey80", linetype="dashed"),
     panel.grid.minor = element_line(color="grey90", linetype="dashed"),
-    axis.ticks = element_line(size=1.2),
-    panel.border = element_rect(color="black", fill=NA, size=1.2)
+    axis.ticks = element_line(size=0.8),
+    panel.border = element_rect(color="black", fill=NA, size=0.8),
+    panel.spacing.y = unit(6, "mm")
   ) +
-  labs(x="Load Type", y="Number of Sites", fill="Individual")
+  labs(x="Load Type", y="Number of Sites", fill="Sample ID")
 
-# Save figure
-ggsave("GeneticLoad_Figure_SampleID_Species.png", plot = p, 
-       width = 180, height = 130, units = "mm", dpi = 300)
+# Set publication-ready dimensions
+fig_width <- 220  # in mm
+fig_height <- 260 # taller plot for better readability
+
+# Save as PDF
+ggsave("GeneticLoad_Figure_SampleID_TopLegend_HeightAdjusted.pdf", plot = p,
+       width = fig_width, height = fig_height, units = "mm",
+       dpi = 300, device = cairo_pdf)
+
+# Save as high-quality JPEG
+ggsave("GeneticLoad_Figure_SampleID_TopLegend_HeightAdjusted.jpeg", plot = p,
+       width = fig_width, height = fig_height, units = "mm",
+       dpi = 600)
+
 
 ```
 - Do you see a difference between the individuals? Or a difference between 'HIGH' impact mutations and 'MODERATE' impact mutations?
