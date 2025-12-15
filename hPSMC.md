@@ -420,27 +420,31 @@ wait
 
 #### Convert ms to psmcfa format ###
 ```bash
-python ./hPSMC_ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_1000.ms_sim > ./hPSMC_sim_1000.ms_sim.psmcfa &
-python ./hPSMC_ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_6210.ms_sim > ./hPSMC_sim_6210.ms_sim.psmcfa &
-python ./hPSMC_ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_11421.ms_sim > ./hPSMC_sim_11421.ms_sim.psmcfa &
-python ./hPSMC_ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_16631.ms_sim > ./hPSMC_sim_16631.ms_sim.psmcfa &
-python ./hPSMC_ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_21842.ms_sim > ./hPSMC_sim_21842.ms_sim.psmcfa &
-python ./hPSMC_ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_27052.ms_sim > ./hPSMC_sim_27052.ms_sim.psmcfa &
-python ./hPSMC_ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_32263.ms_sim > ./hPSMC_sim_32263.ms_sim.psmcfa &
-python ./hPSMC_ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_37473.ms_sim > ./hPSMC_sim_37473.ms_sim.psmcfa &
-python ./hPSMC_ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_42684.ms_sim > ./hPSMC_sim_42684.ms_sim.psmcfa &
-python ./hPSMC_ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_47894.ms_sim > ./hPSMC_sim_47894.ms_sim.psmcfa &
-python ./hPSMC_ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_53105.ms_sim > ./hPSMC_sim_53105.ms_sim.psmcfa &
-python ./hPSMC_ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_58315.ms_sim > ./hPSMC_sim_58315.ms_sim.psmcfa &
-python ./hPSMC_ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_63526.ms_sim > ./hPSMC_sim_63526.ms_sim.psmcfa &
-python ./hPSMC_ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_68736.ms_sim > ./hPSMC_sim_68736.ms_sim.psmcfa &
-python ./hPSMC_ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_73947.ms_sim > ./hPSMC_sim_73947.ms_sim.psmcfa &
-python ./hPSMC_ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_79157.ms_sim > ./hPSMC_sim_79157.ms_sim.psmcfa &
-python ./hPSMC_ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_84368.ms_sim > ./hPSMC_sim_84368.ms_sim.psmcfa &
-python ./hPSMC_ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_89578.ms_sim > ./hPSMC_sim_89578.ms_sim.psmcfa &
-python ./hPSMC_ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_94789.ms_sim > ./hPSMC_sim_94789.ms_sim.psmcfa &
-python ./hPSMC_ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_100000.ms_sim > ./hPSMC_sim_100000.ms_sim.psmcfa &
+# First, make sure the output folder exists
+mkdir -p /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca
+
+python /scratch/bistbs/Population_Genomic_Analysis/hPSMC/hPSMC/ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_1000.ms_sim > ./ms2psmca/hPSMC_sim_1000.ms_sim.psmcfa &
+python /scratch/bistbs/Population_Genomic_Analysis/hPSMC/hPSMC/ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_6210.ms_sim > ./ms2psmca/hPSMC_sim_6210.ms_sim.psmcfa &
+python /scratch/bistbs/Population_Genomic_Analysis/hPSMC/hPSMC/ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_11421.ms_sim > ./ms2psmca/hPSMC_sim_11421.ms_sim.psmcfa &
+python /scratch/bistbs/Population_Genomic_Analysis/hPSMC/hPSMC/ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_16631.ms_sim > ./ms2psmca/hPSMC_sim_16631.ms_sim.psmcfa &
+python /scratch/bistbs/Population_Genomic_Analysis/hPSMC/hPSMC/ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_21842.ms_sim > ./ms2psmca/hPSMC_sim_21842.ms_sim.psmcfa &
+python /scratch/bistbs/Population_Genomic_Analysis/hPSMC/hPSMC/ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_27052.ms_sim > ./ms2psmca/hPSMC_sim_27052.ms_sim.psmcfa &
+python /scratch/bistbs/Population_Genomic_Analysis/hPSMC/hPSMC/ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_32263.ms_sim > ./ms2psmca/hPSMC_sim_32263.ms_sim.psmcfa &
+python /scratch/bistbs/Population_Genomic_Analysis/hPSMC/hPSMC/ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_37473.ms_sim > ./ms2psmca/hPSMC_sim_37473.ms_sim.psmcfa &
+python /scratch/bistbs/Population_Genomic_Analysis/hPSMC/hPSMC/ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_42684.ms_sim > ./ms2psmca/hPSMC_sim_42684.ms_sim.psmcfa &
+python /scratch/bistbs/Population_Genomic_Analysis/hPSMC/hPSMC/ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_47894.ms_sim > ./ms2psmca/hPSMC_sim_47894.ms_sim.psmcfa &
+python /scratch/bistbs/Population_Genomic_Analysis/hPSMC/hPSMC/ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_53105.ms_sim > ./ms2psmca/hPSMC_sim_53105.ms_sim.psmcfa &
+python /scratch/bistbs/Population_Genomic_Analysis/hPSMC/hPSMC/ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_58315.ms_sim > ./ms2psmca/hPSMC_sim_58315.ms_sim.psmcfa &
+python /scratch/bistbs/Population_Genomic_Analysis/hPSMC/hPSMC/ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_63526.ms_sim > ./ms2psmca/hPSMC_sim_63526.ms_sim.psmcfa &
+python /scratch/bistbs/Population_Genomic_Analysis/hPSMC/hPSMC/ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_68736.ms_sim > ./ms2psmca/hPSMC_sim_68736.ms_sim.psmcfa &
+python /scratch/bistbs/Population_Genomic_Analysis/hPSMC/hPSMC/ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_73947.ms_sim > ./ms2psmca/hPSMC_sim_73947.ms_sim.psmcfa &
+python /scratch/bistbs/Population_Genomic_Analysis/hPSMC/hPSMC/ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_79157.ms_sim > ./ms2psmca/hPSMC_sim_79157.ms_sim.psmcfa &
+python /scratch/bistbs/Population_Genomic_Analysis/hPSMC/hPSMC/ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_84368.ms_sim > ./ms2psmca/hPSMC_sim_84368.ms_sim.psmcfa &
+python /scratch/bistbs/Population_Genomic_Analysis/hPSMC/hPSMC/ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_89578.ms_sim > ./ms2psmca/hPSMC_sim_89578.ms_sim.psmcfa &
+python /scratch/bistbs/Population_Genomic_Analysis/hPSMC/hPSMC/ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_94789.ms_sim > ./ms2psmca/hPSMC_sim_94789.ms_sim.psmcfa &
+python /scratch/bistbs/Population_Genomic_Analysis/hPSMC/hPSMC/ms2psmcfa.py -b10 -d -c5000000 ./hPSMC_sim_100000.ms_sim > ./ms2psmca/hPSMC_sim_100000.ms_sim.psmcfa &
 wait
+
 ```
 ### Run PSMC ###
 ```bash
