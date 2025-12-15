@@ -145,7 +145,7 @@ setwd("F:/Collaborative_Projects/Dama_Gazelle_Project/hPSMC/")
 
 # Parameters
 mu <- 2.96e-9
-g  <- 2.85
+g  <- 5.85
 
 # Input file — ONLY ONE
 psmc_file <- "hPSMC.psmc"
