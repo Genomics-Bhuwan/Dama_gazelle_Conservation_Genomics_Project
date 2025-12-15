@@ -497,7 +497,7 @@ parallel -j 6 "$PSMC -N25 -t15 -r5 -p '4+25*2+4+6' -o $OUTPUT_DIR/{/}.psmc {}" :
 ls /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/psmc_output/hPSMC_sim_*.psmc | \
 python /scratch/bistbs/Population_Genomic_Analysis/hPSMC/hPSMC/compare_sims_to_data.py \
 -i /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/hPSMC.psmc \
--o /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/psmc_output/hPSMC_sim_result.txt
+> /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/psmc_output/hPSMC_sim_result.txt
 
 ```
 
