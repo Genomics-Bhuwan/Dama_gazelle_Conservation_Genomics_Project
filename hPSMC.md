@@ -448,85 +448,47 @@ wait
 ```
 ### Run PSMC ###
 ```bash
-/scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/psmc/psmc -N25 -t15 -r5 -p "4+25*2+4+6" \
-    -o /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/psmc_output/hPSMC_sim_1000.ms_sim.psmc \
-    /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/hPSMC_sim_1000.ms_sim.psmcfa
+#!/bin/bash -l
+#SBATCH --job-name=PSMC_parallel
+#SBATCH --time=300:00:00
+#SBATCH --cpus-per-task=24
+#SBATCH --mem=128G
+#SBATCH --partition=batch
+#SBATCH --output=psmc_parallel_%A.log
 
-/scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/psmc/psmc -N25 -t15 -r5 -p "4+25*2+4+6" \
-    -o /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/psmc_output/hPSMC_sim_6210.ms_sim.psmc \
-    /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/hPSMC_sim_6210.ms_sim.psmcfa
+# Paths
+PSMC="/scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/psmc/psmc"
+INPUT_DIR="/scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca"
+OUTPUT_DIR="/scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/psmc_output"
 
-/scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/psmc/psmc -N25 -t15 -r5 -p "4+25*2+4+6" \
-    -o /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/psmc_output/hPSMC_sim_11421.ms_sim.psmc \
-    /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/hPSMC_sim_11421.ms_sim.psmcfa
+mkdir -p $OUTPUT_DIR
 
-/scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/psmc/psmc -N25 -t15 -r5 -p "4+25*2+4+6" \
-    -o /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/psmc_output/hPSMC_sim_16631.ms_sim.psmc \
-    /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/hPSMC_sim_16631.ms_sim.psmcfa
+# List of .psmcfa files
+FILES=(
+"$INPUT_DIR/hPSMC_sim_1000.ms_sim.psmcfa"
+"$INPUT_DIR/hPSMC_sim_6210.ms_sim.psmcfa"
+"$INPUT_DIR/hPSMC_sim_11421.ms_sim.psmcfa"
+"$INPUT_DIR/hPSMC_sim_16631.ms_sim.psmcfa"
+"$INPUT_DIR/hPSMC_sim_21842.ms_sim.psmcfa"
+"$INPUT_DIR/hPSMC_sim_27052.ms_sim.psmcfa"
+"$INPUT_DIR/hPSMC_sim_32263.ms_sim.psmcfa"
+"$INPUT_DIR/hPSMC_sim_37473.ms_sim.psmcfa"
+"$INPUT_DIR/hPSMC_sim_42684.ms_sim.psmcfa"
+"$INPUT_DIR/hPSMC_sim_47894.ms_sim.psmcfa"
+"$INPUT_DIR/hPSMC_sim_53105.ms_sim.psmcfa"
+"$INPUT_DIR/hPSMC_sim_58315.ms_sim.psmcfa"
+"$INPUT_DIR/hPSMC_sim_63526.ms_sim.psmcfa"
+"$INPUT_DIR/hPSMC_sim_68736.ms_sim.psmcfa"
+"$INPUT_DIR/hPSMC_sim_73947.ms_sim.psmcfa"
+"$INPUT_DIR/hPSMC_sim_79157.ms_sim.psmcfa"
+"$INPUT_DIR/hPSMC_sim_84368.ms_sim.psmcfa"
+"$INPUT_DIR/hPSMC_sim_89578.ms_sim.psmcfa"
+"$INPUT_DIR/hPSMC_sim_94789.ms_sim.psmcfa"
+"$INPUT_DIR/hPSMC_sim_100000.ms_sim.psmcfa"
+)
 
-/scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/psmc/psmc -N25 -t15 -r5 -p "4+25*2+4+6" \
-    -o /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/psmc_output/hPSMC_sim_21842.ms_sim.psmc \
-    /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/hPSMC_sim_21842.ms_sim.psmcfa
-
-/scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/psmc/psmc -N25 -t15 -r5 -p "4+25*2+4+6" \
-    -o /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/psmc_output/hPSMC_sim_27052.ms_sim.psmc \
-    /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/hPSMC_sim_27052.ms_sim.psmcfa
-
-/scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/psmc/psmc -N25 -t15 -r5 -p "4+25*2+4+6" \
-    -o /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/psmc_output/hPSMC_sim_32263.ms_sim.psmc \
-    /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/hPSMC_sim_32263.ms_sim.psmcfa
-
-/scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/psmc/psmc -N25 -t15 -r5 -p "4+25*2+4+6" \
-    -o /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/psmc_output/hPSMC_sim_37473.ms_sim.psmc \
-    /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/hPSMC_sim_37473.ms_sim.psmcfa
-
-/scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/psmc/psmc -N25 -t15 -r5 -p "4+25*2+4+6" \
-    -o /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/psmc_output/hPSMC_sim_42684.ms_sim.psmc \
-    /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/hPSMC_sim_42684.ms_sim.psmcfa
-
-/scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/psmc/psmc -N25 -t15 -r5 -p "4+25*2+4+6" \
-    -o /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/psmc_output/hPSMC_sim_47894.ms_sim.psmc \
-    /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/hPSMC_sim_47894.ms_sim.psmcfa
-
-/scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/psmc/psmc -N25 -t15 -r5 -p "4+25*2+4+6" \
-    -o /scratch/bistbs/Population_Genomic_Analysis/hPSHC/Output_94_87/94_87simulation/ms2psmca/psmc_output/hPSMC_sim_53105.ms_sim.psmc \
-    /scratch/bistbs/Population_Genomic_Analysis/hPSHC/Output_94_87/94_87simulation/ms2psmca/hPSMC_sim_53105.ms_sim.psmcfa
-
-/scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/psmc/psmc -N25 -t15 -r5 -p "4+25*2+4+6" \
-    -o /scratch/bistbs/Population_Genomic_Analysis/hPSHC/Output_94_87/94_87simulation/ms2psmca/psmc_output/hPSMC_sim_58315.ms_sim.psmc \
-    /scratch/bistbs/Population_Genomic_Analysis/hPSHC/Output_94_87/94_87simulation/ms2psmca/hPSMC_sim_58315.ms_sim.psmcfa
-
-/scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/psmc/psmc -N25 -t15 -r5 -p "4+25*2+4+6" \
-    -o /scratch/bistbs/Population_Genomic_Analysis/hPSHC/Output_94_87/94_87simulation/ms2psmca/psmc_output/hPSMC_sim_63526.ms_sim.psmc \
-    /scratch/bistbs/Population_Genomic_Analysis/hPSHC/Output_94_87/94_87simulation/ms2psmca/hPSMC_sim_63526.ms_sim.psmcfa
-
-/scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/psmc/psmc -N25 -t15 -r5 -p "4+25*2+4+6" \
-    -o /scratch/bistbs/Population_Genomic_Analysis/hPSHC/Output_94_87/94_87simulation/ms2psmca/psmc_output/hPSMC_sim_68736.ms_sim.psmc \
-    /scratch/bistbs/Population_Genomic_Analysis/hPSHC/Output_94_87/94_87simulation/ms2psmca/hPSMC_sim_68736.ms_sim.psmcfa
-
-/scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/psmc/psmc -N25 -t15 -r5 -p "4+25*2+4+6" \
-    -o /scratch/bistbs/Population_Genomic_Analysis/hPSHC/Output_94_87/94_87simulation/ms2psmca/psmc_output/hPSMC_sim_73947.ms_sim.psmc \
-    /scratch/bistbs/Population_Genomic_Analysis/hPSHC/Output_94_87/94_87simulation/ms2psmca/hPSMC_sim_73947.ms_sim.psmcfa
-
-/scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/psmc/psmc -N25 -t15 -r5 -p "4+25*2+4+6" \
-    -o /scratch/bistbs/Population_Genomic_Analysis/hPSHC/Output_94_87/94_87simulation/ms2psmca/psmc_output/hPSMC_sim_79157.ms_sim.psmc \
-    /scratch/bistbs/Population_Genomic_Analysis/hPSHC/Output_94_87/94_87simulation/ms2psmca/hPSMC_sim_79157.ms_sim.psmcfa
-
-/scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/psmc/psmc -N25 -t15 -r5 -p "4+25*2+4+6" \
-    -o /scratch/bistbs/Population_Genomic_Analysis/hPSHC/Output_94_87/94_87simulation/ms2psmca/psmc_output/hPSMC_sim_84368.ms_sim.psmc \
-    /scratch/bistbs/Population_Genomic_Analysis/hPSHC/Output_94_87/94_87simulation/ms2psmca/hPSMC_sim_84368.ms_sim.psmcfa
-
-/scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/psmc/psmc -N25 -t15 -r5 -p "4+25*2+4+6" \
-    -o /scratch/bistbs/Population_Genomic_Analysis/hPSHC/Output_94_87/94_87simulation/ms2psmca/psmc_output/hPSMC_sim_89578.ms_sim.psmc \
-    /scratch/bistbs/Population_Genomic_Analysis/hPSHC/Output_94_87/94_87simulation/ms2psmca/hPSMC_sim_89578.ms_sim.psmcfa
-
-/scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/psmc/psmc -N25 -t15 -r5 -p "4+25*2+4+6" \
-    -o /scratch/bistbs/Population_Genomic_Analysis/hPSHC/Output_94_87/94_87simulation/ms2psmca/psmc_output/hPSMC_sim_94789.ms_sim.psmc \
-    /scratch/bistbs/Population_Genomic_Analysis/hPSHC/Output_94_87/94_87simulation/ms2psmca/hPSMC_sim_94789.ms_sim.psmcfa
-
-/scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/psmc/psmc -N25 -t15 -r5 -p "4+25*2+4+6" \
-    -o /scratch/bistbs/Population_Genomic_Analysis/hPSHC/Output_94_87/94_87simulation/ms2psmca/psmc_output/hPSMC_sim_100000.ms_sim.psmc \
-    /scratch/bistbs/Population_Genomic_Analysis/hPSHC/Output_94_87/94_87simulation/ms2psmca/hPSMC_sim_100000.ms_sim.psmcfa
+# Run PSMC in parallel
+parallel -j 6 "$PSMC -N25 -t15 -r5 -p '4+25*2+4+6' -o $OUTPUT_DIR/{/}.psmc {}" ::: "${FILES[@]}"
 
 ```
 ### Estimate Divergence time with hPSMC ###
