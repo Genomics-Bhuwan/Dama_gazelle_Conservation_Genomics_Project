@@ -355,13 +355,135 @@ ggsave("GeneticLoad_Figure_LoadTypeLegend_InsideTopRight.jpeg", plot = p,
        width = fig_width, height = fig_height, units = "mm",
        dpi = 600)
 
-
 ```
 - Do you see a difference between the individuals? Or a difference between 'HIGH' impact mutations and 'MODERATE' impact mutations?
 
 - Remenber, this is just a very rough estimation of genetic load! Apart from finding the correct deleterious allele (which we ignored above), it might be necessary to account for differences in sequencing (if some individuals have more missing data, for example). 
 - One way to do this is to calculate load as the number of deleterious alleles per genotyped sites.  
 - This is the end of this tutorial! For the interested there are some extra information and code below.
+
+####  We decided to find out the funcational classificati of the hihg impact variants using VEP.
+- Functional classification of HIGH-impact variants (VEP)
+- Extract functional consequences of HIGH-impact variants
+
+```bash
+grep "IMPACT=HIGH" Dama_gazelle_vep_biallelic_snps.txt | \
+cut -f7 | tr "," "\n" | \
+sort | uniq -c | sort -nr > HighImpact_FunctionalClasses.txt
+
+cat HighImpact_FunctionalClasses.txt
+```
+- Above result showed:
+-  59 stop_gained
+- 6 splice_donor_variant
+- 27 splice_acceptor_variant
+- 12 start_lost
+- 9 stop_lost
+- 2 non_coding_transcript_variant
+
+  #### Next job is to see the chromosomal distribution of High impact variants.
+  - Count HIGH-impact variants per chromosome
+  - when I did cat on HighImpact_PerChromosome.txt, it showed at least all 17 autosomes had high impact variants.
+```bash
+grep "IMPACT=HIGH" Dama_gazelle_vep_biallelic_snps.txt | \
+cut -f2 | cut -d: -f1 | \
+sort | uniq -c | sort -nr > HighImpact_PerChromosome.txt
+```
+#### Extract the REALIZED load(Homozygous alternate) for all five individuals.
+- Realized load = homozygous alternative(1/1 or 1|1).
+- Convert VCF to BED (0-bed) for ROH intersection.
+```bash
+# Extract VCF header to get sample IDs
+grep "#CHROM" Dama_gazelle_high_impact.recode.vcf > vcf_header.txt
+
+# Loop over individuals (columns 10-14) to get 0-based BED
+for col in 10 11 12 13 14; do
+  ind=$(cut -f$col vcf_header.txt)
+  
+  grep -v "^#" Dama_gazelle_high_impact.recode.vcf | \
+  awk -v c=$col '$c ~ /^1[\/|]1/' | \
+  awk '{print $1"\t"$2-1"\t"$2}' > ${ind}_realized_high.bed
+done
+
+```
+#### Intersect the realized load with ROH(All individuals).
+- Intersect realized deleterious variants with ROH regions. 
+
+```bash
+module load bedtools-2.28
+
+for ind in SRR17129394 SRR17134085 SRR17134086 SRR17134087 SRR17134088
+do
+  bedtools intersect \
+    -a ${ind}_realized_high.bed \
+    -b ${ind}.roh.bed \
+    -u > ${ind}_realized_high_inROH.bed
+done
+```
+#### Let's convert the PLINK ROH(.hom) to BED.
+#### Convert all individuals from .hom to BED format.
+- I got teh file Dama_gazelle_ROH.hom from the folder of ROH analysis after running PLINK.
+```bash
+for ind in SRR17129394 SRR17134085 SRR17134086 SRR17134087 SRR17134088; do
+  awk -v OFS="\t" -v ind=$ind '$2==ind {print $4, $7-1, $8}' Dama_gazelle_ROH.hom > ${ind}.roh.bed
+done
+```
+#### Time to Intersect Realized High Impact Variants with ROH
+```
+module load bedtools
+for ind in SRR17129394 SRR17134085 SRR17134086 SRR17134087 SRR17134088; do
+  bedtools intersect \
+    -a ${ind}_realized_high.bed \
+    -b ${ind}.roh.bed \
+    -u > ${ind}_realized_high_inROH.bed
+done
+```
+#### Let us summarize the realized load and ROH LOAD.
+- Let's create a summary Table.
+```bash
+Summarize Realized Load and ROH Load
+# Create summary table
+echo -e "Individual\tSpecies\tTotal_Realized\tIn_ROH" >> GeneticLoad_ROH_Table.txt
+
+for ind in SRR17129394 SRR17134085 SRR17134086 SRR17134087 SRR17134088
+do
+  # Correct species assignment
+  if [[ "$ind" == "SRR17129394" || "$ind" == "SRR17134085" || "$ind" == "SRR17134086" ]]; then
+      species="Addra"
+  else
+      species="Mhorr"
+  fi
+
+  # Count realized load and in ROH
+  total=$(wc -l < ${ind}_realized_high.bed)
+  inroh=$(wc -l < ${ind}_realized_high_inROH.bed)
+
+  # Append to table
+  echo -e "$ind\t$species\t$total\t$inroh" >> GeneticLoad_ROH_Table.txt
+done
+
+```
+#### Create a combined summary file.
+```bash
+# Header
+echo -e "Individual\tSpecies\tTotal_Realized\tIn_ROH" > GeneticLoad_ROH_Table.txt
+
+# Loop over individuals
+for ind in SRR17129394 SRR17134085 SRR17134086 SRR17134087 SRR17134088
+do
+    # Determine species
+    species="Addra"
+    [[ $ind == SRR17134087 || $ind == SRR17134088 ]] && species="Mhorr"
+
+    # Count total realized load variants
+    total=$(wc -l < ${ind}_realized_high.bed)
+    # Count realized load in ROH
+    inroh=$(wc -l < ${ind}_realized_high_inROH.bed)
+
+    # Append to table
+    echo -e "$ind\t$species\t$total\t$inroh" >> GeneticLoad_ROH_Table.txt
+done
+```
 
 ---------
 ### *About finding out which allele is deleterious
