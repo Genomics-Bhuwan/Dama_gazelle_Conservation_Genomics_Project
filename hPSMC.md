@@ -494,6 +494,7 @@ parallel -j 6 "$PSMC -N25 -t15 -r5 -p '4+25*2+4+6' -o $OUTPUT_DIR/{/}.psmc {}" :
 ### Estimate Divergence time with hPSMC ###
 - This code is for my sample 94 vs 87 which is Addra vs. Mhorr respectively.
 ```bash
+module load python-2.7
 ls /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/psmc_output/hPSMC_sim_*.psmc | \
 python /scratch/bistbs/Population_Genomic_Analysis/hPSMC/hPSMC/compare_sims_to_data.py \
 -i /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/hPSMC.psmc \
@@ -504,4 +505,12 @@ python /scratch/bistbs/Population_Genomic_Analysis/hPSMC/hPSMC/compare_sims_to_d
 ##### Do the same as you did for above two samples.
 - For sample 85 and 88, I will use the same above simulated result with the empirical psmc file with the pairs: 94 and 87(Addra 1 vs. Mhorr1) and 85 and 88(Addra 2 vs Mhorr
 - I think I can un the above code excatly except that I change the inupt file of empirical to 85 and 88.
-- 2)
+
+  ```bash
+  module load python-2.7
+   python /scratch/bistbs/Population_Genomic_Analysis/hPSMC/hPSMC/compare_sims_to_data.py \
+-i /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_85_88/hPSMC.psmc \
+/scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_85_88/85_88simulation/hPSMC_sim_*.psmcfa.psmc \
+> /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_85_88/85_88simulation/hPSMC_sim_85_88result.txt
+
+```  
