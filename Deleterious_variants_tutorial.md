@@ -31,7 +31,7 @@ cd /scratch/bistbs/Population_Genomic_Analysis/VEP
 Reference genome: Dama_gazelle_hifiasm-ULONT_primary.fasta
 Addra annotation: Addra_complete.genomic.gff
 Mhorr annotation: Mohrr_complete.genomic.gff
-VCF (biallelic SNPs + indels): Dama_gazelle_biallelic_snps_autosomes.vcf
+VCF (biallelic SNPs): Dama_gazelle_biallelic_snps_autosomes.vcf
 Individuals:
   Addra: SRR17129394, SRR17134085, SRR17134086
   Mhorr: SRR17134087, SRR17134088
@@ -84,6 +84,22 @@ tabix -p gff Addra.withExons.gff.gz
 
 ```
 
+- Do it for Mhorr gazelle
+```bash
+grep -v "#" /scratch/bistbs/Population_Genomic_Analysis/VEP/Gene_Ontology/Mohrr_complete.genomic.gff | \
+sort -k1,1 -k4,4n -k5,5n -t$'\t' | \
+awk -v OFS="\t" '{
+    if ($3=="CDS") {
+        print $0
+        $3="exon"
+        $8="."
+        print $0
+    } else { print $0 }
+}' | bgzip -c > /scratch/bistbs/Population_Genomic_Analysis/VEP/Gene_Ontology/Mhorr.withExons.gff.gz
+
+tabix -p gff /scratch/bistbs/Population_Genomic_Analysis/VEP/Gene_Ontology/Mhorr.withExons.gff.gz
+
+```
 
 #### c) Prepare the vcf file
 - If we want we could just use the vcf file as it is, but we can also do some more filtering.
@@ -485,6 +501,64 @@ do
 done
 ```
 
+#### Now, we will do Gene Ontology analysis
+- Step 1: Create VCFs per subspecies
+- Suppose your VCF is Dama_gazelle_biallelic_snps_autosomes.vcf and samples are:
+- Addra: SRR17129394, SRR17134085, SRR17134086
+- Mhorr: SRR17134087, SRR17134088
+- Use bcftools view to create per-subspecies VCFs:
+
+#### Addra
+```bash
+echo -e "SRR17129394\nSRR17134085\nSRR17134086" > addra_samples.txt
+bcftools view -S addra_samples.txt Dama_gazelle_biallelic_snps_autosomes.vcf -Oz -o addra.vcf.gz
+bcftools index addra.vcf.gz
+#### Mhorr
+echo -e "SRR17134087\nSRR17134088" > mhorr_samples.txt
+bcftools view -S mhorr_samples.txt Dama_gazelle_biallelic_snps_autosomes.vcf -Oz -o mhorr.vcf.gz
+bcftools index mhorr.vcf.gz
+```
+- Step 2: Run VEP separately for Addra and Mhorr
+#### Addra
+  ```bash
+  singularity exec vep.sif vep \
+    --dir_cache /scratch/bistbs/Population_Genomic_Analysis/VEP/Gene_Ontology/dummy_vep_cache\
+    --fasta /scratch/bistbs/Population_Genomic_Analysis/VEP/Gene_Ontology/Dama_gazelle_hifiasm-ULONT_primary.fasta \
+    --input_file /scratch/bistbs/Population_Genomic_Analysis/VEP/Gene_Ontology/addra.vcf.gz \
+    --custom file=/scratch/bistbs/Population_Genomic_Analysis/VEP/Gene_Ontology/Addra.withExons.gff.gz,short_name=ADDRA_EXONS,format=gff \
+    --output_file /scratch/bistbs/Population_Genomic_Analysis/VEP/Gene_Ontology/Addra_vep_biallelic_snps.txt \
+    --offline \
+    --everything \
+    --fork 8 \
+    --no_stats \
+    --quiet \
+    --buffer_size 10000
+```
+#### Mhorr
+```bash
+singularity exec vep.sif vep \
+    --dir_cache /scratch/bistbs/Population_Genomic_Analysis/VEP/Gene_Ontology/dummy_vep_cache\
+    --fasta /scratch/bistbs/Population_Genomic_Analysis/VEP/Gene_Ontology/Dama_gazelle_hifiasm-ULONT_primary.fasta \
+    --input_file /scratch/bistbs/Population_Genomic_Analysis/VEP/Gene_Ontology/Mhorr.vcf.gz \
+    --custom file=/scratch/bistbs/Population_Genomic_Analysis/VEP/Gene_Ontology/Mhorr.withExons.gff.gz,short_name=MHORR_EXONS,format=gff \
+    --output_file /scratch/bistbs/Population_Genomic_Analysis/VEP/Gene_Ontology/Mhorr_vep_biallelic_snps.txt \
+    --offline \
+    --everything \
+    --fork 8 \
+    --no_stats \
+    --quiet \
+    --buffer_size 10000
+    ```
+#### Step 3: Extract high-impact genes for each subspecies
+```bash
+# Addra
+awk -F'\t' '($14 ~ /IMPACT=HIGH/ && $4 != "-") {print $4}' Addra_vep_biallelic_snps.txt | sort | uniq > Addra_HighImpact_Genes.txt
+
+# Mhorr
+awk -F'\t' '($14 ~ /IMPACT=HIGH/ && $4 != "-") {print $4}' Mhorr_vep_biallelic_snps.txt | sort | uniq > Mhorr_HighImpact_Genes.txt
+
+This gives you two clean gene lists ready for GO analysis: Use the name or ID of those gene list in the ShinyGo app.
+```
 ---------
 ### *About finding out which allele is deleterious
 - In a large population, deleterious variants will most likely be selected against, and will never reach high frequencies. 
@@ -496,6 +570,19 @@ done
 - Do we have enough data in the Dama gazelle project to polarize our variants?
 
 ---------
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ### ** Repeat Analysis part 3. in R with the vcfR package
