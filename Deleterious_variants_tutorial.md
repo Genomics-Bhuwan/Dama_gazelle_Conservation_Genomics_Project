@@ -378,7 +378,7 @@ ggsave("GeneticLoad_Figure_LoadTypeLegend_InsideTopRight.jpeg", plot = p,
 - One way to do this is to calculate load as the number of deleterious alleles per genotyped sites.  
 - This is the end of this tutorial! For the interested there are some extra information and code below.
 
-####  We decided to find out the funcational classificati of the hihg impact variants using VEP.
+####  We decided to find out the funcational classification of the hihg impact variants using VEP.
 - Functional classification of HIGH-impact variants (VEP)
 - Extract functional consequences of HIGH-impact variants
 
@@ -500,8 +500,137 @@ do
     echo -e "$ind\t$species\t$total\t$inroh" >> GeneticLoad_ROH_Table.txt
 done
 ```
+----
+- Variants for Moderate
+- --
+####  We decided to find out the funcational classification of the hihg impact variants using VEP.
+- Functional classification of Moderate-impact variants (VEP)
+- Extract functional consequences of Moderate-impact variants
 
-#### Now, we will do Gene Ontology analysis
+```bash
+grep "IMPACT=MODERATE" Dama_gazelle_vep_biallelic_snps.txt | \
+cut -f7 | tr "," "\n" | \
+sort | uniq -c | sort -nr > ModerateImpact_FunctionalClasses.txt
+
+cat ModerateImpact_FunctionalClasses.txt
+```
+- Above result showed:
+-  59 stop_gained
+- 6 splice_donor_variant
+- 27 splice_acceptor_variant
+- 12 start_lost
+- 9 stop_lost
+- 2 non_coding_transcript_variant
+
+  #### Next job is to see the chromosomal distribution of Moderate impact variants.
+  - Count HIGH-impact variants per chromosome
+  - when I did cat on ModerateImpact_PerChromosome.txt, it showed at least all 17 autosomes had moderate impact variants.
+```bash
+grep "IMPACT=MODERATE" Dama_gazelle_vep_biallelic_snps.txt | \
+cut -f2 | cut -d: -f1 | \
+sort | uniq -c | sort -nr > MODERATEImpact_PerChromosome.txt
+```
+#### Extract the REALIZED load(Homozygous alternate) for all five individuals.
+- Realized load = homozygous alternative(1/1 or 1|1).
+- Convert VCF to BED (0-bed) for ROH intersection.
+```bash
+# Extract VCF header to get sample IDs
+grep "#CHROM" Dama_gazelle_moderate_impact.recode.vcf > vcf_header.txt
+
+# Loop over individuals (columns 10-14) to get 0-based BED
+for col in 10 11 12 13 14; do
+  ind=$(cut -f$col vcf_header.txt)
+  
+  grep -v "^#" Dama_gazelle_moderate_impact.recode.vcf | \
+  awk -v c=$col '$c ~ /^1[\/|]1/' | \
+  awk '{print $1"\t"$2-1"\t"$2}' > ${ind}_realized_moderate.bed
+done
+
+```
+#### Intersect the realized load with ROH(All individuals).
+- Intersect realized deleterious variants with ROH regions. 
+
+```bash
+module load bedtools-2.28
+
+for ind in SRR17129394 SRR17134085 SRR17134086 SRR17134087 SRR17134088
+do
+  bedtools intersect \
+    -a ${ind}_realized_moderate.bed \
+    -b ${ind}.roh.bed \
+    -u > ${ind}_realized_moderate_inROH.bed
+done
+```
+#### Let's convert the PLINK ROH(.hom) to BED.
+#### Convert all individuals from .hom to BED format.
+- I got the file Dama_gazelle_ROH.hom from the folder of ROH analysis after running PLINK.
+```bash
+for ind in SRR17129394 SRR17134085 SRR17134086 SRR17134087 SRR17134088; do
+  awk -v OFS="\t" -v ind=$ind '$2==ind {print $4, $7-1, $8}' Dama_gazelle_ROH.hom > ${ind}.roh.bed
+done
+```
+#### Time to Intersect Realized Moderate Impact Variants with ROH
+```
+module load bedtools
+for ind in SRR17129394 SRR17134085 SRR17134086 SRR17134087 SRR17134088; do
+  bedtools intersect \
+    -a ${ind}_realized_moderate.bed \
+    -b ${ind}.roh.bed \
+    -u > ${ind}_realized_moderate_inROH.bed
+done
+```
+#### Let us summarize the realized load and ROH LOAD.
+- Let's create a summary Table.
+```bash
+Summarize Realized Load and ROH Load
+# Create summary table
+echo -e "Individual\tSpecies\tTotal_Realized\tIn_ROH" >> GeneticLoad_Moderate_ROH_Table.txt
+
+for ind in SRR17129394 SRR17134085 SRR17134086 SRR17134087 SRR17134088
+do
+  # Correct species assignment
+  if [[ "$ind" == "SRR17129394" || "$ind" == "SRR17134085" || "$ind" == "SRR17134086" ]]; then
+      species="Addra"
+  else
+      species="Mhorr"
+  fi
+
+  # Count realized load and in ROH
+  total=$(wc -l < ${ind}_realized_moderate.bed)
+  inroh=$(wc -l < ${ind}_realized_moderate_inROH.bed)
+
+  # Append to table
+  echo -e "$ind\t$species\t$total\t$inroh" >> GeneticLoad_Moderate_ROH_Table.txt
+done
+
+```
+#### Create a combined summary file.
+```bash
+# Header
+echo -e "Individual\tSpecies\tTotal_Realized\tIn_ROH" > GeneticLoad_Moderate_ROH_Table.txt
+
+# Loop over individuals
+for ind in SRR17129394 SRR17134085 SRR17134086 SRR17134087 SRR17134088
+do
+    # Determine species
+    species="Addra"
+    [[ $ind == SRR17134087 || $ind == SRR17134088 ]] && species="Mhorr"
+
+    # Count total realized load variants
+    total=$(wc -l < ${ind}_realized_moderate.bed)
+    # Count realized load in ROH
+    inroh=$(wc -l < ${ind}_realized_moderate_inROH.bed)
+
+    # Append to table
+    echo -e "$ind\t$species\t$total\t$inroh" >> GeneticLoad_Moderate_ROH_Table.txt
+done
+```
+
+
+
+
+
+#### Now, we will do Gene Ontology analysis for the high impact variants
 - Step 1: Create VCFs per subspecies
 - Suppose your VCF is Dama_gazelle_biallelic_snps_autosomes.vcf and samples are:
 - Addra: SRR17129394, SRR17134085, SRR17134086
@@ -570,6 +699,17 @@ This gives you two clean gene lists ready for GO analysis: Use the name or ID of
 - Do we have enough data in the Dama gazelle project to polarize our variants?
 
 ---------
+
+
+
+
+
+
+
+
+
+
+
 
 
 
