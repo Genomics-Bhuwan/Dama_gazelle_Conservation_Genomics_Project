@@ -10,185 +10,117 @@
 ##### Code
 - Get only autosomes. Remove unaligned scaffolds and cytotypes.
 - Input .vcf
+- The reason I am keeping the window of 50kB is cause the variant size for my samples is too small in large windows.
+- Therefore, I tried with the bare minimum and was able to get it with the code given below.
 
 ```bash
-cd /scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden
+# --- 1. CONFIGURATION ---
+VCF="Dama_gazelle_biallelic_snps_autosomes.vcf"
+WINDOW=50000     
+SAMPLES=("SRR17129394" "SRR17134085" "SRR17134086" "SRR17134087" "SRR17134088")
 
-VCF=Dama_gazelle_biallelic_snps_autosomes.vcf
+echo "Starting Heterozygosity Density Analysis..."
+echo "Input VCF: $VCF"
+echo "Window Size: $WINDOW bp"
 
-for sample in SRR17129394 SRR17134085 SRR17134086 SRR17134087 SRR17134088
+# --- 2. INDIVIDUAL PROCESSING LOOP ---
+for sample in "${SAMPLES[@]}"
 do
+    echo "------------------------------------------"
     echo "Processing $sample ..."
+    
+    # Extract only Heterozygous sites for the specific sample
+    bcftools view -s "$sample" -g het -c1 "$VCF" -Oz -o "${sample}_HET.vcf.gz"
+    
+    # Index the new VCF (required for many downstream tools)
+    bcftools index "${sample}_HET.vcf.gz"
 
-    bcftools view \
-        -s $sample \
-        -g het \
-        -v snps \
-        $VCF \
-        -Oz -o ${sample}_HET.vcf.gz
-
-    bcftools index ${sample}_HET.vcf.gz
+    # Calculate SNP density in windows
+    vcftools --gzvcf "${sample}_HET.vcf.gz" --SNPdensity "$WINDOW" --out "${sample}_density"
 done
 
-###Checking the coutns of the heterozygous SNPs for each sample.
-for s in SRR17129394 SRR17134085 SRR17134086 SRR17134087 SRR17134088
+# --- 3. FINAL VERIFICATION & SUMMARY ---
+echo ""
+echo "--- FINAL VERIFICATION: HETEROZYGOUS SITE COUNTS ---"
+printf "%-15s | %-15s\n" "Sample" "Total Het Sites"
+echo "------------------------------------------"
+
+for s in "${SAMPLES[@]}"
 do
-    echo -n "$s: "
-    bcftools view -H ${s}_HET.vcf.gz | wc -l
+    # Sum the 3rd column of the .snpden file (SNP count per window)
+    COUNT=$(awk 'NR>1 {sum+=$3} END {print sum}' "${s}_density.snpden")
+    printf "%-15s | %-15s\n" "$s" "$COUNT"
 done
 
-###### I want to have the bin size of 1 Mb.
-SNP density window = 1 Mb
-WINDOW=1000000
-
-for sample in SRR17129394 SRR17134085 SRR17134086 SRR17134087 SRR17134088
+# --- 4. DATA AGGREGATION (Optional but recommended) ---
+# Creates a single file with an added column for the Sample ID
+echo "Collating results into 'all_samples_density.txt'..."
+echo -e "CHROM\tBIN_START\tSNP_COUNT\tVAR_PRI_MI\tSAMPLE" > all_samples_density.txt
+for s in "${SAMPLES[@]}"
 do
-    echo "Calculating SNP density for $sample ..."
-
-    vcftools --gzvcf ${sample}_HET.vcf.gz \
-             --SNPdensity $WINDOW \
-             --out ${sample}_density
-
+    awk -v sam="$s" 'NR>1 {print $0 "\t" sam}' "${s}_density.snpden" >> all_samples_density.txt
 done
 
-####Verify per-sample SNP density differs. Previously, all the SNP density plot were same. I want to make it different.
-#### This checks how many windows each sample has:
-
-for s in SRR17129394 SRR17134085 SRR17134086 SRR17134087 SRR17134088
-do
-    echo -n "$s: "
-    awk 'NR>1 {print $4}' ${s}_density.snpden | sort -u | wc -l
-done
-### Combine all samples into one .snpden file.
-echo -e "CHROM\tBIN_START\tBIN_END\tVARIANTS.KB\tIndiv" > combined_snpden.txt
-
-for s in SRR17129394 SRR17134085 SRR17134086 SRR17134087 SRR17134088
-do
-    awk -v name=$s 'NR>1 {print $0"\t"name}' ${s}_density.snpden >> combined_snpden.txt
-done
+echo "Done."
 
 ```
 
 ##### Visualization of SNP density plot using painted chromosomes.
 
 ```bash
+library(ggplot2)
+library(dplyr)
+library(readr)
 
-# -----------------------------
-# 1️⃣ Set working directory
-# -----------------------------
-setwd("F:/Collaborative_Projects/Dama_Gazelle_Project/Heterozygosity/SNPden")  
+# Input file (CSV)
+INPUT_FILE <- "F:/Collaborative_Projects/Dama_Gazelle_Project/Heterozygosity/Heterozygosity.csv"
 
-# -----------------------------
-# 2️⃣ Load packages
-# -----------------------------
-library(tidyverse)
-library(gdata)
+# Read CSV
+data <- read_csv(INPUT_FILE, show_col_types = FALSE)
 
-# -----------------------------
-# 3️⃣ Read input files
-# -----------------------------
-snpden <- read.table("Dama_gazelle_hetsites.snpden", header = FALSE)
-names_vec <- as.character(read.table("Dama_gazelle_IDs.txt")$V1)
-
-# -----------------------------
-# 4️⃣ Prepare data
-# -----------------------------
-colnames(snpden) <- c("CHROM", "BIN_START", "SNP_COUNT", "VARIANTS.KB", "Indiv")
-snpden.master <- snpden
-
-# Keep only chromosomes 1-17
-valid_chroms <- as.character(1:17)
-snpden.master <- snpden.master[snpden.master$CHROM %in% valid_chroms, ]
-snpden.master$CHROM <- factor(snpden.master$CHROM, levels = valid_chroms)
-
-# Convert to numeric
-snpden.master$BIN_START <- as.numeric(as.character(snpden.master$BIN_START))
-snpden.master$VARIANTS.KB <- as.numeric(as.character(snpden.master$VARIANTS.KB))
-
-# -----------------------------
-# 5️⃣ Assign species
-# -----------------------------
-snpden.master$Species <- case_when(
-  snpden.master$Indiv %in% c("SRR17129394", "SRR17134085", "SRR17134086") ~ "Addra",
-  snpden.master$Indiv %in% c("SRR17134087", "SRR17134088") ~ "Mhorr",
-  TRUE ~ "Unknown"
-)
-
-# -----------------------------
-# 6️⃣ Bin SNP densities (7 discrete bins)
-# -----------------------------
-snpden.master$groups <- cut(
-  snpden.master$VARIANTS.KB,
-  breaks = c(0, 0.1, 0.25, 0.5, 1, 2, 3, Inf),
-  include.lowest = TRUE,
-  labels = c("0-0.1","0.1-0.25","0.25-0.5","0.5-1","1-2","2-3","3+")
-)
-
-# Factorize individuals
-snpden.master$Indiv <- factor(snpden.master$Indiv, levels = names_vec)
-
-# -----------------------------
-# 7️⃣ Create plots directory
-# -----------------------------
-if(!dir.exists("plots")) dir.create("plots")
-
-# -----------------------------
-# 8️⃣ Okabe-Ito color palette (7 colors)
-# -----------------------------
-okabe_colors <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442",
-                  "#0072B2", "#D55E00", "#CC79A7")
-
-# -----------------------------
-# 9️⃣ Plot per species with bounding box around the whole plot
-# -----------------------------
-for(spec in unique(snpden.master$Species)) {
-  
-  snpden.spec <- subset(snpden.master, Species == spec)
-  
-  plot_title <- paste0("SNP Density - ", spec, " Gazelle")
-  
-  snpden_plot <- ggplot(snpden.spec, aes(x = BIN_START, y = Indiv)) +
-    geom_tile(aes(fill = groups)) +
-    facet_grid(CHROM ~ ., switch = 'y') +
-    labs(x = 'Chromosome Position (Mb)', y = '', title = plot_title) +
-    scale_fill_manual(values = okabe_colors, name = "Variants/kb") +
-    scale_x_continuous(
-      labels = function(x) paste0(x/1e6, " Mb"),
-      breaks = seq(0, 250000000, 50000000),
-      expand = c(0, 0)
-    ) +
-    theme_minimal() +
-    theme(
-      axis.text.y = element_blank(),
-      axis.ticks.y = element_blank(),
-      axis.text.x = element_text(size = 12, face = "bold", color = "black"),
-      axis.title.x = element_text(size = 14, face = "bold", color = "black"),
-      panel.grid = element_blank(),
-      panel.border = element_rect(color = "black", fill = NA, size = 1),  # bounding box
-      strip.text.y.left = element_text(angle = 0, size = 10, face = "bold"),
-      plot.title = element_text(hjust = 0.5, size = 18, face = "bold"),
-      legend.title = element_text(size = 12, face = "bold"),
-      legend.text = element_text(size = 10)
+# Explicit species mapping
+data <- data %>%
+  mutate(
+    Species = case_when(
+      Sample %in% c("SRR17129394", "SRR17134085", "SRR17134086") ~ "Addra gazelle",
+      Sample %in% c("SRR17134087", "SRR17134088") ~ "Mohrr gazelle",
+      TRUE ~ "Unknown"
     )
-  
-  # -----------------------------
-  # Save plots
-  # -----------------------------
-  ggsave(filename = paste0("plots/", spec, "_combined_okabe_boundingBox.jpeg"),
-         plot = snpden_plot,
-         dpi = 600,
-         units = 'cm',
-         width = 28,
-         height = 18,
-         bg = "white")
-  
-  ggsave(filename = paste0("plots/", spec, "_combined_okabe_boundingBox.pdf"),
-         plot = snpden_plot,
-         device = "pdf",
-         units = 'cm',
-         width = 28,
-         height = 18)
-}
+  )
+
+# Sort by heterozygosity
+data <- data %>% arrange(Heterozygosity)
+
+# Preserve sorted x-axis order
+data$Sample <- factor(data$Sample, levels = data$Sample)
+
+# Plot with species color labels
+plot <- ggplot(data, aes(x = Sample, y = Heterozygosity, color = Species)) +
+  geom_point(size = 3) +
+  theme_bw(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
+    panel.grid.major.x = element_blank()
+  ) +
+  labs(
+    x = "Sample",
+    y = "Genome-wide heterozygosity",
+    title = "Individual Heterozygosity Across Samples"
+  ) +
+  scale_color_manual(
+    values = c(
+      "Addra gazelle" = "skyblue",
+      "Mohrr gazelle" = "orange",
+      "Unknown" = "grey"
+    )
+  )
+
+# Save plot
+ggsave("heterozygosity_plot_labeled.jpeg", plot, width = 12, height = 6, dpi = 300)
+# Save plot as PDF
+ggsave("heterozygosity_plot_labeled.pdf", plot, width = 12, height = 6)
+
+
 ```
 #####################################################################################
 ######################################################################################
