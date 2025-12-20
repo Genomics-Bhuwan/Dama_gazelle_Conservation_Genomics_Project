@@ -500,10 +500,11 @@ do
     echo -e "$ind\t$species\t$total\t$inroh" >> GeneticLoad_ROH_Table.txt
 done
 ```
-----
+###############################################################################################################################
+---
 - Variants for Moderate
-- --
-####  We decided to find out the funcational classification of the hihg impact variants using VEP.
+---
+####  We decided to find out the funcational classification of the Moderate impact variants using VEP.
 - Functional classification of Moderate-impact variants (VEP)
 - Extract functional consequences of Moderate-impact variants
 
@@ -513,17 +514,12 @@ cut -f7 | tr "," "\n" | \
 sort | uniq -c | sort -nr > ModerateImpact_FunctionalClasses.txt
 
 cat ModerateImpact_FunctionalClasses.txt
-```
-- Above result showed:
--  59 stop_gained
-- 6 splice_donor_variant
-- 27 splice_acceptor_variant
-- 12 start_lost
-- 9 stop_lost
-- 2 non_coding_transcript_variant
 
-  #### Next job is to see the chromosomal distribution of Moderate impact variants.
-  - Count HIGH-impact variants per chromosome
+- result showed 3996 missense_variants
+
+```
+#### Next job is to see the chromosomal distribution of Moderate impact variants.
+  - Count moderate-impact variants per chromosome
   - when I did cat on ModerateImpact_PerChromosome.txt, it showed at least all 17 autosomes had moderate impact variants.
 ```bash
 grep "IMPACT=MODERATE" Dama_gazelle_vep_biallelic_snps.txt | \
@@ -551,15 +547,19 @@ done
 - Intersect realized deleterious variants with ROH regions. 
 
 ```bash
-module load bedtools-2.28
-
+# List of individual IDs
 for ind in SRR17129394 SRR17134085 SRR17134086 SRR17134087 SRR17134088
 do
-  bedtools intersect \
-    -a ${ind}_realized_moderate.bed \
-    -b ${ind}.roh.bed \
-    -u > ${ind}_realized_moderate_inROH.bed
+    # 1. Generate per-individual ROH BED file
+    awk -v id=$ind '$2 == id {print $4"\t"$7-1"\t"$8}' Dama_gazelle_ROH.hom > ${ind}.roh.bed
+
+    # 2. Intersect realized moderate variants with ROH regions
+    bedtools intersect \
+        -a ${ind}_realized_moderate.bed \
+        -b ${ind}.roh.bed \
+        -u > ${ind}_realized_moderate_inROH.bed
 done
+
 ```
 #### Let's convert the PLINK ROH(.hom) to BED.
 #### Convert all individuals from .hom to BED format.
@@ -580,49 +580,32 @@ for ind in SRR17129394 SRR17134085 SRR17134086 SRR17134087 SRR17134088; do
 done
 ```
 #### Let us summarize the realized load and ROH LOAD.
-- Let's create a summary Table.
+#### Output file
+---
 ```bash
-Summarize Realized Load and ROH Load
-# Create summary table
-echo -e "Individual\tSpecies\tTotal_Realized\tIn_ROH" >> GeneticLoad_Moderate_ROH_Table.txt
+output="GeneticLoad_Moderate_ROH_Table.txt"
 
-for ind in SRR17129394 SRR17134085 SRR17134086 SRR17134087 SRR17134088
-do
-  # Correct species assignment
-  if [[ "$ind" == "SRR17129394" || "$ind" == "SRR17134085" || "$ind" == "SRR17134086" ]]; then
-      species="Addra"
-  else
-      species="Mhorr"
-  fi
-
-  # Count realized load and in ROH
-  total=$(wc -l < ${ind}_realized_moderate.bed)
-  inroh=$(wc -l < ${ind}_realized_moderate_inROH.bed)
-
-  # Append to table
-  echo -e "$ind\t$species\t$total\t$inroh" >> GeneticLoad_Moderate_ROH_Table.txt
-done
-
-```
-#### Create a combined summary file.
-```bash
-# Header
-echo -e "Individual\tSpecies\tTotal_Realized\tIn_ROH" > GeneticLoad_Moderate_ROH_Table.txt
+# Write header
+echo -e "Individual\tSpecies\tTotal_Realized\tIn_ROH" > $output
 
 # Loop over individuals
 for ind in SRR17129394 SRR17134085 SRR17134086 SRR17134087 SRR17134088
 do
-    # Determine species
+    # Assign species
     species="Addra"
     [[ $ind == SRR17134087 || $ind == SRR17134088 ]] && species="Mhorr"
 
-    # Count total realized load variants
+    # Count total realized moderate variants
     total=$(wc -l < ${ind}_realized_moderate.bed)
-    # Count realized load in ROH
+    # Count variants in ROH
     inroh=$(wc -l < ${ind}_realized_moderate_inROH.bed)
 
-    # Append to table
-    echo -e "$ind\t$species\t$total\t$inroh" >> GeneticLoad_Moderate_ROH_Table.txt
+    # Append to the summary table
+    echo -e "$ind\t$species\t$total\t$inroh" >> $output
+done
+
+echo "Summary table saved as $output"
+$species\t$total\t$inroh" >> GeneticLoad_Moderate_ROH_Table.txt
 done
 ```
 
