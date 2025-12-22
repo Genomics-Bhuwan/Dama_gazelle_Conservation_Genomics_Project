@@ -1,7 +1,3 @@
----
-Assumptions
----
-- I already have one BAM per individual in */shared/jezkovt_bistbs_shared/Guam_Rail/Guam_Rail_Analysis/Final_data_analysis/Alignment_BWAmem/Add_RG/rm_duplicates_BAM/rm_duplicates_BAM/downsampled/PSMC/*.
 ##### Find our the generation time and mutation rate of your species.
 Generation time= 5.85 years (https://onlinelibrary.wiley.com/doi/full/10.1002/ece3.10876)
 We use generation time GEN=5.85 years and mutation rate MU=2.96E-09 per site per year. (science.sciencemag.org/content/364/6446/eaav6202/suppl/DC1).
