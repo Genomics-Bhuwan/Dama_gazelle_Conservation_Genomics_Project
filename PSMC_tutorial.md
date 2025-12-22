@@ -38,10 +38,10 @@ module load bcftools-1.15
 module load samtools-1.22.1
 
 # Reference genome
-REF=Dama_gazelle_hifiasm-ULONT_primary.fasta
+REF=/shared/jezkovt_bistbs_shared/Guam_Rail/Guam_Rail_Analysis/Final_data_analysis/Alignment_BWAmem/Add_RG/rm_duplicates_BAM/rm_duplicates_BAM/downsampled/bHypOws1_hifiasm.bp.p_ctg.fasta
 
 # List of BAM files (in the same order as the array)
-BAMS=(SRR17129394.bam SRR17134085.bam SRR17134086.bam SRR17134087.bam SRR17134088.bam)
+BAMS=(HOW_N23-0063_downsampled.bam HOW_N23-0568_downsampled.bam FMNH390989_downsampled.bam)
 
 # Select BAM based on array index
 BAM=${BAMS[$SLURM_ARRAY_TASK_ID]}
@@ -80,10 +80,10 @@ echo "Consensus FASTQ generated for $SAMPLE"
 #SBATCH --array=0-4  # 5 samples
 
 # Binaries
-PSMC_BIN=/scratch/bistbs/Population_Genomic_Analysis/PSMC/psmc/psmc
-FQ2PSMCFA_BIN=/scratch/bistbs/Population_Genomic_Analysis/PSMC/psmc/utils/fq2psmcfa
-SPLITFA_BIN=/scratch/bistbs/Population_Genomic_Analysis/PSMC/psmc/utils/splitfa
-PSMC_PLOT_BIN=/scratch/bistbs/Population_Genomic_Analysis/PSMC/psmc/utils/psmc_plot.pl
+PSMC_BIN=/shared/jezkovt_bistbs_shared/Guam_Rail/Guam_Rail_Analysis/Final_data_analysis/Alignment_BWAmem/Add_RG/rm_duplicates_BAM/rm_duplicates_BAM/downsampled/psmc/psmc
+FQ2PSMCFA_BIN=/shared/jezkovt_bistbs_shared/Guam_Rail/Guam_Rail_Analysis/Final_data_analysis/Alignment_BWAmem/Add_RG/rm_duplicates_BAM/rm_duplicates_BAM/downsampled/psmc/utils/fq2psmcfa
+SPLITFA_BIN=/shared/jezkovt_bistbs_shared/Guam_Rail/Guam_Rail_Analysis/Final_data_analysis/Alignment_BWAmem/Add_RG/rm_duplicates_BAM/rm_duplicates_BAM/downsampled/psmc/utils/splitfa
+PSMC_PLOT_BIN=/shared/jezkovt_bistbs_shared/Guam_Rail/Guam_Rail_Analysis/Final_data_analysis/Alignment_BWAmem/Add_RG/rm_duplicates_BAM/rm_duplicates_BAM/downsampled/psmc/utils/psmc_plot.pl
 
 # Mutation rate and generation time
 MU=2.96e-09
