@@ -1,3 +1,5 @@
+#### If you want to detect and annotate gene within ROH islands: FOLLOW THIS PAPER:https://link.springer.com/article/10.1186/s12864-025-11616-8
+
 #### Calculate the ROH using Plink
 
 ###### Convert VCF to PLINK binary format (BED/BIM/FAM)
