@@ -31,7 +31,16 @@ plink --bfile /scratch/bistbs/Population_Genomic_Analysis/ROH/Plink/Dama_gazelle
 ##### Working Directory: F:/Collaborative_Projects/Dama_Gazelle_Project/ROH/Plink_Final
 ##### ---------------------------------------
 ```bash
-# Loading the packages
+#######################################################
+#######################################################
+######################################################
+# ----------------------------------------------------
+#  ROH Analysis Script for Dama Gazelle
+# ----------------------------------------------------
+
+# -----------------------------
+# Load required packages
+# -----------------------------
 library(data.table)
 library(dplyr)
 library(ggplot2)
@@ -302,4 +311,104 @@ print(p4)
 
 ggsave("ROH_CDF_plot_species_colors_legend_adjusted_left.jpeg", plot = p4, width = 12, height = 8, dpi = 300)
 ggsave("ROH_CDF_plot_species_colors_legend_adjusted_left.pdf", plot = p4, width = 12, height = 8)
+
+# --------------------------------------------------------------------------------------
+# 5. Calculate NROH, SROH, LROH, and correlation between NROH and SROH
+# --------------------------------------------------------------------------------------
+#######################################################
+# 5. Calculate NROH, SROH, LROH, and Correlation
+#######################################################
+library(dplyr)
+library(ggplot2)
+library(Cairo)
+library(ragg)
+
+# -----------------------------
+# 1. Calculate Summary Statistics
+# -----------------------------
+roh_stats <- roh_segments_3 %>%
+  group_by(IID, Species) %>%
+  summarise(
+    NROH = n(),                  # Number of ROH
+    SROH = sum(ROH_Mb),          # Sum of ROH in Mb
+    LROH = mean(ROH_Mb),         # Mean length of ROH in Mb
+    .groups = "drop"
+  )
+
+# Calculate Pearson Correlation
+cor_result <- cor.test(roh_stats$NROH, roh_stats$SROH, method = "pearson")
+r_val <- round(cor_result$estimate, 3)
+p_val_formatted <- format.pval(cor_result$p.value, digits = 2)
+
+# -----------------------------
+# 2. Define Clean Ultra-Tight Theme
+# -----------------------------
+clean_tight_theme <- theme_classic() +
+  theme(
+    axis.title = element_text(size = 12, face = "bold"),
+    axis.text = element_text(size = 10, color = "black"),
+    legend.position = "none",         # Remove legend entirely
+    plot.title = element_blank(),     # Remove Title area
+    plot.subtitle = element_blank(),
+    plot.margin = margin(t = 5, r = 5, b = 5, l = 5, unit = "pt"),
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.8)
+  )
+
+# -----------------------------
+# 3. Create Plots (Sub-species Labels)
+# -----------------------------
+
+# Plot A: Correlation NROH vs SROH
+p_corr_clean <- ggplot(roh_stats, aes(x = NROH, y = SROH)) +
+  geom_point(aes(color = Species), size = 4) + 
+  geom_smooth(method = "lm", se = FALSE, color = "black", linetype = "dashed", linewidth = 0.5) +
+  labs(x = "NROH", y = "SROH") +
+  annotate("text", x = -Inf, y = Inf, 
+           label = paste0("r = ", r_val, "\np = ", p_val_formatted), 
+           hjust = -0.2, vjust = 1.2, fontface = "bold", size = 4.5) +
+  scale_color_manual(values = subspecies_colors) +
+  clean_tight_theme
+
+# Plot B: NROH Boxplot
+p_nroh <- ggplot(roh_stats, aes(x = Species, y = NROH, fill = Species)) +
+  geom_boxplot(alpha = 0.6, outlier.shape = NA) +
+  geom_jitter(width = 0.1, size = 3) +
+  labs(x = "Sub-species", y = "NROH") +
+  scale_fill_manual(values = subspecies_colors) +
+  clean_tight_theme
+
+# Plot C: SROH Boxplot
+p_sroh <- ggplot(roh_stats, aes(x = Species, y = SROH, fill = Species)) +
+  geom_boxplot(alpha = 0.6, outlier.shape = NA) +
+  geom_jitter(width = 0.1, size = 3) +
+  labs(x = "Sub-species", y = "SROH") +
+  scale_fill_manual(values = subspecies_colors) +
+  clean_tight_theme
+
+# Plot D: LROH Boxplot
+p_lroh <- ggplot(roh_stats, aes(x = Species, y = LROH, fill = Species)) +
+  geom_boxplot(alpha = 0.6, outlier.shape = NA) +
+  geom_jitter(width = 0.1, size = 3) +
+  labs(x = "Sub-species", y = "LROH") +
+  scale_fill_manual(values = subspecies_colors) +
+  clean_tight_theme
+
+# -----------------------------
+# 4. Save Function (PDF + JPEG)
+# -----------------------------
+save_ultra_tight <- function(plot_obj, name, w = 5, h = 4) {
+  # Save PDF using Cairo device
+  ggsave(paste0(name, ".pdf"), plot_obj, width = w, height = h, device = cairo_pdf)
+  
+  # Save JPEG using ragg
+  ragg::agg_jpeg(paste0(name, ".jpeg"), width = w, height = h, units = "in", res = 300)
+  print(plot_obj)
+  invisible(dev.off())
+}
+
+# Execute Saving
+save_ultra_tight(p_corr_clean, "Correlation_NROH_SROH_clean")
+save_ultra_tight(p_nroh, "Boxplot_NROH_clean")
+save_ultra_tight(p_sroh, "Boxplot_SROH_clean")
+save_ultra_tight(p_lroh, "Boxplot_LROH_clean")
 ```
