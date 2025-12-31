@@ -493,6 +493,10 @@ parallel -j 6 "$PSMC -N25 -t15 -r5 -p '4+25*2+4+6' -o $OUTPUT_DIR/{/}.psmc {}" :
 ```
 ### Estimate Divergence time with hPSMC ###
 - This code is for my sample 94 vs 87 which is Addra vs. Mhorr respectively.
+- Remember, this .txt is just a log file not the final output file.
+- Therefore, you need to plot these 20 simulated psmc file vs empirical files.
+- For me its, 94 Addra 1 vs 87 Mhorr 1 and 86 Addra 2 vs 88 Mhorr 2.
+- I have hPSMC.psmc files for both. I will keep all these 20 simulated as well as the rest two .psmc file and run the command below.
 ```bash
 module load python-2.7
 ls /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/psmc_output/hPSMC_sim_*.psmc | \
@@ -500,6 +504,22 @@ python /scratch/bistbs/Population_Genomic_Analysis/hPSMC/hPSMC/compare_sims_to_d
 -i /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/hPSMC.psmc \
 > /scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/psmc_output/hPSMC_sim_result.txt
 
+```
+#### Real plotting of the simulated vs. empirical psmc plots.
+```bash
+/scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/psmc/utils/psmc_plot.pl \
+-u 3e-9 \
+-x 1000 \
+-X 170940 \
+-Y 9000000 \
+-g 5.85 \
+-w 6 \
+-M "94_87,85_88" \
+-p \
+94_85_87_hPSMC_plot.pdf \
+/scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/hPSMC.psmc \
+/scratch/bistbs/Population_Genomic_Analysis/Final_hPSMC/psmc_output/85_88_hPSMC.psmc \
+/scratch/bistbs/Population_Genomic_Analysis/hPSMC/Output_94_87/94_87simulation/ms2psmca/psmc_output/hPSMC_sim_*.psmc
 ```
 
 ##### Do the same as you did for above two samples.
