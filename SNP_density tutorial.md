@@ -167,7 +167,7 @@ awk '{print $0 "\tChr"$0}' whitelist.txt > syn.txt
 16	Chr16
 17	Chr17
 ---
-##### Step 4. Ordering teh list
+##### Step 4. Ordering the list
 - This is a text file listing the scaffold names in the order you want them to be plotted.
 - would be one per line.
 ```bash
@@ -190,20 +190,57 @@ cut -f1,2 /scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Dama
 
 ##### Step 6. Running the MACE from its script.https://github.com/mahajrod/mace
 - Donwload MACE into the respective folder where you want to plot the heterozygosity density plot.
+-  Since, the chromosomes were in the 1 2 3 ..17, therefore, in every file for indiviudal vcf for each sample I am renaming them to chr 1 chr2 and so on for each file such as len.txt, syn.txt, orderlist.txt and so forth.
 
 ```bash
 cd /scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden/MACE/scripts
+conda create -n mace39_py39_clean python=3.9
+conda activate mace39_py39_clean
+conda install pandas matplotlib numpy scipy
+pip install RouToolPa
 ```
--  Run the Python script
+-  Run the Python script for SRR17129394
+-  This will get you png or svg files as your output.
+
 ```bash
-python draw_variant_window_densities.py \
-  -i /scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden/Dama_gazelle_het_snps.vcf.gz \
-  -o /scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden/Dama_gazelle_density \
-  -n /scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden/len.txt \
-  --scaffold_white_list /scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden/whitelist.txt \
-  --scaffold_syn_file /scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden/syn.txt \
-  --scaffold_ordered_list /scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden/orderlist.txt
-
+PYTHONPATH=/scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden/MACE:/scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden/RouToolPa \
+python /scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden/MACE/scripts/draw_variant_window_densities.py \
+  -i /scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden/SRR17129394_HET_chr.vcf.gz \
+  -o /scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden/SRR17129394_density_100kb \
+  -n /scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden/len_chr.txt \
+  --scaffold_white_list /scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden/whitelist_chr.txt \
+  --scaffold_ordered_list /scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden/orderlist_chr.txt \
+  --figure_height_per_scaffold 0.8 \
+  --figure_width 16 \
+  --title "SRR17129394 – Heterozygous SNP density (100 kb sliding windows)" \
+  --output_formats png,svg \
+  --window_size 100000 \
+  --window_step 10000 \
+  --density_multiplier 1000
 
 ```
-- This will get you png or svg files as your output.
+#### I am doing loop for SRR17134085 SRR17134086 SRR17134087 SRR17134088
+
+```bash
+for SAMPLE in SRR17134085 SRR17134086 SRR17134087 SRR17134088
+do
+    echo "Running SNP density for $SAMPLE"
+
+    python MACE/scripts/draw_variant_window_densities.py \
+      -i ${SAMPLE}_HET_chr.vcf.gz \
+      -o ${SAMPLE}_density_100kb \
+      -n len_chr.txt \
+      --scaffold_white_list whitelist_chr.txt \
+      --scaffold_ordered_list orderlist_chr.txt \
+      --figure_height_per_scaffold 0.8 \
+      --figure_width 16 \
+      --title "${SAMPLE} – Heterozygous SNP density (100 kb sliding windows)" \
+      --output_formats png,svg \
+      --window_size 100000 \
+      --window_step 10000 \
+      --density_multiplier 1000
+
+    echo "$SAMPLE DONE"
+    echo "--------------------------------"
+done
+```
