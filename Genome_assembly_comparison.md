@@ -1,4 +1,5 @@
 #### Our project is comparing three reference genome assembly.
+#### Two methods: 1. BUSCO summary statistics and another using 
 - NCBI GCA_019969365.1: https://www.ncbi.nlm.nih.gov/datasets/genome/GCA_019969365.1/ (scaffold level).
 - GCA_917880005.1 https://www.ncbi.nlm.nih.gov/datasets/genome/GCA_917880005.1/ (scaffold level).
 - Telomere 2 Telomere (T2T) reference genome assembly from this project: Dama_gazelle_hifiasm-ULONT_primary.fasta with T2T reference genome assembly.
@@ -49,5 +50,85 @@ mkdir -p "$OUTPUT_DIR"
 "$GENOME2" \
 "$GENOME3" \
 > "$OUTPUT_DIR/all_genomes_stats.txt"
+```
+
+
+
+#### Summary statistics using BUSCO genes
+
+- For GCA_917880005.1
+```bash
+#!/bin/bash -l
+#SBATCH --time=100:00:00
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=20
+#SBATCH --mem=90G
+#SBATCH --partition=batch
+#SBATCH --mail-type=BEGIN,END
+#SBATCH --mail-user=bistbs@miamioh.edu
+#SBATCH --job-name=5_BUSCO_Analysis
+
+
+# Load Java and activate BUSCO environment
+module load java-20
+module load hmmer-3.3.2
+conda activate busco-env
+
+# Make sure BLAST+ and Miniprot are in PATH
+export PATH=/software/blast+/ncbi-blast-2.13.0+/bin:$PATH
+export PATH=/shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/BUSCO/miniprot:$PATH
+export PATH=/shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/BUSCO/bbmap:$PATH
+
+# Set Java heap space for BBTools to 90 GB
+export BBMAP_JAVA_OPTS="-Xmx80g"
+
+# Run BUSCO using localscratch paths
+busco \
+  -i /shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/BUSCO/GCA_917880005.1_ORGONE_02_genomic.fna \
+  -l mammalia_odb10 \
+  -m genome \
+  -o /shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/BUSCO/GCA_917880005.1_Output \
+  -c 20 \
+  --miniprot \
+  -f
+```
+
+- For GCA_019969365.1
+
+```bash
+#!/bin/bash -l
+#SBATCH --time=100:00:00
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=20
+#SBATCH --mem=90G
+#SBATCH --partition=batch
+#SBATCH --mail-type=BEGIN,END
+#SBATCH --mail-user=bistbs@miamioh.edu
+#SBATCH --job-name=65_BUSCO_Analysis
+
+
+# Load Java and activate BUSCO environment
+module load java-20
+module load hmmer-3.3.2
+conda activate busco-env
+
+# Make sure BLAST+ and Miniprot are in PATH
+export PATH=/software/blast+/ncbi-blast-2.13.0+/bin:$PATH
+export PATH=/shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/BUSCO/miniprot:$PATH
+export PATH=/shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/BUSCO/bbmap:$PATH
+
+# Set Java heap space for BBTools to 90 GB
+export BBMAP_JAVA_OPTS="-Xmx80g"
+
+# Run BUSCO using localscratch paths
+busco \
+  -i /shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/BUSCO/GCA_019969365.1_SCBI_Ndam_1.0_genomic.fna \
+  -l mammalia_odb10 \
+  -m genome \
+  -o /shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/BUSCO/GCA_019969365.1_Output \
+  -c 20 \
+  --miniprot \
+  -f
+
 ```
 
