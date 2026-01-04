@@ -84,9 +84,18 @@ find . -mindepth 2 | grep "fasta.gz" | grep -v 'DNA' | grep -v 'additional' | xa
 
 echo -e "accession\taccession.version\ttaxid\tgi" > reference_proteomes.taxid_map
 zcat */*/*.idmapping.gz | grep "NCBI_TaxID" | awk '{print $1 "\t" $1 "\t" $3 "\t" 0}' >> reference_proteomes.taxid_map
+```
+#### Step 4. Install Diamond and run the diamaond database hit
+```bash
+wget http://github.com/bbuchfink/diamond/releases/download/v2.1.17/diamond-linux64.tar.gz
+tar xzf diamond-linux64.tar.gz
 
-diamond makedb -p 16 --in reference_proteomes.fasta.gz --taxonmap reference_proteomes.taxid_map --taxonnodes ../taxdump/nodes.dmp -d reference_proteomes.dmnd
-cd -
+./diamond makedb -p 16 \
+  --in uniprot/reference_proteomes.fasta.gz \
+  --taxonmap uniprot/reference_proteomes.taxid_map \
+  --taxonnodes taxdump/nodes.dmp \
+  -d uniprot/reference_proteomes.dmnd
+
 ```
 
 #### Fetch any BUSCO lineages that you plan to use
