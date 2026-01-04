@@ -95,3 +95,110 @@ mkdir -p busco
 wget -q -O eukaryota_odb10.gz "https://busco-data.ezlab.org/v4/data/lineages/eukaryota_odb10.2020-09-10.tar.gz" \
         && tar xf eukaryota_odb10.gz -C busco
 ```
+
+##################################################################################################################################
+##################################################################################################################################
+##################################################################################################################################
+####################### Final run with Bloobtools2 ################################################################################
+###################################################################################################################################
+
+#### STEP 1. Create BlobDir (correct for unpublished T2T genome)
+```bash
+blobtools create \
+  --fasta Dama_gazelle_hifiasm-ULONT_primary.fasta \
+  --taxdump taxdump \
+  --taxid 59553 \
+  BlobDir
+```
+
+#### STEP 2. Add taxonomic hits (MOST IMPORTANT STEP)
+- For UL-ONT assemblies, DIAMOND blastx is strongly recommended.
+```bash
+diamond blastx \
+  -d uniprot/reference_proteomes.dmnd \
+  -q Dama_gazelle_hifiasm-ULONT_primary.fasta \
+  -o diamond.out \
+  -f 6 qseqid staxids bitscore evalue \
+  --max-target-seqs 1 \
+  --evalue 1e-25 \
+  -p 32
+```
+
+- Then add hits:
+```bash
+blobtools add \
+  --hits diamond.out \
+  --taxdump taxdump \
+  BlobDir
+```
+#### STEP 3. Add taxonomic hits (MOST IMPORTANT STEP)
+- For mammalian T2T assemblies, bacterial contaminants will be very obvious here.
+
+- Add BUSCO (optional but recommended)
+- Even for T2T, BUSCO is useful for sanity checking.
+```bash
+blobtools add \
+  --busco BUSCO_output/*/full_table.tsv \
+  BlobDir
+```
+
+#### STEP 4. Coverage: what to do for UL-ONT ?
+#### Option A — Skip coverage (acceptable for T2T)
+- If: You only have UL-ONT reads; Assembly is already manually curated
+- You may skip this step.
+- BlobTools plots will still work (GC vs length).
+
+#### Option B — Add UL-ONT coverage (recommended if you have reads)
+```bash
+minimap2 -ax map-ont \
+  -t 32 \
+  Dama_gazelle_hifiasm-ULONT_primary.fasta \
+  ultralong_ONT_reads.fastq.gz \
+| samtools sort -@16 -O BAM -o assembly.ont.bam -
+
+samtools index assembly.ont.bam
+```
+
+- Then:
+```bash
+blobtools add \
+  --cov assembly.ont.bam \
+  BlobDir
+```
+- Expect very high, uneven coverage — this is normal for UL-ONT.
+
+#### STEP 5. Launch the viewer
+```bash
+blobtools host BlobDir
+```
+
+#### Open the URL in your browser (via SSH tunnel if on HPC).
+- What contamination looks like in T2T UL-ONT assemblies?
+- Typical findings:
+- Bacterial contigs: very short, extreme GC, bacterial taxonomy
+- Mitochondrial genome: small (~16–17 kb), very high coverage
+
+
+#### STEP 6. Filtering (example)
+- Remove non-Chordata contigs:
+```bash
+blobtools filter \
+  --param taxon--phylum=Chordata \
+  --output BlobDir_chordata_only \
+  BlobDir
+```
+
+- Remove tiny contigs:
+```bash
+blobtools filter \
+  --param length--Min=50000 \
+  --output BlobDir_len_gt_50kb \
+  BlobDir
+```
+- Recommended final output for a T2T genome
+
+- One contig per chromosome
+
+- One mitochondrial contig
+
+- Zero bacterial/fungal contigs
