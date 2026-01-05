@@ -120,7 +120,7 @@ blobtools create \
   BlobDir
 ```
 
-#### STEP 2. Add taxonomic hits (MOST IMPORTANT STEP)
+#### STEP 2.  A. Add taxonomic hits (MOST IMPORTANT STEP)
 - For UL-ONT assemblies, DIAMOND blastx is strongly recommended.
 ```bash
 diamond blastx \
@@ -139,6 +139,28 @@ blobtools add \
   --hits diamond.out \
   --taxdump taxdump \
   BlobDir
+```
+
+#### Step 2. B Run with nt for the database
+```bash
+#!/bin/bash -l
+#SBATCH --time=100:00:00
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=20
+#SBATCH --partition=batch
+#SBATCH --mail-type=BEGIN,END
+#SBATCH --mail-user=bistbs@miamioh.edu
+#SBATCH --job-name=blastDb
+
+
+blastn -db /shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/snailplot/nt/nt \
+-query /shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/snailplot/Dama_gazelle_hifiasm-ULONT_primary.fasta \
+-outfmt "6 qseqid staxids bitscore std" \
+-max_target_seqs 20 -max_hsps 1 -evalue 1e-20 \
+-num_threads 20 \
+-mt_mode 1 \
+-out /shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/snailplot/Dama_gazelle_blast.out
+
 ```
 #### STEP 3. Add taxonomic hits (MOST IMPORTANT STEP)
 - For mammalian T2T assemblies, bacterial contaminants will be very obvious here.
