@@ -97,7 +97,15 @@ tar xzf diamond-linux64.tar.gz
   -d uniprot/reference_proteomes.dmnd
 
 ```
-
+```bash
+./diamond blastx -p 24 \
+-d uniprot/reference_proteomes.dmnd \
+-q Dama_gazelle_hifiasm-ULONT_primary.fasta \
+-o dama_gazelle.blastx.tab \
+-f 6 qseqid staxids bitscore evalue \
+--max-target-seqs 1 \
+--evalue 1e-25
+```
 #### Fetch any BUSCO lineages that you plan to use
 ```bash
 mkdir -p busco
@@ -123,14 +131,13 @@ blobtools create \
 #### STEP 2.  A. Add taxonomic hits (MOST IMPORTANT STEP)
 - For UL-ONT assemblies, DIAMOND blastx is strongly recommended.
 ```bash
-diamond blastx \
+./diamond blastx -p 24 -b 0.4 --masking 0 --very-sensitive \
   -d uniprot/reference_proteomes.dmnd \
   -q Dama_gazelle_hifiasm-ULONT_primary.fasta \
-  -o diamond.out \
+  -o dama_gazelle.blastx.tab \
   -f 6 qseqid staxids bitscore evalue \
   --max-target-seqs 1 \
-  --evalue 1e-25 \
-  -p 32
+  --evalue 1e-25
 ```
 
 - Then add hits:
