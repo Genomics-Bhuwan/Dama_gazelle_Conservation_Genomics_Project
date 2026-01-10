@@ -36,25 +36,45 @@ apptainer exec -B /shared:/shared blobtoolkit_latest.sif blobtools create \
 mkdir -p images
 
 # 2. Run the command pointing --out to that folder
-apptainer exec blobtoolkit_latest.sif blobtools view \
-    --plot \
-    --view snail \
-    --out images \
-    Dama_Hifiasm_Dir
+apptainer exec blobtoolkit_latest.sif blobtools add \
+  --busco /shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Assemlby_Statistics/SNAILPLOT/T2TBUSCO_output/run_mammalia_odb10/full_table.tsv \
+  /shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Assemlby_Statistics/SNAILPLOT/Dama_Hifiasm_Dir
+
 ```
 - Generate PNG for SCBI
 ```
 # Generate PNG for SCBI Reference
-apptainer exec blobtoolkit_latest.sif blobtools view \
+```bash
+apptainer exec /shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Assemlby_Statistics/SNAILPLOT/blobtoolkit_latest.sif \
+  blobtools view \
     --plot \
     --view snail \
-    --out images \
-    SCBI_Ndam_Dir
-
+    --driver chromium \
+    --out /shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Assemlby_Statistics/SNAILPLOT/images \
+    /shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Assemlby_Statistics/SNAILPLOT/SCBI_Ndam_Dir
+```
 # Generate PNG for ORGONE Reference
-apptainer exec blobtoolkit_latest.sif blobtools view \
+
+```bash
+Add BUSCO data to ORGONE
+Run this to link the BUSCO results to the ORGONE dataset:
+
+Bash
+
+apptainer exec /shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Assemlby_Statistics/SNAILPLOT/blobtoolkit_latest.sif \
+  blobtools add \
+    --busco /shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Assemlby_Statistics/SNAILPLOT/GCA_917880005.1/full_table.tsv \
+    /shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Assemlby_Statistics/SNAILPLOT/ORGONE_Dir
+2. Generate the Snail Plot PNG
+Run this to render the final image using the Chromium driver:
+
+Bash
+
+apptainer exec /shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Assemlby_Statistics/SNAILPLOT/blobtoolkit_latest.sif \
+  blobtools view \
     --plot \
     --view snail \
-    --out images \
-    ORGONE_Dir
+    --driver chromium \
+    --out /shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Assemlby_Statistics/SNAILPLOT/images \
+    /shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Assemlby_Statistics/SNAILPLOT/ORGONE_Dir
 ```
