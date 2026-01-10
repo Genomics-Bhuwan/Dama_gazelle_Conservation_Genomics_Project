@@ -1,254 +1,60 @@
-#### I am using Blobtools 2 to assess the reference genome assemly quality as well as detect the contaminant in the reference genome assembly. 
----
-This is what is to be done ultimately.
-    # 1. Create a new BlobDir from a FASTA file:
-    blobtools create --fasta examples/assembly.fasta BlobDir
+#### There are many method to make the SNAILPLOT.
+- I am using https://github.com/hanwnetao/snailplot-assembly-stats
 
-    # 2. Create a new BlobDir from a BlobDB:
-    blobtools create --blobdb examples/blobDB.json BlobDir
-
-    # 3. Add Coverage data from a BAM file:
-    blobtools add --cov examples/assembly.reads.bam BlobDir
-
-    # 4. Assign taxonomy from BLAST hits:
-    blobtools add add --hits examples/blast.out --taxdump ../taxdump BlobDir
-
-    # 5. Add BUSCO results:
-    blobtools add --busco examples/busco.tsv BlobDir
-
-    # 6. Host an interactive viewer:
-    blobtools host BlobDir
-
-    # 7. Filter a BlobDir:
-    blobtools filter --param length--Min=5000 --output BlobDir_len_gt_5000 BlobDir
-
----
-
-
-
-#### Step 1. Installation
-- https://blobtoolkit.genomehubs.org/install/
-
-#### Create conda environment and also install python 3.9
+#### Change the directory to assemlby-stats, use the perl secript to convert fasta into JSON for both assemlby as given below.
+#### Installation of the repository.
 ```bash
-  conda create -y -n btk -c conda-forge python=3.9
-conda activate btk
-```
-#### Install blobtoolkit:
-```bash
-pip install "blobtoolkit[full]"
+cd /shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Assemlby_Statistics/SNAILPLOT
 
- blobtools -h  ## used to see parameters
-```
-#### Database
-- Local copy of the NCBI taxdump newere format
-- Copies of NCBI nucleotide(nt)
-- Uniprot database
-- aLL of these can be fetched automatically when running the BlobToolkit pipeline.
-- Alternatively use the commands below to fetch copies for standalone use.
-
-#### 1. Fetch the NCBI Taxdump
-```bash
-mkdir -p taxdump;
-cd taxdump;
-curl -L ftp://ftp.ncbi.nih.gov/pub/taxonomy/new_taxdump/new_taxdump.tar.gz | tar xzf -;
-cd ..;
+#### Install the blobtoolkit using apptainer or singularity.
+apptainer pull docker://genomehubs/blobtoolkit:latest
 ```
 
-#### 2. Fetch the nt database
+#### These will run blobtool snail analysis for producing the SNAILPLOT.
 ```bash
-mkdir -p nt
-cd nt
-wget -r -nd -np -A "nt.*.tar.gz" ftp://ftp.ncbi.nlm.nih.gov/blast/db/
+# Process Hifiasm
+apptainer exec -B /shared:/shared blobtoolkit_latest.sif blobtools create \
+     --fasta Dama_gazelle_hifiasm-ULONT_primary.fasta \
+     Dama_Hifiasm_Dir
 
-for f in nt.*.tar.gz; do
-    tar -xvf "$f"
-    rm "$f"
-done
+# Process SCBI Reference
+apptainer exec -B /shared:/shared blobtoolkit_latest.sif blobtools create \
+     --fasta GCA_019969365.1_SCBI_Ndam_1.0_genomic.fna \
+     SCBI_Ndam_Dir
 
+# Process ORGONE Reference
+apptainer exec -B /shared:/shared blobtoolkit_latest.sif blobtools create \
+     --fasta GCA_917880005.1_ORGONE_02_genomic.fna \
+     ORGONE_Dir
 ```
 
-#### 3. Fetch and format the UniProt database
-- Formatting the UniProt database requires the NCBI taxdump to be downloaded and uncompressed in a sister directory, as described in step 2 above.
-```bash
-mkdir -p uniprot
-wget -q -O uniprot/reference_proteomes.tar.gz \
- ftp.ebi.ac.uk/pub/databases/uniprot/current_release/knowledgebase/reference_proteomes/$(curl \
-     -vs ftp.ebi.ac.uk/pub/databases/uniprot/current_release/knowledgebase/reference_proteomes/ 2>&1 | \
-     awk '/tar.gz/ {print $9}')
-cd uniprot
-tar xf reference_proteomes.tar.gz
 
-touch reference_proteomes.fasta.gz
-find . -mindepth 2 | grep "fasta.gz" | grep -v 'DNA' | grep -v 'additional' | xargs cat >> reference_proteomes.fasta.gz
+#### Visualize the plot for all the three reference genome assmlby.
+- Generate PNG for Hifiasm
+  ```bash
+# 1. Create an images folder to keep things clean
+mkdir -p images
 
-echo -e "accession\taccession.version\ttaxid\tgi" > reference_proteomes.taxid_map
-zcat */*/*.idmapping.gz | grep "NCBI_TaxID" | awk '{print $1 "\t" $1 "\t" $3 "\t" 0}' >> reference_proteomes.taxid_map
+# 2. Run the command pointing --out to that folder
+apptainer exec blobtoolkit_latest.sif blobtools view \
+    --plot \
+    --view snail \
+    --out images \
+    Dama_Hifiasm_Dir
 ```
-#### Step 4. Install Diamond and run the diamaond database hit
-```bash
-wget http://github.com/bbuchfink/diamond/releases/download/v2.1.17/diamond-linux64.tar.gz
-tar xzf diamond-linux64.tar.gz
-
-./diamond makedb -p 16 \
-  --in uniprot/reference_proteomes.fasta.gz \
-  --taxonmap uniprot/reference_proteomes.taxid_map \
-  --taxonnodes taxdump/nodes.dmp \
-  -d uniprot/reference_proteomes.dmnd
-
+- Generate PNG for SCBI
 ```
-```bash
-#!/bin/bash
-#SBATCH --job-name=D_Snailplot
-#SBATCH --output=Snailplot_Dama.out
-#SBATCH --error=Snailplot_Dama.err
-#SBATCH --cpus-per-task=16
-#SBATCH --mem=80G
-#SBATCH --time=150:00:00
+# Generate PNG for SCBI Reference
+apptainer exec blobtoolkit_latest.sif blobtools view \
+    --plot \
+    --view snail \
+    --out images \
+    SCBI_Ndam_Dir
 
-/shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/snailplot/diamond blastx \
-  -p 16 \
-  --masking 0 \
-  --very-sensitive \
-  -d /shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/snailplot/uniprot/reference_proteomes.dmnd \
-  -q /shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/snailplot/Dama_gazelle_hifiasm-ULONT_primary.fasta \
-  -o Dama_gazelle.blastx.tab \
-  -f 6 qseqid staxids bitscore evalue \
-  --max-target-seqs 1 \
-  --evalue 1e-25
-
+# Generate PNG for ORGONE Reference
+apptainer exec blobtoolkit_latest.sif blobtools view \
+    --plot \
+    --view snail \
+    --out images \
+    ORGONE_Dir
 ```
-#### Fetch any BUSCO lineages that you plan to use
-```bash
-mkdir -p busco
-wget -q -O eukaryota_odb10.gz "https://busco-data.ezlab.org/v4/data/lineages/eukaryota_odb10.2020-09-10.tar.gz" \
-        && tar xf eukaryota_odb10.gz -C busco
-```
-
-##################################################################################################################################
-##################################################################################################################################
-##################################################################################################################################
-####################### Final run with Bloobtools2 ################################################################################
-###################################################################################################################################
-
-#### STEP 1. Create BlobDir (correct for unpublished T2T genome)
-```bash
-blobtools create \
-  --fasta Dama_gazelle_hifiasm-ULONT_primary.fasta \
-  --taxdump taxdump \
-  --taxid 59553 \
-  BlobDir
-```
-
-#### STEP 2.  A. Add taxonomic hits (MOST IMPORTANT STEP)
-- For UL-ONT assemblies, DIAMOND blastx is strongly recommended.
-```bash
-./diamond blastx -p 24 -b 0.4 --masking 0 --very-sensitive \
-  -d uniprot/reference_proteomes.dmnd \
-  -q Dama_gazelle_hifiasm-ULONT_primary.fasta \
-  -o dama_gazelle.blastx.tab \
-  -f 6 qseqid staxids bitscore evalue \
-  --max-target-seqs 1 \
-  --evalue 1e-25
-```
-
-- Then add hits:
-```bash
-blobtools add \
-  --hits diamond.out \
-  --taxdump taxdump \
-  BlobDir
-```
-
-#### Step 2. B Run with nt for the database
-```bash
-#!/bin/bash -l
-#SBATCH --time=100:00:00
-#SBATCH --nodes=1
-#SBATCH --ntasks-per-node=20
-#SBATCH --partition=batch
-#SBATCH --mail-type=BEGIN,END
-#SBATCH --mail-user=bistbs@miamioh.edu
-#SBATCH --job-name=blastDb
-
-
-blastn -db /shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/snailplot/nt/nt \
--query /shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/snailplot/Dama_gazelle_hifiasm-ULONT_primary.fasta \
--outfmt "6 qseqid staxids bitscore std" \
--max_target_seqs 20 -max_hsps 1 -evalue 1e-20 \
--num_threads 20 \
--mt_mode 1 \
--out /shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/snailplot/Dama_gazelle_blast.out
-
-```
-#### STEP 3. Add taxonomic hits (MOST IMPORTANT STEP)
-- For mammalian T2T assemblies, bacterial contaminants will be very obvious here.
-
-- Add BUSCO (optional but recommended)
-- Even for T2T, BUSCO is useful for sanity checking.
-```bash
-blobtools add \
-  --busco BUSCO_output/*/full_table.tsv \
-  BlobDir
-```
-
-#### STEP 4. Coverage: what to do for UL-ONT ?
-#### Option A — Skip coverage (acceptable for T2T)
-- If: You only have UL-ONT reads; Assembly is already manually curated
-- You may skip this step.
-- BlobTools plots will still work (GC vs length).
-
-#### Option B — Add UL-ONT coverage (recommended if you have reads)
-```bash
-minimap2 -ax map-ont \
-  -t 32 \
-  Dama_gazelle_hifiasm-ULONT_primary.fasta \
-  ultralong_ONT_reads.fastq.gz \
-| samtools sort -@16 -O BAM -o assembly.ont.bam -
-
-samtools index assembly.ont.bam
-```
-
-- Then:
-```bash
-blobtools add \
-  --cov assembly.ont.bam \
-  BlobDir
-```
-- Expect very high, uneven coverage — this is normal for UL-ONT.
-
-#### STEP 5. Launch the viewer
-```bash
-blobtools host BlobDir
-```
-
-#### Open the URL in your browser (via SSH tunnel if on HPC).
-- What contamination looks like in T2T UL-ONT assemblies?
-- Typical findings:
-- Bacterial contigs: very short, extreme GC, bacterial taxonomy
-- Mitochondrial genome: small (~16–17 kb), very high coverage
-
-
-#### STEP 6. Filtering (example)
-- Remove non-Chordata contigs:
-```bash
-blobtools filter \
-  --param taxon--phylum=Chordata \
-  --output BlobDir_chordata_only \
-  BlobDir
-```
-
-- Remove tiny contigs:
-```bash
-blobtools filter \
-  --param length--Min=50000 \
-  --output BlobDir_len_gt_50kb \
-  BlobDir
-```
-- Recommended final output for a T2T genome
-
-- One contig per chromosome
-
-- One mitochondrial contig
-
-- Zero bacterial/fungal contigs
