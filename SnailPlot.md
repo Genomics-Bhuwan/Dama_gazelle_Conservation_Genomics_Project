@@ -98,13 +98,25 @@ tar xzf diamond-linux64.tar.gz
 
 ```
 ```bash
-./diamond blastx -p 24 \
--d uniprot/reference_proteomes.dmnd \
--q Dama_gazelle_hifiasm-ULONT_primary.fasta \
--o dama_gazelle.blastx.tab \
--f 6 qseqid staxids bitscore evalue \
---max-target-seqs 1 \
---evalue 1e-25
+#!/bin/bash
+#SBATCH --job-name=D_Snailplot
+#SBATCH --output=Snailplot_Dama.out
+#SBATCH --error=Snailplot_Dama.err
+#SBATCH --cpus-per-task=16
+#SBATCH --mem=80G
+#SBATCH --time=150:00:00
+
+/shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/snailplot/diamond blastx \
+  -p 16 \
+  --masking 0 \
+  --very-sensitive \
+  -d /shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/snailplot/uniprot/reference_proteomes.dmnd \
+  -q /shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/snailplot/Dama_gazelle_hifiasm-ULONT_primary.fasta \
+  -o Dama_gazelle.blastx.tab \
+  -f 6 qseqid staxids bitscore evalue \
+  --max-target-seqs 1 \
+  --evalue 1e-25
+
 ```
 #### Fetch any BUSCO lineages that you plan to use
 ```bash
