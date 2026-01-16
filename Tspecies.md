@@ -43,16 +43,21 @@ orthofinder -f of_input/ -t 24
 #### Step 6. A. Alignment using MAFFT
 ```bash
 # 1. Create the specific output directory
-mkdir -p /shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Ks_calculation/of_input/OrthoFinder/mafftalignment
+# Define the output directory
+OUT_DIR="/shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Ks_calculation/new_try/MAFFT_New_Final_try"
 
-# 2. Run the alignment loop
-for f in /shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Ks_calculation/of_input/OrthoFinder/Results_Jan16/Single_Copy_Orthologue_Sequences/*.fa; do
-    OG_ID=$(basename $f .fa)
-    echo "Aligning $OG_ID..."
-    
-    # Run mafft and save directly to your requested folder
-    mafft --auto --quiet "$f" > "/shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Ks_calculation/of_input/OrthoFinder/mafftalignment/${OG_ID}.aln"
+# Create the directory if it doesn't exist
+mkdir -p $OUT_DIR
+
+# Loop through all orthogroup fasta files and align them
+for f in *.fa; do
+    echo "Aligning $f..."
+    # --auto: automatically selects strategy (FFT-NS-1, FFT-NS-2, etc.)
+    # --quiet: suppresses progress output for a cleaner terminal
+    mafft --auto --quiet "$f" > "${OUT_DIR}/${f%.fa}.aln"
 done
+
+echo "Done! All alignments are in $OUT_DIR"
 ```
 #### Step 6.B. Match the protein IDs with the DNA pairs
 ```bash
