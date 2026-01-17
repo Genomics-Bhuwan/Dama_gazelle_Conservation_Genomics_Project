@@ -13,21 +13,22 @@
 ##### Method A. Average heterozygosity
 
 ```bash
-#Replace these with the actual file names
-VCF_FILE="/scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/Dama_gazelle_biallelic_snps_autosomes.vcf"
+# Define paths
+VCF_FILE="/scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/Dama_gazelle_FINAL_FOR_ANALYSIS.vcf"
 OUTPUT_FILE="Dama_heterozygosity_v5.tsv"
 GENOME_LENGTH=3108406478
 
-SAMPLES=$(bcftools query -l $VCF_FILE)
+echo "Processing $VCF_FILE..."
+
+# 1. Run bcftools stats to get counts for all samples at once
+# 2. Extract the PSC (Per-Sample Counts) lines
+# Column 3 is the Sample ID, Column 5 is the number of heterozygous genotypes (nHets)
 
 echo -e "Sample\tHeterozygous_sites\tHeterozygosity" > $OUTPUT_FILE
 
-for SAMPLE in $SAMPLES; do
-  HETEROZYGOUS=$(bcftools query -s $SAMPLE -f '[%GT\n]' $VCF_FILE | grep -F "0/1" | wc -l)
-  HETEROZYGOSITY=$(echo "scale=7; $HETEROZYGOUS / $GENOME_LENGTH" | bc)
-  echo -e "$SAMPLE\t$HETEROZYGOUS\t$HETEROZYGOSITY" >> $OUTPUT_FILE
-done
+bcftools stats $VCF_FILE | grep "^PSC" | awk -v len=$GENOME_LENGTH 'BEGIN{OFS="\t"} {print $3, $5, $5/len}' >> $OUTPUT_FILE
 
+echo "Done! Results saved to $OUTPUT_FILE"
 
 ```
 ##### Method A. Visualization for the Heterozygosity.
