@@ -166,13 +166,7 @@ FILTERED_VCF=/scratch/bistbs/GATK_Variant_Calling/Combined_GVCF/Genotyped_VCF/al
 gatk VariantFiltration \
    -V $RAW_VCF \
    
-   # -------------------------------
-   # Filter sites with extremely high depth
-   # DP < 1800: remove sites where coverage is unusually high
-   # High depth can indicate collapsed repeats or duplicated regions
-   # -------------------------------
-   -filter "DP < 1800" --filter-name "DP1800" \
-   
+  
    # -------------------------------
    # Strand bias filters
    # FS > 60.0: Fisher Strand test; removes sites with strong strand bias
