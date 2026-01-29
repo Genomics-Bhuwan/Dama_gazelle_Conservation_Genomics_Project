@@ -1,16 +1,8 @@
 #### Fst calculation
+#### Use biallelic SNPs
+#### Look into the filteration step in GATK tutorial of this project. Get the input file from there and run the code below for Fst
 
-#### Filtration before final Fst calculation.
-```bash
-vcftools --vcf /scratch/bistbs/Population_Genomic_Analysis/Fst/Dama_gazelle_biallelic_snps_autosomes.vcf \
-  --max-missing 0.9 \
-  --minQ 30 \
-  --minDP 5 \
-  --recode --stdout \
-  | bcftools view -Oz -o /scratch/bistbs/Population_Genomic_Analysis/Fst/filtered_for_fst.vcf.gz
-```
----
--------------------------------------------------------------
+--------------------------------
 Windowed FST (Weir & Cockerham) – Explanation
 -------------------------------------------------------------
 - FST can be calculated per SNP (per-site FST), but individual SNP
@@ -51,11 +43,12 @@ Windowed FST (Weir & Cockerham) – Explanation
 
 #### Fst calculation using Weir and Cockerham calculation.
 ```bash
-vcftools --gzvcf /scratch/bistbs/Population_Genomic_Analysis/Fst/filtered_for_fst.vcf.gz \
+vcftools --gzvcf /scratch/bistbs/Population_Genomic_Analysis/Fst/Dama_Gazelle_Autosomes_Only.vcf.gz \
   --weir-fst-pop /scratch/bistbs/Population_Genomic_Analysis/Fst/popA.txt \
   --weir-fst-pop /scratch/bistbs/Population_Genomic_Analysis/Fst/popB.txt \
   --fst-window-size 50000 \
   --fst-window-step 10000 \
-  --out /scratch/bistbs/Population_Genomic_Analysis/Fst/Dama_Addra_vs_Mohrr_windowed_50kb_step10kb
+  --out /scratch/bistbs/Population_Genomic_Analysis/Fst/Dama_Addra_vs_Mhorr_windowed_50kb_step10kb
+
 ```
 
