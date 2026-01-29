@@ -129,7 +129,7 @@ grep "CV error" log*.out | awk '{print $3, $4, $5}' | sed -e 's/(//;s/)//;s/://;
 - run PCA with PLINK (var-wts gives weighted PCA like SmartPCA)
 - add --allow-extra-chr because you have nonstandard chromosome names
 ```bash
-VCF=/scratch/bistbs/Population_Genomic_Analysis/PCA/Dama_gazelle_biallelic_snps_autosomes.vcf
+VCF=/scratch/bistbs/Population_Genomic_Analysis/PCA/Dama_Gazelle_biallelic_Autosomes_Only_withID.vcf
 OUT=Dama_gazelle_LDprune
 
 plink --vcf $VCF \
@@ -139,7 +139,7 @@ plink --vcf $VCF \
       --allow-extra-chr
 ```
 
-VCF=/scratch/bistbs/Population_Genomic_Analysis/PCA/Dama_gazelle_biallelic_snps_autosomes.vcf
+VCF=/scratch/bistbs/Population_Genomic_Analysis/PCA/Dama_Gazelle_biallelic_Autosomes_Only_withID.vcf
 OUT=Dama_gazelle_LDprune
 FINAL=Dama_gazelle_LDpruned
 
@@ -171,7 +171,8 @@ plink --bfile Dama_gazelle_LDpruned \
 install.packages("ggplot2")
 install.packages("ggrepel")
 
-# Load libraries
+#######################
+# Load required packages
 library(ggplot2)
 library(ggrepel)
 
@@ -179,61 +180,68 @@ library(ggrepel)
 setwd("F:/Collaborative_Projects/Dama_Gazelle_Project/PCA")
 
 # ---- READ DATA ----
-dat <- read.csv("Dama_gazelle_PCA.csv", header = TRUE)
+dat <- read.csv("Dama_gazelle_PCA.csv", header = TRUE, stringsAsFactors = FALSE)
+dat <- dat[!is.na(dat$Sample) & dat$Sample != "", ]  # remove blank rows
+
+# ---- DEFINE SHAPE BY SUB-SPECIES ----
+dat$Shape <- ifelse(dat$Sub.species == "Addra", 17, 16)  # Triangle for Addra, Circle for Mhorr
 
 # ---- PCA SCATTER PLOT ----
-p <- ggplot(dat, aes(x = PC1, y = PC2, color = Sample, label = Sample)) +
-  geom_point(size = 3) +
+p <- ggplot(dat, aes(x = PC1, y = PC2, color = Sub.species, shape = Sub.species, label = Sample)) +
+  geom_point(size = 4) +
   geom_text_repel(show.legend = FALSE) +
   theme_classic() +
-  labs(
-    title = "PCA Plot of Dama Gazelle",
-    x = "Principal Component 1",
-    y = "Principal Component 2"
-  ) +
   theme(
-    plot.title = element_text(hjust = 0.5, face = "bold"),
-    legend.position = "right"
-  )
+    legend.position = c(0.05, 0.05),           # bottom-left inside bounding box
+    legend.justification = c(0, 0),
+    legend.background = element_rect(fill = "white", color = "black"), # bounding box for legend
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 10),
+    panel.border = element_rect(color = "black", fill = NA, size = 1) # bounding box around plot
+  ) +
+  scale_shape_manual(values = c("Addra" = 17, "Mhorr" = 16)) +
+  scale_color_manual(values = c("Addra" = "skyblue", "Mhorr" = "orange")) +
+  scale_y_continuous(
+    breaks = seq(floor(min(dat$PC2, na.rm = TRUE)),
+                 ceiling(max(dat$PC2, na.rm = TRUE)),
+                 by = 0.2)
+  ) +
+  labs(x = "Principal Component 1", y = "Principal Component 2")  # no title
 
-# Display PCA scatter plot
+# ---- DISPLAY PCA ----
 print(p)
 
 # ---- SAVE PCA PLOT ----
 ggsave("Dama_gazelle_PCA_plot_300dpi.jpeg", p, width = 7, height = 5, dpi = 300)
-ggsave("Dama_gazelle_PCA_plot_600dpi.jpeg", p, width = 7, height = 5, dpi = 600)
 ggsave("Dama_gazelle_PCA_plot_300dpi.tiff", p, width = 7, height = 5, dpi = 300, compression = "lzw")
-ggsave("Dama_gazelle_PCA_plot_600dpi.tiff", p, width = 7, height = 5, dpi = 600, compression = "lzw")
 ggsave("Dama_gazelle_PCA_plot.pdf", p, width = 7, height = 5)
 
-# ---- EIGENVALUE BARPLOT ----
-Eigenvalues <- c(2.32759, 1.22138, 0.959168, 0.351876, -0.00225006)
+# ---- EIGENVALUE (SCREE) PLOT ----
+Eigenvalues <- c(2.09174, 1.22882, 1.06451, 0.55648, -0.00925265)
 bar_data <- data.frame(
-  PC = paste0("PC", 1:length(Eigenvalues)),
+  PC = factor(paste0("PC", 1:length(Eigenvalues)), levels = paste0("PC", 1:length(Eigenvalues))),
   Eigenvalue = Eigenvalues
 )
 
 bp <- ggplot(bar_data, aes(x = PC, y = Eigenvalue)) +
   geom_bar(stat = "identity", fill = "skyblue") +
   theme_classic() +
-  labs(
-    title = "Scree Plot of Eigenvalues",
-    x = "Principal Components",
-    y = "Eigenvalues"
+  theme(
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 10),
+    panel.border = element_rect(color = "black", fill = NA, size = 1) # bounding box around plot
   ) +
-  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+  labs(x = "Principal Components", y = "Eigenvalues")  # no title
 
-# Display Scree (Eigenvalue) plot
+# ---- DISPLAY SCREE ----
 print(bp)
 
-# ---- SAVE EIGENVALUE PLOT ----
+# ---- SAVE SCREE PLOT ----
 ggsave("Dama_gazelle_Eigenvalue_plot_300dpi.jpeg", bp, width = 7, height = 5, dpi = 300)
-ggsave("Dama_gazelle_Eigenvalue_plot_600dpi.jpeg", bp, width = 7, height = 5, dpi = 600)
 ggsave("Dama_gazelle_Eigenvalue_plot_300dpi.tiff", bp, width = 7, height = 5, dpi = 300, compression = "lzw")
-ggsave("Dama_gazelle_Eigenvalue_plot_600dpi.tiff", bp, width = 7, height = 5, dpi = 600, compression = "lzw")
 ggsave("Dama_gazelle_Eigenvalue_plot.pdf", bp, width = 7, height = 5)
 
-cat("✅ All plots saved in JPEG, TIFF (300 & 600 dpi), and PDF formats.\n")
+cat("✅ PCA and Eigenvalue plots saved as JPEG, TIFF, and PDF with bounding boxes.\n")
 
 ```
 
