@@ -154,82 +154,49 @@ gatk --java-options "-Xmx120G" GenotypeGVCFs \
 # -------------------------------
 module load gatk-4.1.2.0
 
-# -------------------------------
-# Input/output paths
-# -------------------------------
-RAW_VCF=/scratch/bistbs/GATK_Variant_Calling/Combined_GVCF/Genotyped_VCF/all_samples_genotyped.vcf.gz
-FILTERED_VCF=/scratch/bistbs/GATK_Variant_Calling/Combined_GVCF/Genotyped_VCF/all_samples_genotyped_gatkfiltered.vcf.gz
-
-# -------------------------------
-# Run VariantFiltration
-# -------------------------------
 gatk VariantFiltration \
-   -V $RAW_VCF \
-   
-  
-   # -------------------------------
-   # Strand bias filters
-   # FS > 60.0: Fisher Strand test; removes sites with strong strand bias
-   # SOR > 3.0: Strand Odds Ratio; another measure of strand bias
-   # Sites failing these filters are likely sequencing/mapping artifacts
-   # -------------------------------
-   -filter "FS > 60.0" --filter-name "FS60" \
-   -filter "SOR > 3.0" --filter-name "SOR3" \
-   
-   # -------------------------------
-   # Mapping quality filter
-   # MQ < 40.0: remove sites where reads are poorly aligned
-   # Poorly mapped reads can introduce false variants
-   # -------------------------------
-   -filter "MQ < 40.0" --filter-name "MQ40" \
-   
-   # -------------------------------
-   # Mapping quality rank sum test
-   # MQRankSum < -12.5: tests if alternate alleles have lower mapping quality than reference
-   # Extreme negative values indicate alignment bias against alternate alleles
-   # -------------------------------
-   -filter "MQRankSum < -12.5" --filter-name "MQRankSum-12.5" \
-   
-   # -------------------------------
-   # Read position rank sum test
-   # ReadPosRankSum < -8.0: tests if alternate alleles occur at biased positions in reads
-   # Negative values indicate alt alleles mostly at read ends, often errors
-   # -------------------------------
-   -filter "ReadPosRankSum < -8.0" --filter-name "ReadPosRankSum-8" \
-   
-   # -------------------------------
-   # Output filtered VCF
-   # -------------------------------
-   -O $FILTERED_VCF
+    -V /scratch/bistbs/GATK_Variant_Calling/Combined_GVCF/Genotyped_VCF/GATK_VARIANT_filtration/all_samples_genotyped.vcf.gz \
+    -O all_samples_filtered.vcf.gz \
+    --filter-expression "QD < 2.0 || FS > 60.0 || MQ < 40.0 || SOR > 3.0 || MQRankSum < -12.5 || ReadPosRankSum < -8.0 || DP > 350" \
+    --filter-name "Standard_Plus_MaxDP_Filter" \
+    --genotype-filter-expression "DP < 10 || DP > 70" \
+    --genotype-filter-name "DP_Outlier_Genotype"
+
+# Run below command to rmove those SNPs that are not follwoing that filtering strategy.
+
+gatk SelectVariants \
+    -V /scratch/bistbs/GATK_Variant_Calling/Combined_GVCF/Genotyped_VCF/GATK_VARIANT_filtration/all_samples_filtered.vcf.gz \
+    --exclude-filtered \
+    --set-filtered-gt-to-nocall \
+    -O /scratch/bistbs/GATK_Variant_Calling/Combined_GVCF/Genotyped_VCF/GATK_VARIANT_filtration/Dama_Gazelle_SNPs_CLEAN.vcf.gz
 ```
 
 #### Step 5.A VCF Filtering for Population Genomics. We only keep SNPs for Population Genomics Analysis.
 ```bash
-module load vcftools
+# Define your path
+CLEAN_VCF="/scratch/bistbs/GATK_Variant_Calling/Combined_GVCF/Genotyped_VCF/GATK_VARIANT_filtration/Dama_Gazelle_SNPs_CLEAN.vcf.gz"
+OUT_PREFIX="/scratch/bistbs/GATK_Variant_Calling/Combined_GVCF/Genotyped_VCF/GATK_VARIANT_filtration/Dama_Gazelle_Final_Filtered"
 
-RAW_VCF=/scratch/bistbs/GATK_Variant_Calling/Combined_GVCF/Genotyped_VCF/all_samples_genotyped_gatkfiltered.vcf.gz
-VCFTOOLS_OUT=/scratch/bistbs/GATK_Variant_Calling/Combined_GVCF/Genotyped_VCF/Without_Indels/Dama_gazelle_without_indels
+# Run Filtering
+vcftools --gzvcf $CLEAN_VCF \
+         --remove-indels \
+         --minQ 30 \
+         --maf 0.05 \
+         --hwe 0.001 \
+         --max-missing 0.8 \
+         --recode --recode-INFO-all \
+         --out $OUT_PREFIX
 
-# ------------------------------
-# Filter with VCFtools
-# ------------------------------
-vcftools --gzvcf $RAW_VCF \                # Input VCF (can be gzipped)
-         --minQ 30 \                       # Keep only sites with minimum quality score of 30 (high-confidence genotypes)
-         --remove-indels \                 # Remove INDELs, keeping only SNPs
-         --recode --recode-INFO-all \      # Produce a new VCF while keeping all INFO fields
-         --out $VCFTOOLS_OUT               # Output prefix (final file: Dama_gazelle_without_indels.recode.vcf)
-
-# ------------------------------
-# Check missingness per individual
-# ------------------------------
-vcftools --vcf ${VCFTOOLS_OUT}.recode.vcf \  # Use the SNP-only VCF as input
-         --missing-indv                     # Reports fraction of missing genotypes per sample
-
+# Calculate Individual Missingness
+vcftools --vcf ${OUT_PREFIX}.recode.vcf \
+         --missing-indv \
+         --out ${OUT_PREFIX}
 
 # This will produce 'out.miss' file with % missing genotypes per individual
 # Individuals with very high missingness can be removed in later filtering steps
 
 # 1) Make biallelic SNP-only (keep your existing file unchanged)
+mkdir -p /scratch/bistbs/GATK_Variant_Calling/Combined_GVCF/Genotyped_VCF/GATK_VARIANT_filtration/Biallelic_SNPs
 bcftools view -v snps -m2 -M2 /scratch/bistbs/GATK_Variant_Calling/Combined_GVCF/Genotyped_VCF/Without_Indels/Dama_gazelle_without_indels.recode.vcf \
   -Oz -o /scratch/bistbs/GATK_Variant_Calling/Combined_GVCF/Genotyped_VCF/Without_Indels/Dama_gazelle_biallelic_snps.vcf.gz
 tabix -p vcf /scratch/bistbs/GATK_Variant_Calling/Combined_GVCF/Genotyped_VCF/Without_Indels/Dama_gazelle_biallelic_snps.vcf.gz
