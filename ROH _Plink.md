@@ -4,9 +4,9 @@
 
 ###### Convert VCF to PLINK binary format (BED/BIM/FAM)
 ```bash
-plink --vcf /scratch/bistbs/Population_Genomic_Analysis/ROH/Plink/Dama_gazelle_biallelic_snps_filtered.recode.vcf \
+plink --vcf /scratch/bistbs/Population_Genomic_Analysis/ROH/Plink/Dama_Gazelle_biallelic_Autosomes_Only_withID.vcf.gz \
       --make-bed \
- --allow-extra-chr \
+      --allow-extra-chr \
       --out /scratch/bistbs/Population_Genomic_Analysis/ROH/Plink/Dama_gazelle
 ```
 
@@ -39,6 +39,12 @@ plink --bfile /scratch/bistbs/Population_Genomic_Analysis/ROH/Plink/Dama_gazelle
 # ----------------------------------------------------
 #  ROH Analysis Script for Dama Gazelle
 # ----------------------------------------------------
+#######################################################
+#######################################################
+######################################################
+# ----------------------------------------------------
+#  ROH Analysis Script for Dama Gazelle
+# ----------------------------------------------------
 
 # -----------------------------
 # Load required packages
@@ -53,33 +59,28 @@ library(scales) # Needed for better log-scale breaks
 # -----------------------------
 # Set Working Directory & Parameters
 # -----------------------------
-setwd("F:/Collaborative_Projects/Dama_Gazelle_Project/ROH/Plink_Final")
+library(data.table)
+library(dplyr)
+library(ggplot2)
+library(scales)
 
-# Genome size set to 3 billion base pairs (3e9 bp)
-genome_size <- 3e9
+# -----------------------------
+# Set Working Directory & Parameters
+# -----------------------------
+setwd("F:/Collaborative_Projects/Dama_Gazelle_Project/ROH/ROH_Final_Second_time")
+
+# UPDATED: Using the actual autosomal size (2.56 Gb) for accurate F_ROH calculation
+genome_size <- 2557520234 
 samples <- c("SRR17134085","SRR17134086","SRR17129394", # Addra
              "SRR17134087","SRR17134088") # Mhorr
 output_dir <- getwd()
 
 # Define shared aesthetics
-subspecies_colors <- c("Addra"="skyblue", "Mhorr"="orange")
-individual_shapes <- c(
-  "SRR17134085"=15, # Solid Square
-  "SRR17134086"=16, # Solid Circle
-  "SRR17129394"=17, # Solid Triangle
-  "SRR17134087"=18, # Solid Diamond
-  "SRR17134088"=8  # Star
-)
+subspecies_colors <- c("Addra"="#56B4E9", "Mhorr"="#E69F00") # Colorblind friendly hex codes
 
-# --- Load Segment Data (Used for Plots 3, 4, 5) ---
-# ASSUMPTION: This file is the corrected PLINK output with ROH >= 10 KB
-# NOTE: If your 10kb data is in a different file, update the name here!
-roh_segments <- fread(file.path(output_dir, "Dama_gazelle_ROH.hom"))
-
-# --------------------------------------------------------------------------------------
-# 1. Percent Genome in ROH per Subspecies (Boxplot)
-# --------------------------------------------------------------------------------------
-# Uses .hom.indiv (Assumed corrected to include 10kb ROHs)
+# -----------------------------
+# Load and Process Data
+# -----------------------------
 roh_indiv <- fread(file.path(output_dir, "Dama_gazelle_ROH.hom.indiv"))
 
 roh_sub <- roh_indiv %>%
@@ -88,29 +89,69 @@ roh_sub <- roh_indiv %>%
                           "Addra", "Mhorr"),
          Percent_ROH = (KB * 1000 / genome_size) * 100)
 
+# -----------------------------
+# Create Publication Plot
+# -----------------------------
 p1 <- ggplot(roh_sub, aes(x=Species, y=Percent_ROH, fill=Species)) +
-  geom_boxplot() +
-  geom_jitter(width=0.1, size=3) +
-  labs(x="Sub-species",
-       y="% Genome in ROH",
-       fill="Sub-species") +
+  geom_boxplot(outlier.shape = NA, width = 0.6, size = 0.4) + 
+  geom_jitter(width=0.1, size=2, shape=21, color="black", stroke=0.3) + 
+  labs(x="Subspecies",
+       y="Total ROH (% of genome)",
+       fill="Subspecies") +
   scale_fill_manual(values=subspecies_colors) +
-  scale_y_continuous(breaks = c(0, 4, 8, 12, 16), limits = c(0, 16)) +
-  theme_classic() +
+  scale_y_continuous(breaks = pretty_breaks(n = 6)) + 
+  theme_classic(base_size = 10) + # Molecular Ecology prefers ~8-10pt font for reduction
   theme(
-    panel.border = element_rect(color="black", fill=NA, size=1),
-    legend.position = c(0.95, 0.05),
-    legend.justification = c("right", "bottom"),
-    legend.background = element_rect(fill="white", colour="black", size=0.6),
-    axis.text.y = element_text(color="black", size=13),
-    axis.text.x = element_text(color="black", size=13),
-    axis.title.x = element_text(color="black", size=14, face="bold"),
-    axis.title.y = element_text(color="black", size=14, face="bold")
+    # Positioning legend top-left as requested
+    legend.position = c(0.05, 0.95),
+    legend.justification = c("left", "top"),
+    legend.background = element_rect(fill="white", color="black", size=0.3),
+    legend.title = element_text(size=8, face="bold"),
+    legend.text = element_text(size=8),
+    # Styling axes for print
+    panel.border = element_rect(color="black", fill=NA, size=0.5),
+    axis.line = element_blank(), # border replaces lines
+    axis.text = element_text(color="black", size=9),
+    axis.title = element_text(color="black", size=10, face="bold"),
+    plot.margin = margin(10, 10, 10, 10)
   )
 
-print(p1)
-ggsave(file.path(output_dir, "Percent_ROH_by_subspecies.jpeg"), p1, width=6, height=4, dpi=300)
-ggsave(file.path(output_dir, "Percent_ROH_by_subspecies.pdf"), p1, width=6, height=4)
+# -----------------------------
+# Exporting as Vector Graphics
+# -----------------------------
+# Molecular Ecology Single Column Width: 80 mm (approx 3.15 inches)
+# We export at a height that preserves the aspect ratio, e.g., 80 mm width x 80 mm height
+# 1. Save as Vector PDF (Recommended for Molecular Ecology)
+ggsave(filename = file.path(output_dir, "Fig1_ROH_Percentage.pdf"), 
+       plot = p1, 
+       width = 80, 
+       height = 80, 
+       units = "mm", 
+       device = "pdf",
+       useDingbats = FALSE)
+
+# 2. Save as Vector EPS (Standard for high-end print publishing)
+# Note: ggsave uses the postscript device for .eps
+ggsave(filename = file.path(output_dir, "Fig1_ROH_Percentage.eps"), 
+       plot = p1, 
+       width = 80, 
+       height = 80, 
+       units = "mm", 
+       device = "eps")
+
+# 3. Save as High-Resolution JPEG (Min 300 DPI as per Wiley guidelines)
+# We set quality to 100 to ensure no compression artifacts
+ggsave(filename = file.path(output_dir, "Fig1_ROH_Percentage.jpeg"), 
+       plot = p1, 
+       width = 80, 
+       height = 80, 
+       units = "mm", 
+       dpi = 300, 
+       device = "jpeg",
+       quality = 100)
+
+print("Figure successfully exported in PDF, EPS, and JPEG formats.")
+
 
 # --------------------------------------------------------------------------------------
 # 2.  Percent Genome in ROH by Size Category (Barplot) - FILTER FIXED
@@ -139,80 +180,133 @@ roh_by_cat <- roh_segments_filtered %>%
   summarise(Total_ROH_Mb = sum(KB / 1000), .groups="drop") %>%
   mutate(Percent_Genome_ROH = (Total_ROH_Mb * 1e6 / genome_size) * 100)
 
+# --------------------------------------------------------------------------------------
+# Final Plotting: Horizontal Labels, Full Bounding Box, and Facet Label Boxes
+# --------------------------------------------------------------------------------------
 p3 <- ggplot(roh_by_cat, aes(x=IID, y=Percent_Genome_ROH, fill=ROH_category)) +
-  geom_bar(stat="identity", color="black") +
+  geom_bar(stat="identity", color="black", linewidth = 0.3) +
   facet_wrap(~Species, scales="free_x") +
   labs(x="Individual",
-       y="% Genome in ROH",
+       y="Total ROH (% of genome)",
        fill="ROH size category") +
   scale_fill_manual(values=c("0.1-1Mb"="#e6ab02", "1-5Mb"="#d95f02", "5-10Mb"="#1b9e77")) +
-  theme_classic() +
+  # Expand y-axis to 40% and ensure bars sit on the x-axis line
+  scale_y_continuous(limits = c(0, 40), breaks = seq(0, 40, 10), expand = c(0,0)) +
+  theme_classic(base_size = 10) +
   theme(
-    panel.border = element_rect(color="black", fill=NA, size=1),
-    axis.text.y = element_text(color="black", size=12),
-    axis.text.x = element_text(color="black", size=12, angle=0, hjust=0.5),
-    axis.title.x = element_text(color="black", size=14, face="bold"),
-    axis.title.y = element_text(color="black", size=14, face="bold"),
+    # --- FULL EXTERNAL BOUNDING BOX ---
+    panel.border = element_rect(color="black", fill=NA, linewidth=0.8),
+    axis.line = element_blank(), 
+    
+    # --- FACET LABEL BOXES (Addra and Mhorr boxes) ---
+    strip.background = element_rect(color="black", fill="gray95", linewidth=0.8),
+    strip.text = element_text(color="black", size=10, face="bold"),
+    
+    # LEGEND: Top-left corner inside the box
     legend.position = c(0.05, 0.95),
     legend.justification = c("left", "top"),
-    legend.background = element_rect(fill="white", colour="black", size=0.6),
-    strip.text = element_text(color="black", size=14, face="bold")
+    legend.background = element_rect(fill="white", colour="black", linewidth=0.3),
+    
+    # X-AXIS: Horizontal and readable
+    axis.text.x = element_text(color="black", size=7, angle=0, hjust=0.5),
+    axis.text.y = element_text(color="black", size=9),
+    axis.title = element_text(color="black", size=10, face="bold")
   )
 
-print(p3)
-ggsave(file.path(output_dir, "Percent_ROH_by_size_category.jpeg"), p3, width=8, height=5, dpi=300)
-ggsave(file.path(output_dir, "Percent_ROH_by_size_category.pdf"), p3, width=8, height=5)
+# --- Save for Molecular Ecology Resources ---
+ggsave(
+  filename = file.path(output_dir, "Percent_ROH_by_size_category_Final_FullBoxes.pdf"), 
+  plot = p3, 
+  width = 169, 
+  height = 100, 
+  units = "mm", 
+  device = "pdf",
+  useDingbats = FALSE
+)
+
+# --- Save as High-Res JPEG (300 DPI for standard image viewing) ---
+ggsave(
+  filename = file.path(output_dir, "Percent_ROH_by_size_category_Final.jpeg"), 
+  plot = p3, 
+  width = 169, 
+  height = 100, 
+  units = "mm", 
+  dpi = 300,
+  device = "jpeg",
+  quality = 100
+)
+
+print("Final plots saved in PDF and 300 DPI JPEG formats.")
 
 
 # --------------------------------------------------------------------------------------
-# 3. Number of ROH vs Total ROH (Mb) per Size Category (Scatterplot) - FILTER FIXED
+# 3. Number of ROH vs Total ROH (Mb) per Size Category (Scatterplot)
 # --------------------------------------------------------------------------------------
-# Use the loaded roh_segments data
 
+# Process Data: Ensure Species and ROH_Mb are created before grouping
 roh_threecat <- roh_segments %>%
-  # --- CRITICAL FIX: Removed the line: filter(KB * 1000 > 100000) ---
+  filter(IID %in% samples) %>%
+  mutate(
+    Species = ifelse(IID %in% c("SRR17134085","SRR17134086","SRR17129394"), "Addra", "Mhorr"),
+    ROH_Mb = KB / 1000
+  ) %>%
   mutate(ROH_category = case_when(
     KB >= 100 & KB < 1000 ~ "0.1-1Mb",
     KB >= 1000 & KB < 5000 ~ "1-5Mb",
     KB >= 5000 & KB < 10000 ~ "5-10Mb",
     TRUE ~ NA_character_
   )) %>%
-  filter(!is.na(ROH_category))
+  filter(!is.na(ROH_category)) %>%
+  mutate(ROH_category = factor(ROH_category, levels=c("0.1-1Mb", "1-5Mb", "5-10Mb")))
 
-
+# Summarize
 roh_count_sum <- roh_threecat %>%
   group_by(IID, Species, ROH_category) %>%
   summarise(Num_ROH = n(),
             Sum_ROH_Mb = sum(ROH_Mb),
             .groups="drop")
 
+# Create Plot
 p5 <- ggplot(roh_count_sum, aes(x=Sum_ROH_Mb, y=Num_ROH)) +
-  geom_point(aes(shape=IID, color=Species), size=4, alpha=0.9) +
-  facet_wrap(~ROH_category) +
-  labs(title="Number of ROH vs Total ROH Length (Mb) per Size Category",
-       x="Total ROH Length (Mb)",
-       y="Number of ROH",
-       shape="Individual Sample",
-       color="Sub-species") +
+  # Using shape for individuals and color for subspecies
+  geom_point(aes(shape=IID, color=Species), size=3.5, alpha=0.85, stroke = 0.8) +
+  facet_wrap(~ROH_category, scales = "free") +
+  labs(x="Total ROH Length (Mb)",
+       y="Number of ROH segments",
+       shape="Individual",
+       color="Subspecies") +
   scale_color_manual(values=subspecies_colors) +
   scale_shape_manual(values=individual_shapes) +
-  theme_classic() +
+  theme_classic(base_size = 10) +
   theme(
-    panel.border = element_rect(color="black", fill=NA, size=1),
-    axis.title.x = element_text(color="black", size=14, face="bold"),
-    axis.title.y = element_text(color="black", size=14, face="bold"),
-    axis.text.x = element_text(color="black", size=12),
-    axis.text.y = element_text(color="black", size=12),
-    legend.position = c(0.02, 0.98),
-    legend.justification = c("left", "top"),
-    legend.background = element_rect(fill="white", colour="black", size=0.6)
+    # --- FULL BOUNDING BOX ---
+    panel.border = element_rect(color="black", fill=NA, linewidth=0.8),
+    axis.line = element_blank(),
+    
+    # --- FACET LABEL BOXES ---
+    strip.background = element_rect(color="black", fill="gray95", linewidth=0.8),
+    strip.text = element_text(color="black", size=10, face="bold"),
+    
+    # --- LEGEND SETTINGS ---
+    # Placing legend bottom-right often avoids data overlap in scatterplots
+    legend.position = "right", 
+    legend.background = element_rect(fill="white", color="black", linewidth=0.3),
+    legend.title = element_text(size=9, face="bold"),
+    legend.text = element_text(size=8),
+    
+    # --- AXIS SETTINGS ---
+    axis.title = element_text(color="black", size=10, face="bold"),
+    axis.text = element_text(color="black", size=9)
   )
 
-print(p5)
-ggsave(file.path(output_dir, "ROH_Count_vs_Sum_shapes.jpeg"), p5, width=9, height=5, dpi=300)
-ggsave(file.path(output_dir, "ROH_Count_vs_Sum_shapes.pdf"), p5, width=9, height=5)
+# --- Save for Molecular Ecology Resources (169mm Full Width) ---
+ggsave(file.path(output_dir, "ROH_Count_vs_Sum_Final.pdf"), p5, 
+       width=169, height=100, units="mm", device="pdf", useDingbats=FALSE)
 
+ggsave(file.path(output_dir, "ROH_Count_vs_Sum_Final.jpeg"), p5, 
+       width=169, height=100, units="mm", dpi=300)
 
+print("Scatterplot p5 exported successfully.")
 
   # ----------------------------------------------------
 # 4.  Cumulative % Genome in ROH vs ROH Size (PLAIN LINE CDF) - CORRECTED
@@ -282,37 +376,73 @@ roh_cdf <- roh_merged %>%
 # -----------------------------
 # 5. Plot CDF with legend slightly left
 # -----------------------------
-p4 <- ggplot(roh_cdf, aes(x = ROH_Mb, y = Percent_Cumulative,
+# -----------------------------
+# 4. Cumulative Distribution Plot (CDF) - Compact Legend Box
+# -----------------------------
+
+p4 <- ggplot(roh_cdf, aes(x = ROH_Mb, y = Percent_Cumulative, 
                           group = IID, color = IID)) +
-  geom_line(linewidth = 1.2) +          # lines only
+  geom_line(linewidth = 1.2) +  
   scale_x_log10(labels = label_comma()) +
-  scale_color_manual(values = individual_colors,
-                     labels = setNames(roh_cdf$Label[match(individual_colors %>% names(), roh_cdf$IID)],
-                                       names(individual_colors)),
-                     name = "Individual (Sub-species)") +
+  scale_color_manual(
+    values = individual_colors,
+    labels = setNames(roh_cdf$Label[match(names(individual_colors), roh_cdf$IID)],
+                      names(individual_colors)),
+    name = "Individual (Sub-species)"
+  ) +
   labs(
     x = "ROH Size (Mb) (log10 scale)",
     y = "Cumulative % Genome in ROH"
   ) +
-  theme_classic() +
+  theme_classic(base_size = 12) + 
   theme(
-    panel.border = element_rect(color = "black", fill = NA, size = 1),
-    axis.title = element_text(size = 14, face = "bold"),
-    axis.text = element_text(size = 14),
-    legend.position = c(0.22, 0.88),      # moved slightly up and left
-    legend.background = element_rect(fill = "white", color = "black", size = 0.6),
-    legend.box = "vertical",
+    # --- FULL BOUNDING BOX ---
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 1),
+    axis.line = element_blank(),
+    
+    # --- AXIS TEXT ---
+    axis.title = element_text(size = 14, face = "bold", color = "black"),
+    axis.text = element_text(size = 12, color = "black"),
+    
+    # --- LEGEND POSITION (Top-Left) ---
+    legend.position = c(0.01, 0.99), 
+    legend.justification = c("left", "top"),
+    legend.background = element_rect(fill = "white", color = "black", linewidth = 0.5),
+    
+    # --- COMPACT LEGEND BOX SETTINGS ---
     legend.title = element_text(size = 12, face = "bold"),
-    legend.text = element_text(size = 11)
+    legend.text = element_text(size = 11),
+    legend.key.width = unit(0.8, "cm"),   # Shorter line samples
+    legend.key.height = unit(0.4, "cm"),  # Tightens vertical space
+    legend.margin = margin(t = 2, r = 5, b = 2, l = 5) # Tightens padding around text
   )
 
 # -----------------------------
-# 6. Print and save
+# Save for Molecular Ecology Resources
 # -----------------------------
-print(p4)
 
-ggsave("ROH_CDF_plot_species_colors_legend_adjusted_left.jpeg", plot = p4, width = 12, height = 8, dpi = 300)
-ggsave("ROH_CDF_plot_species_colors_legend_adjusted_left.pdf", plot = p4, width = 12, height = 8)
+ggsave(
+  filename = file.path(output_dir, "ROH_CDF_Compact_Legend.pdf"), 
+  plot = p4, 
+  width = 169, 
+  height = 110, 
+  units = "mm", 
+  device = "pdf",
+  useDingbats = FALSE
+)
+
+ggsave(
+  filename = file.path(output_dir, "ROH_CDF_Compact_Legend.jpeg"), 
+  plot = p4, 
+  width = 169, 
+  height = 110, 
+  units = "mm", 
+  dpi = 300
+)
+
+print("CDF plot saved: Legend box size reduced for a compact look.")
+
+
 
 # --------------------------------------------------------------------------------------
 # 5. Calculate NROH, SROH, LROH, and correlation between NROH and SROH
@@ -414,3 +544,4 @@ save_ultra_tight(p_nroh, "Boxplot_NROH_clean")
 save_ultra_tight(p_sroh, "Boxplot_SROH_clean")
 save_ultra_tight(p_lroh, "Boxplot_LROH_clean")
 ```
+
