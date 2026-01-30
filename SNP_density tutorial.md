@@ -126,7 +126,8 @@ ggsave("heterozygosity_plot_labeled.pdf", plot, width = 12, height = 6)
 ######################################################################################
 #######################################################################################
 # SNP density plot using MACE
-
+#### I have a biallelic filtered vcf file. I seperated each sample by only geting heterozygous sites as shown below. The indexed all the five vcf files. 
+#### Then, I am running the MACE on each of the files. 
 #### Step 1. Get only heterozygous VCF only using bcftools
 ```bash
 /scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden/Dama_gazelle_biallelic_snps_autosomes.vcf
@@ -203,44 +204,63 @@ pip install RouToolPa
 -  This will get you png or svg files as your output.
 
 ```bash
-PYTHONPATH=/scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden/MACE:/scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden/RouToolPa \
-python /scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden/MACE/scripts/draw_variant_window_densities.py \
-  -i /scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden/SRR17129394_HET_chr.vcf.gz \
-  -o /scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden/SRR17129394_density_100kb \
-  -n /scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden/len_chr.txt \
-  --scaffold_white_list /scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden/whitelist_chr.txt \
-  --scaffold_ordered_list /scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden/orderlist_chr.txt \
+PYTHONPATH=/scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden_Final/MACE:/scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden_Final/RouToolPa \
+python /scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden_Final/MACE/scripts/draw_variant_window_densities.py \
+  -i /scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden_Final/SRR17129394_het_only_chr.vcf.gz \
+  -o /scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden_Final/SRR17129394_density_100kb \
+  -n /scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden_Final/len_chr.txt \
+  --scaffold_white_list /scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden_Final/whitelist_chr.txt \
+  --scaffold_ordered_list /scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden_Final/orderlist_chr.txt \
   --figure_height_per_scaffold 0.8 \
   --figure_width 16 \
-  --title "SRR17129394 – Heterozygous SNP density (100 kb sliding windows)" \
+  --title 'SRR17129394 – Heterozygous SNP density (100 kb sliding windows)' \
   --output_formats png,svg \
   --window_size 100000 \
   --window_step 10000 \
-  --density_multiplier 1000
+  --density_multiplier 1000 \
+  --rounded \
+  --hide_track_label
+
 
 ```
 #### I am doing loop for SRR17134085 SRR17134086 SRR17134087 SRR17134088
 
 ```bash
-for SAMPLE in SRR17134085 SRR17134086 SRR17134087 SRR17134088
-do
-    echo "Running SNP density for $SAMPLE"
+# Directory paths
+VCF_DIR=/scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden_Final
+OUT_DIR=$VCF_DIR
 
-    python MACE/scripts/draw_variant_window_densities.py \
-      -i ${SAMPLE}_HET_chr.vcf.gz \
-      -o ${SAMPLE}_density_100kb \
-      -n len_chr.txt \
-      --scaffold_white_list whitelist_chr.txt \
-      --scaffold_ordered_list orderlist_chr.txt \
+# List of your four samples
+SAMPLES=("SRR17134085" "SRR17134086" "SRR17134087" "SRR17134088")
+
+# Loop over each sample
+for SAMPLE in "${SAMPLES[@]}"; do
+    VCF=$VCF_DIR/${SAMPLE}_het_only_chr.vcf.gz
+
+    echo "Processing $SAMPLE..."
+
+    PYTHONPATH=$VCF_DIR/MACE:$VCF_DIR/RouToolPa \
+    python $VCF_DIR/MACE/scripts/draw_variant_window_densities.py \
+      -i $VCF \
+      -o $OUT_DIR/${SAMPLE}_density_100kb \
+      -n $VCF_DIR/len_chr.txt \
+      --scaffold_white_list $VCF_DIR/whitelist_chr.txt \
+      --scaffold_ordered_list $VCF_DIR/orderlist_chr.txt \
       --figure_height_per_scaffold 0.8 \
       --figure_width 16 \
       --title "${SAMPLE} – Heterozygous SNP density (100 kb sliding windows)" \
       --output_formats png,svg \
       --window_size 100000 \
       --window_step 10000 \
-      --density_multiplier 1000
-
-    echo "$SAMPLE DONE"
-    echo "--------------------------------"
+      --density_multiplier 1000 \
+      --rounded \
+      --hide_track_label
 done
+
 ```
+
+
+#############################################################################################################
+#############################################################
+##### I am doing from beginning for the Dama one last time as suggested by Sergei
+
