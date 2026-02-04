@@ -131,3 +131,15 @@ for f in $PAL_OUT/*.clustal.fa; do
     echo "Converted $sample to AXT format"
 done
 ```
+
+
+#### Second Method that I am trying is :WGD
+
+```bash
+/shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Ks_calculation/wgd
+```
+
+```bash
+singularity exec -B $(pwd):/data wgd.simg wgd wf2 \
+  /data/Addra.cds.clean.fna /data/Mohrr.cds.clean.fna /data/wgd_wf2_output
+```
