@@ -1,5 +1,6 @@
 ####  I am using Tspeceis R code to get the divergence between the two sub-species.
 - Link: [https://github.com/arzwa/wgd/](https://github.com/OrthoFinder/OrthoFinder)
+- TSPECIES:https://github.com/limj0987/Tspecies
   - First of all, I am using OrthoFinder to get the Single copy orthologs using the link given above.
   - 
 
