@@ -143,3 +143,45 @@ done
 singularity exec -B $(pwd):/data wgd.simg wgd wf2 \
   /data/Addra.cds.clean.fna /data/Mohrr.cds.clean.fna /data/wgd_wf2_output
 ```
+
+#### R tool to run divergence time
+#### Generation time= 5.85 years (https://onlinelibrary.wiley.com/doi/full/10.1002/ece3.10876) 
+#### We use generation time GEN=5.85 years and mutation rate MU=2.96E-09 per site per year. (science.sciencemag.org/content/364/6446/eaav6202/suppl/DC1).
+```bash
+# Install Tspecies if you haven't already
+if (!require("devtools")) install.packages("devtools")
+devtools::install_github("limj0987/Tspecies")
+
+library(Tspecies)
+library(ggplot2)
+
+# Load your wgd output
+# Replace the path with your actual local path to the .tsv file
+ks_data <- read.table("/shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Ks_calculation/wgd/wgd_wf2_output/wgd_ks/Addra.cds.clean.fna_Mohrr.cds.clean.fna.ks.tsv", 
+                      header = TRUE, sep = "\t")
+
+# Extract the Ks column. 
+# wgd usually names this column 'ks'
+ks_values <- ks_data$ks
+
+# Clean data: Tspecies cannot handle Ks > 0.75 due to multiple substitution corrections
+ks_filtered <- ks_values[ks_values > 0 & ks_values <= 0.75]
+
+# Adjust these values based on your specific literature review
+mu_rate <- 2.96E-09  # mutation rate per site per generation
+gen_time <- 5.85    # generation time in years
+
+# Estimate divergence
+results <- Tspecies(Ks = ks_filtered, 
+                   miu = mu_rate, 
+                   g = gen_time)
+
+# View the results
+print(results)
+
+# Plot the distribution
+# 'bin' can be adjusted (e.g., 0.005 or 0.01) to make the plot smoother or more granular
+TspeciesPlot(ks_filtered, bin = 0.006) + 
+  ggtitle("Ks Distribution: Addra vs Mohrr Gazelle") +
+  theme_minimal()
+```
