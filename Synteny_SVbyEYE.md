@@ -259,8 +259,8 @@ keep_chr <- paste0("chr", 1:17)
 ### 3. Load Genome FASTA Files
 #########################################
 
-addra_fasta <- "/scratch/bistbs/Synteny_Analysis/SVbyEye/Addra_complete.genomic.fna"
-mhorr_fasta <- "/scratch/bistbs/Synteny_Analysis/SVbyEye/Mohrr_complete.genomic.fna"
+addra_fasta <- "/shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Synteny/SVbyEye/Addra_complete.genomic.fna"
+mhorr_fasta <- "/shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Synteny/SVbyEye/Mohrr_complete.genomic.fna"
 
 addra_genome <- readDNAStringSet(addra_fasta)
 mhorr_genome <- readDNAStringSet(mhorr_fasta)
@@ -280,124 +280,64 @@ paf <- SVbyEye:::readPaf("Addra_vs_Mohrr.paf")
 paf <- paf %>% filter(qry.name %in% keep_chr & ref.name %in% keep_chr)
 
 # Filter alignment length ≥1kb
-paf_filtered <- SVbyEye:::filterPaf(paf, min.align.len = 1000)
+paf_filtered <- SVbyEye:::filterPaf(paf, min.align.len = 50000) ###  kb was too small. Trying with 5 Kb.
 
 
 #########################################
-### 5. Load & Filter Annotation (GFF)
+### 6. Clean Stacked Synteny (The Fix)
 #########################################
 
-addra_gff <- import.gff("/scratch/bistbs/Synteny_Analysis/SVbyEye/Addra_complete.genomic.gff")
-mhorr_gff <- import.gff("/scratch/bistbs/Synteny_Analysis/SVbyEye/Mohrr_complete.genomic.gff")
+library(patchwork) # Required for stacking plots easily
 
-# Keep only chr1–chr17
-addra_gff <- addra_gff[seqnames(addra_gff) %in% keep_chr]
-mhorr_gff <- mhorr_gff[seqnames(mhorr_gff) %in% keep_chr]
+# 1. Ensure chromosome names are clean
+paf_mapped <- paf_filtered %>%
+  mutate(t.name = ifelse(!grepl("chr", t.name), paste0("chr", t.name), t.name)) %>%
+  filter(t.name %in% keep_chr)
 
+# 2. Create a list of plots - one for each chromosome pair
+plot_list <- lapply(keep_chr, function(chr_name) {
+  
+  # Filter data for just this chromosome pair
+  paf_sub <- paf_mapped %>% filter(t.name == chr_name)
+  
+  # Skip if no data for this chromosome
+  if(nrow(paf_sub) == 0) return(NULL)
+  
+  # Generate the Miro plot for this specific chromosome
+  p <- SVbyEye:::plotMiro(
+    paf.table = paf_sub,
+    min.deletion.size = 5000, 
+    min.insertion.size = 5000,
+    highlight.sv = FALSE, 
+    color.by = "strand"
+  ) + 
+    theme_bw() +
+    theme(
+      axis.text.y = element_blank(),
+      axis.ticks.y = element_blank(),
+      legend.position = "none" # Hide legend for individual subplots
+    ) +
+    labs(subtitle = chr_name, y = NULL, x = NULL)
+  
+  return(p)
+})
 
-#########################################
-### 6. Pairwise Genome Alignment Plot
-#########################################
+# 3. Remove NULLs (chromosomes with no data)
+plot_list <- Filter(Negate(is.null), plot_list)
 
-pairwise_plot <- SVbyEye:::plotMiro(
-  paf.table = paf_filtered,
-  min.deletion.size = 1000,
-  min.insertion.size = 1000,
-  highlight.sv = TRUE,
-  color.by = "strand"
-)
+# 4. Use patchwork to stack them vertically (Panel E style)
+# ncol = 1 forces them to stack on top of each other
+final_stacked_plot <- wrap_plots(plot_list, ncol = 1) +
+  plot_annotation(
+    title = "Addra Scaffolds vs Mohrr Chromosomes (chr1-17)",
+    caption = "Blue: Forward alignment | Pink: Inversion"
+  )
 
-ggsave("Addra_vs_Mohrr_pairwise.jpeg", pairwise_plot, width = 12, height = 6, dpi = 300)
-ggsave("Addra_vs_Mohrr_pairwise.pdf",  pairwise_plot, width = 12, height = 6, dpi = 300)
-
-
-#########################################
-### 7. Self-Alignment of Addra & Mohrr
-#########################################
-
-# Load self-PAF
-addra_self <- SVbyEye:::readPaf("Addra_self.paf")
-mhorr_self <- SVbyEye:::readPaf("Mohrr_self.paf")
-
-# Filter to chr1–17
-addra_self <- addra_self %>% filter(qry.name %in% keep_chr & ref.name %in% keep_chr)
-mhorr_self <- mhorr_self %>% filter(qry.name %in% keep_chr & ref.name %in% keep_chr)
-
-# Addra self-dotplot
-addra_self_plot <- plotSelf(
-  paf.table = addra_self,
-  color.by = "identity",
-  shape = "segment",
-  sort.by = "position"
-)
-
-ggsave("Addra_self_dotplot.jpeg", addra_self_plot, width = 12, height = 6, dpi = 300)
-ggsave("Addra_self_dotplot.pdf",  addra_self_plot, width = 12, height = 6)
-
-# Mohrr self-dotplot
-mhorr_self_plot <- plotSelf(
-  paf.table = mhorr_self,
-  color.by = "identity",
-  shape = "segment",
-  sort.by = "position"
-)
-
-ggsave("Mohrr_self_dotplot.jpeg", mhorr_self_plot, width = 12, height = 6, dpi = 300)
-ggsave("Mohrr_self_dotplot.pdf",  mhorr_self_plot, width = 12, height = 6)
-
-
-#########################################
-### 8. AVA (All-vs-All) Plot
-#########################################
-
-ava_plot <- SVbyEye:::plotAVA(
-  paf.table = paf_filtered,
-  binsize = 5000,
-  color.by = "identity",
-  highlight.sv = TRUE
-)
-
-ggsave("Addra_vs_Mohrr_AVA_stacked.jpeg", ava_plot, width = 12, height = 8, dpi = 300)
-
-
-#########################################
-### 9. Whole-genome Overview Plot
-#########################################
-
-genome_overview_plot <- SVbyEye:::plotGenome(
-  paf.table = paf_filtered,
-  binsize = 5000,
-  color.by = "identity",
-  highlight.sv = TRUE,
-  min.deletion.size = 1000,
-  min.insertion.size = 1000
-)
-
-ggsave("Addra_vs_Mohrr_genome_overview.jpeg", genome_overview_plot, width = 12, height = 6, dpi = 300)
-
-
-#########################################
-### 10. SV Extraction + Size Distribution
-#########################################
-
-sv_breaks <- SVbyEye:::breakPaf(paf_filtered, minSize = 1000)
-write.csv(sv_breaks, "Addra_vs_Mohrr_SVs.csv", row.names = FALSE)
-
-# Add SV size column
-sv_breaks$SV_size <- abs(sv_breaks$end_qry - sv_breaks$start_qry)
-
-sv_size_plot <- ggplot(sv_breaks, aes(x = SV_size)) +
-  geom_histogram(binwidth = 1000, fill = "steelblue", color = "black") +
-  scale_x_continuous(labels = scales::comma) +
-  labs(
-    title = "SV Size Distribution: Addra vs Mohrr",
-    x = "SV size (bp)",
-    y = "Count"
-  ) +
-  theme_minimal()
-
-ggsave("Addra_vs_Mohrr_SV_size_distribution.jpeg", sv_size_plot, width = 10, height = 6, dpi = 300)
+# 5. Save the result
+# height = 2 * number of plots makes sure each one has room to breathe
+ggsave("Addra_vs_Mohrr_PanelE_Stitched.pdf", 
+       final_stacked_plot, 
+       width = 15, 
+       height = length(plot_list) * 2, 
+       limitsize = FALSE)
 ```
-
-
-
