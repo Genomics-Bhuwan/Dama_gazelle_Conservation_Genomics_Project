@@ -343,6 +343,14 @@ ggsave("Addra_vs_Mohrr_PanelE_Stitched.pdf",
 ```
 
 #### SVbyEYE for the primary and secondary haplotype of Addra gazelle.
+#### Step 1. PAF
+```bash
+./minimap2-2.30_x64-linux/minimap2 -x asm5 -t 16 -c \
+> Dama_gazelle_hifiasm-ULONT_primary.fasta.gz \
+> Dama_gazelle_secondary.fasta.gz \
+> > Addra_Pri_vs_Sec.paf
+```
+#### Step 2. R visualization
 ```bash
 ##############################
 ### 1. Load Required Packages
