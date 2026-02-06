@@ -341,3 +341,104 @@ ggsave("Addra_vs_Mohrr_PanelE_Stitched.pdf",
        height = length(plot_list) * 2, 
        limitsize = FALSE)
 ```
+
+#### SVbyEYE for the primary and secondary haplotype of Addra gazelle.
+```bash
+##############################
+### 1. Load Required Packages
+##############################
+required_packages <- c(
+  "ggnewscale", "gggenes", "wesanderson", "randomcoloR",
+  "ggplot2", "dplyr", "tibble", "magrittr", "scales",
+  "stringr", "data.table", "ggforce", "devtools", "Biostrings",
+  "rtracklayer", "patchwork"
+)
+
+# Install and load missing packages
+installed_packages <- rownames(installed.packages())
+for(pkg in required_packages) {
+  if(!pkg %in% installed_packages) install.packages(pkg, repos="https://cloud.r-project.org")
+  library(pkg, character.only = TRUE)
+}
+
+if(!"SVbyEye" %in% installed_packages) {
+  devtools::install_github("daewoooo/SVbyEye", branch = "master")
+}
+library(SVbyEye)
+
+#########################################
+### 2. File Paths (Updated for Haplotypes)
+#########################################
+
+# Ensure these paths point to your actual PAF and FASTA files
+primary_fasta   <- "/shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Synteny/Haplotypes_Addra/Dama_gazelle_hifiasm-ULONT_primary.fasta.gz"
+secondary_fasta <- "/shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Synteny/Haplotypes_Addra/Dama_gazelle_secondary.fasta.gz"
+# You will need to generate a new PAF for Pri vs Sec if you haven't already
+paf_file        <- "Addra_Pri_vs_Sec.paf" 
+
+keep_chr <- paste0("chr", 1:17)
+
+#########################################
+### 3. Load PAF Alignment
+#########################################
+
+# Load the alignment between haplotypes
+paf <- SVbyEye:::readPaf(paf_file)
+
+# Filtering: Ensure we are only looking at the 17 chromosomes on both sides
+# qry.name usually = Secondary, ref.name (or t.name) = Primary
+paf_filtered <- paf %>% 
+  filter(qry.name %in% keep_chr & ref.name %in% keep_chr) %>%
+  SVbyEye:::filterPaf(min.align.len = 50000) # Filtering for 50kb alignments
+
+#########################################
+### 4. Generate Stacked Miro Plots
+#########################################
+
+plot_list <- lapply(keep_chr, function(chr_name) {
+  
+  # Filter data for this specific chromosome pair
+  paf_sub <- paf_filtered %>% filter(ref.name == chr_name)
+  
+  if(nrow(paf_sub) == 0) return(NULL)
+  
+  # Generate Miro plot
+  p <- SVbyEye:::plotMiro(
+    paf.table = paf_sub,
+    min.deletion.size = 5000, 
+    min.insertion.size = 5000,
+    highlight.sv = FALSE, 
+    color.by = "strand"
+  ) + 
+    theme_bw() +
+    theme(
+      axis.text.y = element_blank(),
+      axis.ticks.y = element_blank(),
+      legend.position = "none"
+    ) +
+    labs(subtitle = paste("Primary vs Secondary:", chr_name), y = NULL, x = NULL)
+  
+  return(p)
+})
+
+# Clean up empty plots
+plot_list <- Filter(Negate(is.null), plot_list)
+
+# Combine using patchwork
+final_stacked_plot <- wrap_plots(plot_list, ncol = 1) +
+  plot_annotation(
+    title = "Addra Gazelle: Primary Haplotype vs Secondary Haplotype",
+    subtitle = "Chromosomes 1-17 | Minimum alignment: 50kb",
+    caption = "Blue: Forward | Pink: Inversion"
+  )
+
+#########################################
+### 5. Save Result
+#########################################
+
+ggsave("Addra_Haplotype_Comparison_Stitched.pdf", 
+       final_stacked_plot, 
+       width = 15, 
+       height = length(plot_list) * 2.5, # Slightly more height per plot
+       limitsize = FALSE)
+```
