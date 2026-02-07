@@ -152,3 +152,21 @@ ggplot(ne_data, aes(x = Generation, y = Ne, color = Species)) +
   theme_minimal(base_size = 14) +
   theme(legend.position = "top")
 ``
+
+
+
+#### Method 2: GONe analysis
+```bash
+- Input: plink files: *.map and *.ped with only full chromosome-length scaffolds and SNPs named sequentially.
+- Filtartion for missingness, maf, HWE.
+- Convert vcf to plink files. check the names of the SNPs.
+- Require the plink files seperately for both sub-species.
+- Check the name of the .map file and see what Karen has the suggestions. 
+
+So for example: my scaffolds were called HiC_scaffold_1 and I had to name them simply 1. My SNPS were named something automatic from upstream and I had to rename them snp1, snp2 etc. So the first 10 lines (head command) of my map file is the following:  
+head bongo_GONE.map
+1	snp1	0	135
+1	snp2	0	520
+1	snp3	0	1532
+1	snp4	0	3627
+```
