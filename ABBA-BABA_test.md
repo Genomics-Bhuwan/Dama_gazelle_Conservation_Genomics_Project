@@ -18,5 +18,5 @@ Ind7    Outgroup
 ```bash
 /home/bistbs/Dama_gazelle_Abba_babba/Combine_Gentopyes_Joint_Genotyping/Joint_Genotyping/Variant_Filtration/biallelic/ABBA_BABA_test/Dsuite/Build/Dsuite Dtrios \
 /home/bistbs/Dama_gazelle_Abba_babba/Combine_Gentopyes_Joint_Genotyping/Joint_Genotyping/Variant_Filtration/biallelic/Dama_gazelle_genotypes_pass_biallelic.vcf.gz \
-/home/bistbs/Dama_gazelle_Abba_babba/Combine_Gentopyes_Joint_Genotyping/Joint_Genotyping/Variant_Filtration/biallelic/ABBA_BABA_test/SETS_fixed.txt
+/home/bistbs/Dama_gazelle_Abba_babba/Combine_Gentopyes_Joint_Genotyping/Joint_Genotyping/Variant_Filtration/biallelic/ABBA_BABA_test/SETS.txt
 ```
