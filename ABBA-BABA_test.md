@@ -1,6 +1,7 @@
 #### Hybridization among the two sub-species
 - Firstly, We used five samples of Addra and Mhorr gazelle from this study including the Nanger granti as an outgroup NCBI Accession:SRR6878810: SRR6878810: https://trace.ncbi.nlm.nih.gov/Traces/?run=SRR6878810).
 - Link: https://github.com/millanek/Dsuite
+- https://github.com/simonhmartin/tutorials/blob/master/ABBA_BABA_windows/README.md   (Recommended to use for analysis and for plotting)
 - Fast calculation of Patterson's D (ABBA-BABA) and the f4-ratio statistics across many populations/species
 - Input files: A VCF file: can contain multiallelic loci and indels but only biallelic SNPs will be used.
 
