@@ -3,6 +3,12 @@
 - Link: https://github.com/millanek/Dsuite
 - Fast calculation of Patterson's D (ABBA-BABA) and the f4-ratio statistics across many populations/species
 - Input files: A VCF file: can contain multiallelic loci and indels but only biallelic SNPs will be used.
+
+  ---
+ - This excess can be expressed in terms of the D statistic, which ranges from -1 to 1,.
+ -  and should equal 0 under the null hypothesis of no introgression.
+ -  D > 1 indicates possible introgression between P3 and P2 (or other factors that would result in a deviation from a strict bifurcating species history).
+  ---
 - Population/species map SETS.txt
 - contains a .txt file with one individual per row and a tab separating the individual's name from the name of the species/populations it belongs to
 Ind1    Species1
