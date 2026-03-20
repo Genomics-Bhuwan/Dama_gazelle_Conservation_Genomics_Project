@@ -215,4 +215,86 @@ else
     exit 1
 fi
 ```
+#### Step 5. Generating the Migration Bands
+- Before running MiSTI, I need to tell when migration could have happened.
+- My collaborator used specific time windows(0-1000 years ago).
+- This script reads the "timescale.txt files" and creates a small helper file for each pair.
+```bash
+#!/bin/bash
+# ----------------------------
+# Create Migration Band Definitions
+# ----------------------------
+BASE="/home/bistbs/Dama_gazelle_MiSTI_divergence/Step2_ANGSD"
+SFS_DIR="${BASE}/Pairwise_SFS"
+
+PAIRS=("SRR17129394_SRR17134087" "SRR17129394_SRR17134088" "SRR17134085_SRR17134087" "SRR17134085_SRR17134088" "SRR17134086_SRR17134087" "SRR17134086_SRR17134088")
+
+for pair in "${PAIRS[@]}"; do
+    # This looks at the timescale file and finds which PSMC steps correspond to 0-1000 years
+    # It outputs a string like "-mi 1 0 3 0.00 1 -mi 2 0 3 0.00 1"
+    awk '$2>=0 && $2<1000{print $1}' ${SFS_DIR}/timescale.${pair//_/.}.txt | sed -e 1b -e '$!d' | awk -v ORS=" " '{print $0}' | awk '{print "-mi 1",$1,$2,"0.00 1 -mi 2",$1,$2,"0.00 1"}' > ${SFS_DIR}/${pair}.migBand
+done
+```
+#### Step 6. Final MiSTI optimization
+- It takes your .mi.sfs, the psmc files and the migration bands and then tests the 55 split times for each of my species six pairs. 
+```bash
+#!/bin/bash -l
+#SBATCH --job-name=Dama_MiSTI_Final
+#SBATCH --time=48:00:00
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=13
+#SBATCH --mem=40G
+#SBATCH --partition=batch
+#SBATCH --array=0-5
+#SBATCH --output=/home/bistbs/Dama_gazelle_MiSTI_divergence/Step2_ANGSD/logs/misti_final_%A_%a.log
+
+# 1. Setup Pair
+PAIRS=("SRR17129394 SRR17134087" "SRR17129394 SRR17134088" "SRR17134085 SRR17134087" "SRR17134085 SRR17134088" "SRR17134086 SRR17134087" "SRR17134086 SRR17134088")
+CURRENT_PAIR=${PAIRS[$SLURM_ARRAY_TASK_ID]}
+ID1=$(echo $CURRENT_PAIR | awk '{print $1}')
+ID2=$(echo $CURRENT_PAIR | awk '{print $2}')
+
+# 2. Paths
+BASE="/home/bistbs/Dama_gazelle_MiSTI_divergence/Step2_ANGSD"
+PSMC_DIR="${BASE}/Real_SFS/PSMC_files"
+SFS_DIR="${BASE}/Pairwise_SFS"
+MISTI_PY="${BASE}/MiSTI/misti/misti.py"
+UNITS="${BASE}/MiSTI/misti/setunits.txt"
+RESULT_DIR="${BASE}/Results"
+
+mkdir -p $RESULT_DIR
+
+# 3. RUN 55 SPLIT POINTS IN PARALLEL
+# We use the migration bands defined by your collaborator's leopard/wolf logic
+# -j 13 means it runs 13 split points at a time on your 13 allocated CPUs
+parallel --header : -j 13 python ${MISTI_PY} \
+    -uf --bsSize 10 --hetloss 0.0 0.0 --funits ${UNITS} \
+    ${PSMC_DIR}/${ID1}.psmc ${PSMC_DIR}/${ID2}.psmc \
+    ${SFS_DIR}/${ID1}_${ID2}.mi.sfs {per} \
+    -o ${RESULT_DIR}/${ID1}_${ID2}_{per}.mi \
+    -mi 1 0 1 0.00 1 -mi 2 0 1 0.00 1 \
+    -mi 1 2 14 0.00 1 -mi 2 2 14 0.00 1 \
+    -mi 1 15 18 0.00 1 -mi 2 15 18 0.00 1 \
+    -mi 1 19 23 0.00 1 -mi 2 19 23 0.00 1 \
+    -mi 1 24 31 0.00 1 -mi 2 24 31 0.00 1 \
+    -mi 1 32 33 0.00 1 -mi 2 32 33 0.00 1 \
+    -mi 1 34 41 0.00 1 -mi 2 34 41 0.00 1 \
+    -mi 1 42 51 0.00 1 -mi 2 42 51 0.00 1 \
+    -mi 1 52 55 0.00 1 -mi 2 52 55 0.00 1 \
+    ">>" ${RESULT_DIR}/${ID1}_${ID2}.opt.out ::: per $(seq 1 55)
+```
+#### Step 7.  Final Step: Extracting the Data for Excel 
+- Once the job in the Step 6 finishes, I will have teh file named Results/SRR17129394_SRR17134087.opt.out.
+- You need to extract the Likelihoods and Years to find the peak split time.
+```bash
+# Example for one pair
+echo "Step Year Likelihood"
+paste <(awk '{print $1, $2}' /home/bistbs/Dama_gazelle_MiSTI_divergence/Step2_ANGSD/Pairwise_SFS/timescale.SRR17129394.SRR17134087.txt | grep -v "Units") \
+      <(grep "llh =" /home/bistbs/Dama_gazelle_MiSTI_divergence/Step2_ANGSD/Results/SRR17129394_SRR17134087.opt.out | awk '{print $15}') \
+      | column -t
+```
+---
+- Copy the output from the Step 7 into excel and create a scatterplot and add a 5th-degree polynomial trendline.
+- The peak of that line is the estimted divergence time
+---
 
