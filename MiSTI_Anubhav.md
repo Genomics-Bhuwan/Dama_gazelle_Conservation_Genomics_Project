@@ -13,8 +13,8 @@ SRR17134086 SRR17134088
 #### Step 1. and Step 2.
 ```bash
 #!/bin/bash -l
-#SBATCH --job-name=Dama_6Pairs_Hardcoded
-#SBATCH --time=48:00:00
+#SBATCH --job-name=Dama_6Pairs_Direct
+#SBATCH --time=58:00:00
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=13
 #SBATCH --mem=32G
@@ -23,59 +23,71 @@ SRR17134086 SRR17134088
 #SBATCH --output=logs/dama_pair_%A_%a.log
 
 # ----------------------------
-# 1. DEFINE YOUR 6 PAIRS MANUALLY HERE
+# Paths & References
 # ----------------------------
-# Format: "BAM_A BAM_B"
-PAIRS=(
-"/shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/ABBA_BABA/Haplotype_Caller/Five_samples/rmdup_Dama/SRR17129394_mapped_sorted_RG_rmdup.bam /shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/ABBA_BABA/Haplotype_Caller/Five_samples/rmdup_Dama/SRR17134087_mapped_sorted_RG_rmdup.bam"
-"/shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/ABBA_BABA/Haplotype_Caller/Five_samples/rmdup_Dama/SRR17129394_mapped_sorted_RG_rmdup.bam /shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/ABBA_BABA/Haplotype_Caller/Five_samples/rmdup_Dama/SRR17134088_mapped_sorted_RG_rmdup.bam"
-"/shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/ABBA_BABA/Haplotype_Caller/Five_samples/rmdup_Dama/SRR17134085_mapped_sorted_RG_rmdup.bam /shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/ABBA_BABA/Haplotype_Caller/Five_samples/rmdup_Dama/SRR17134087_mapped_sorted_RG_rmdup.bam"
-"/shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/ABBA_BABA/Haplotype_Caller/Five_samples/rmdup_Dama/SRR17134085_mapped_sorted_RG_rmdup.bam /shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/ABBA_BABA/Haplotype_Caller/Five_samples/rmdup_Dama/SRR17134088_mapped_sorted_RG_rmdup.bam"
-"/shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/ABBA_BABA/Haplotype_Caller/Five_samples/rmdup_Dama/SRR17134086_mapped_sorted_RG_rmdup.bam /shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/ABBA_BABA/Haplotype_Caller/Five_samples/rmdup_Dama/SRR17134087_mapped_sorted_RG_rmdup.bam"
-"/shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/ABBA_BABA/Haplotype_Caller/Five_samples/rmdup_Dama/SRR17134086_mapped_sorted_RG_rmdup.bam /shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/ABBA_BABA/Haplotype_Caller/Five_samples/rmdup_Dama/SRR17134088_mapped_sorted_RG_rmdup.bam"
-)
+module load angsd
 
-# ----------------------------
-# 2. SELECT THE CURRENT PAIR
-# ----------------------------
-# SLURM_ARRAY_TASK_ID will be 0, 1, 2, 3, 4, or 5
-CURRENT_PAIR=${PAIRS[$SLURM_ARRAY_TASK_ID]}
-BAM_A=$(echo $CURRENT_PAIR | awk '{print $1}')
-BAM_B=$(echo $CURRENT_PAIR | awk '{print $2}')
+# Direct path to the specific realSFS version you requested
+REALSFS_PATH="/software/ngsTools/1.0.2/ngsTools/ANGSD/angsd/misc/realSFS"
 
-# Set IDs (Strip the long suffix)
-ID_A=$(basename $BAM_A _mapped_sorted_RG_rmdup.bam)
-ID_B=$(basename $BAM_B _mapped_sorted_RG_rmdup.bam)
-
-# ----------------------------
-# 3. SET PATHS
-# ----------------------------
 OUT_DIR="/home/bistbs/Dama_gazelle_MiSTI_divergence/Step2_ANGSD"
 REF="/shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/ABBA_BABA/Dama_gazelle_hifiasm-ULONT_primary.fasta"
+BASE="/shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/ABBA_BABA/Haplotype_Caller/Five_samples/rmdup_Dama"
 
-mkdir -p $OUT_DIR/Individual_SAFs $OUT_DIR/Pairwise_SFS $OUT_DIR/logs
 cd $OUT_DIR
-
-echo "Running Pair Index $SLURM_ARRAY_TASK_ID: $ID_A vs $ID_B"
+mkdir -p Individual_SAFs Pairwise_SFS logs
 
 # ----------------------------
-# 4. STEP 1: SAF Generation
+# Hardcoded Full Paths for the 6 Pairs
 # ----------------------------
-for BAM in $BAM_A $BAM_B; do
-    ID=$(basename $BAM _mapped_sorted_RG_rmdup.bam)
-    if [ ! -f Individual_SAFs/${ID}.saf.idx ]; then
-        angsd -P 13 -i $BAM -anc $REF -ref $REF -out Individual_SAFs/${ID} \
+PAIRS=(
+    "${BASE}/SRR17129394_mapped_sorted_RG_rmdup.bam|${BASE}/SRR17134085_mapped_sorted_RG_rmdup.bam"
+    "${BASE}/SRR17129394_mapped_sorted_RG_rmdup.bam|${BASE}/SRR17134086_mapped_sorted_RG_rmdup.bam"
+    "${BASE}/SRR17129394_mapped_sorted_RG_rmdup.bam|${BASE}/SRR17134087_mapped_sorted_RG_rmdup.bam"
+    "${BASE}/SRR17134085_mapped_sorted_RG_rmdup.bam|${BASE}/SRR17134088_mapped_sorted_RG_rmdup.bam"
+    "${BASE}/SRR17134086_mapped_sorted_RG_rmdup.bam|${BASE}/SRR17134087_mapped_sorted_RG_rmdup.bam"
+    "${BASE}/SRR17134087_mapped_sorted_RG_rmdup.bam|${BASE}/SRR17134088_mapped_sorted_RG_rmdup.bam"
+)
+
+# Get the pair for the current SLURM task ID (0 through 5)
+CURRENT_PAIR=${PAIRS[$SLURM_ARRAY_TASK_ID]}
+
+# Split the string into individual BAM paths
+BAM_A=$(echo "$CURRENT_PAIR" | cut -d'|' -f1)
+BAM_B=$(echo "$CURRENT_PAIR" | cut -d'|' -f2)
+
+# Extract Sample IDs for file naming
+ID_A=$(basename "$BAM_A" | cut -d'_' -f1)
+ID_B=$(basename "$BAM_B" | cut -d'_' -f1)
+
+echo "------------------------------------------------------"
+echo "Job Array ID: ${SLURM_ARRAY_TASK_ID}"
+echo "Pair: $ID_A vs $ID_B"
+echo "------------------------------------------------------"
+
+# ----------------------------
+# STEP 1: Individual SAF Generation
+# ----------------------------
+for BAM in "$BAM_A" "$BAM_B"; do
+    ID=$(basename "$BAM" | cut -d'_' -f1)
+    if [ ! -f "Individual_SAFs/${ID}.saf.idx" ]; then
+        echo "Generating SAF for $ID..."
+        angsd -P 13 -i "$BAM" -anc "$REF" -ref "$REF" -out "Individual_SAFs/${ID}" \
               -dosaf 1 -gl 1 -C 50 -minQ 20 -minmapq 30
+    else
+        echo "SAF for $ID already exists. Skipping."
     fi
 done
 
 # ----------------------------
-# 5. STEP 2: 2DSFS Generation
+# STEP 2: Pairwise 2DSFS Generation
 # ----------------------------
-realSFS Individual_SAFs/${ID_A}.saf.idx Individual_SAFs/${ID_B}.saf.idx -P 13 \
-> Pairwise_SFS/${ID_A}_${ID_B}.real.sfs
+echo "Generating Pairwise SFS using: $REALSFS_PATH"
 
-echo "Completed SFS for $ID_A and $ID_B"
+$REALSFS_PATH "Individual_SAFs/${ID_A}.saf.idx" "Individual_SAFs/${ID_B}.saf.idx" -P 13 \
+> "Pairwise_SFS/${ID_A}_${ID_B}.real.sfs"
+
+echo "Done. Results in Pairwise_SFS/${ID_A}_${ID_B}.real.sfs"
 ```
 #### Step 3. Converting the .sfs to .mi.sfs files.
 ```bash
