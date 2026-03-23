@@ -163,6 +163,7 @@ awk '{print $1}' ancestral_alleles.txt > ancestral_positions.txt
 
 #### Step 8. Final Cleanup(Removing Mismatches)
 - Remove the SNPs where the ancestral letter doesn't match the Dama gazelle letters (e.g., Ancestro has "A", but Dama only has "C/G")
+```bash
 # 1. Identify the mismatches from the log file
 grep 'Warning' temp_dama_polarized.log | awk '{print $7}' | sed 's/.//;s/.$//' > mismatches.txt
 
@@ -180,3 +181,66 @@ rm temp_dama.vcf temp_dama_polarized.vcf alleles_only.txt positions_only.txt
 #### Step 9. Variant Annotation using VEP or SnpEff.
 - The final vcf has the ALT allele (the '1') is officially the Derived Mutation.
 - This is exactly what VEP needs to tell you if the mutation is harmful.
+```bash
+singularity exec ensembl-vep_latest.sif vep \
+--input_file ../Dama_Gazelle_Polarized_autosomes.vcf \
+--output_file ../Final_Annotation/Dama_Gazelle_Annotated_Individuals.txt \
+--fasta ../Dama_gazelle_hifiasm-ULONT_primary.fasta.gz \
+--gff ../Addra.withExons.gff.gz \
+--dir_cache ../vep_cache \
+--species dama_gazelle \
+--cache \
+--offline \
+--protein \
+--biotype \
+--pick \
+--fork 8 \
+--no_stats \
+--buffer_size 10000 \
+--force_overwrite \
+--warning_file ../vep_warnings.txt \
+--individual all
+```
+
+#### Step 10. Filter sites by the Consequences
+#### Step 10.a Filter site by the consequences
+```bash
+# Filter for LoF, missense, synonymous, and intergenic
+filter_vep -i ../Final_Annotation/Dama_Gazelle_Annotated_Individuals.txt -o missense_sites.txt --filter "Consequence is missense_variant"
+filter_vep -i ../Final_Annotation/Dama_Gazelle_Annotated_Individuals.txt -o synonymous_sites.txt --filter "Consequence is synonymous_variant"
+filter_vep -i ../Final_Annotation/Dama_Gazelle_Annotated_Individuals.txt -o lof_sites.txt --filter "Consequence is transcript_ablation or Consequence is splice_donor_variant or Consequence is splice_acceptor_variant or Consequence is stop_gained or Consequence is frameshift_variant or Consequence is inframe_insertion or Consequence is inframe_deletion or Consequence is splice_region_variant"
+filter_vep -i ../Final_Annotation/Dama_Gazelle_Annotated_Individuals.txt -o intergenic_sites.txt --filter "Consequence is intergenic_variant"
+```
+#### Step 10. b. Create ID Lists
+- use awk to turn the VEP locations into a format vcftools understands(Chromosome and Position).
+```bash
+cat missense_sites.txt | awk '{ print $1 }' | awk '{sub(/\:/," ",$1)};1' > missense_IDs.txt
+cat synonymous_sites.txt | awk '{ print $1 }' | awk '{sub(/\:/," ",$1)};1' > synonymous_IDs.txt
+cat lof_sites.txt | awk '{ print $1 }' | awk '{sub(/\:/," ",$1)};1' > lof_IDs.txt
+cat intergenic_sites.txt | awk '{ print $1 }' | awk '{sub(/\:/," ",$1)};1' > intergenic_IDs.txt
+```
+#### Step 10.c Extract the Genotypes from the polarized vcf
+- Go to the polarized vcf and pull out the only SNPs taht fall into these categories.
+```bash
+for i in missense synonymous lof intergenic
+do
+    vcftools --vcf ../Dama_Gazelle_Polarized_autosomes.vcf \
+    --recode \
+    --recode-INFO-all \
+    --positions ${i}_IDs.txt \
+    --out Dama_Gazelle_${i}_snps
+done
+```
+#### Step 10.d. Convert to PLINK(The A-transpose format)
+- This is the most important part for the R analysis.
+- Use Plink --export A-transposae.
+- This creates a .traw file where: Rows= SNPs, Columns - five individuals(SRR IDs); Values = 0, 1 or 2 (number of derived alleles).
+```bash
+for i in missense synonymous lof intergenic
+do
+    plink2 --vcf Dama_Gazelle_${i}_snps.recode.vcf \
+    --export A-transpose \
+    --allow-extra-chr \
+    --out Dama_Gazelle_${i}_genotypes
+done
+```
