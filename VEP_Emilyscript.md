@@ -238,9 +238,10 @@ done
 ```bash
 for i in missense synonymous lof intergenic
 do
-    plink2 --vcf Dama_Gazelle_${i}_snps.recode.vcf \
-    --export A-transpose \
-    --allow-extra-chr \
-    --out Dama_Gazelle_${i}_genotypes
+    /home/bistbs/Dama_gazelle_VEP/Merging_Outgroups/plink \
+        --vcf Dama_Gazelle_${i}_snps.recode.vcf \
+        --export A-transpose \
+        --allow-extra-chr \
+        --out $OUTDIR/Dama_Gazelle_${i}_genotypes
 done
 ```
