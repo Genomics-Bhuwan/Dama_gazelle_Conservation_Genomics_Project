@@ -65,7 +65,7 @@ echo "Merge Complete. Output file: $OUT_DIR/gazelle_outgroup_merged.bam"
 #SBATCH --output=/home/bistbs/Dama_gazelle_VEP/Merging_Outgroups/angsd_%j.out
 #SBATCH --error=/home/bistbs/Dama_gazelle_VEP/Merging_Outgroups/angsd_%j.err
 
-# 1. Load the ANGSD module (तपाईंको सिस्टममा भएको मोड्युल लोड गर्ने)
+# 1. Load the ANGSD module 
 module load angsd
 
 # 2. Define Input and Output
