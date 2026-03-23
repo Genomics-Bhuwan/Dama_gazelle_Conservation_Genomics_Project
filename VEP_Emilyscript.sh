@@ -90,3 +90,93 @@ angsd \
 
 echo "Process Complete. Your ancestral file is: ${OUT_PREFIX}.fa.gz"
 ```
+#### Step 3. Conversion of vcf file to .bed format
+- We need to take every mutation SNP that exists in your five gazelles and put their address into a simple list.
+```bash
+# Define your paths
+IN_VCF="/home/bistbs/Dama_gazelle_VEP/Merging_Outgroups/Dama_Gazelle_Final_Filtered_biallelic.recode.vcf"
+OUT_DIR="/home/bistbs/Dama_gazelle_VEP/Merging_Outgroups"
+PLINK_EXE="/home/bistbs/Dama_gazelle_VEP/Merging_Outgroups/plink"
+
+# Run the conversion
+$PLINK_EXE --vcf "$IN_VCF" \
+--make-bed \
+--allow-extra-chr \
+--out "$OUT_DIR/Dama_Final_Binary"
+```
+- After running the plink, run below command
+---
+awk 'BEGIN{OFS="\t"} {print $1, $4-1, $4}' Dama_Final_Binary.bim > Dama_SNPs_Coordinates.bed
+---
+
+#### Step 4. Extract ancestral alleles using bedtools
+- Since, I already have .bed file and ANGSD consensus fasta.
+```bash
+module load bedtools-2.28
+# 2. Define your paths
+FASTA="/home/bistbs/Dama_gazelle_VEP/Merging_Outgroups/gazelle_outgroup_consensus.fa"
+BED="/home/bistbs/Dama_gazelle_VEP/Merging_Outgroups/BEDfiles/Dama_SNPs_Coordinates.bed"
+OUT_FILE="/home/bistbs/Dama_gazelle_VEP/Merging_Outgroups/ancestral_alleles.out"
+
+# 3. Extract the ancestral base
+# Note: Ensure the FASTA is unzipped first
+bedtools getfasta -fi $FASTA -bed $BED -fo $OUT_FILE
+```
+#### Step 5. Reformat the Ancestral Alleles.
+```bash
+# 1. Extract just the DNA letters from the bedtools output
+grep -v ">" ancestral_alleles.out > alleles_only.txt
+
+# 2. Get the SNP IDs (Chromosome:Position) from your FIXED bed file
+# Note: We use the 3rd column (actual position) to match PLINK's @:# format
+awk '{print $1":"$3}' Dama_SNPs_Coordinates.bed > positions_only.txt
+
+# 3. Paste them together to make the reference file
+paste positions_only.txt alleles_only.txt > ancestral_alleles.txt
+```
+
+#### Step 6. Prepare the VCF IDs.
+- PLINK needs the IDs in your vcf to match the IDs in your ancestral_alleles.txt
+- A file named temp_dama.vcf where every SNP is named Chromosome: Position.
+```bash
+./plink --vcf Dama_Gazelle_Final_Filtered_biallelic.recode.vcf \
+--set-missing-var-ids @:# \
+--recode vcf \
+--allow-extra-chr \
+--out temp_dama
+```
+
+#### Step 7. Polarize (Big Switch)
+- Now, tell PLINK to force the ancestral letter from your list to be the Reference(0) allele.
+```bash
+ 1. Create a list of positions to keep
+awk '{print $1}' ancestral_alleles.txt > ancestral_positions.txt
+
+# 2. Run the polarization
+./plink --vcf temp_dama.vcf \
+--extract ancestral_positions.txt \
+--ref-allele force ancestral_alleles.txt 2 1 \
+--recode vcf \
+--allow-extra-chr \
+--out temp_dama_polarized
+```    
+
+#### Step 8. Final Cleanup(Removing Mismatches)
+- Remove the SNPs where the ancestral letter doesn't match the Dama gazelle letters (e.g., Ancestro has "A", but Dama only has "C/G")
+# 1. Identify the mismatches from the log file
+grep 'Warning' temp_dama_polarized.log | awk '{print $7}' | sed 's/.//;s/.$//' > mismatches.txt
+
+# 2. Create the final, clean, polarized VCF
+./plink --vcf temp_dama_polarized.vcf \
+--exclude mismatches.txt \
+--allow-extra-chr \
+--export vcf-4.2 \
+--out Dama_Gazelle_POLARIZED_Final
+
+# 3. Clean up the temporary files to save space
+rm temp_dama.vcf temp_dama_polarized.vcf alleles_only.txt positions_only.txt
+```
+
+#### Step 9. Variant Annotation using VEP or SnpEff.
+- The final vcf has the ALT allele (the '1') is officially the Derived Mutation.
+- This is exactly what VEP needs to tell you if the mutation is harmful.
