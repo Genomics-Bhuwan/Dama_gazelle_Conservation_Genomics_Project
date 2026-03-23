@@ -245,3 +245,112 @@ do
         --out $OUTDIR/Dama_Gazelle_${i}_genotypes
 done
 ```
+
+#### Step 11. Visualization for the plots
+```bash
+#### This is the final script for plotting the LOF and Missense mutation.
+
+# 1. Load Libraries
+library(tidyverse)
+library(patchwork)
+
+# 2. Set Working Directory
+setwd("F:/Collaborative_Projects/Dama_Gazelle_Project/VEP/Polarization_VEP")
+
+# 3. Define the files
+files <- list(
+  "Missense" = "Dama_Gazelle_missense_genotypes.traw",
+  "LoF"      = "Dama_Gazelle_lof_genotypes.traw"
+)
+
+# 4. Process Data: Clean IDs and Assign Subspecies
+get_genotype_metrics <- function(file_path, label) {
+  dat <- read.table(file_path, header = TRUE, check.names = FALSE)
+  geno <- dat[, 7:ncol(dat)]
+  
+  df <- data.frame(
+    # Truncate IDs at the underscore
+    SampleID  = names(geno) %>% str_remove("_.*"), 
+    Total_Alt = colSums(geno, na.rm = TRUE),
+    Hom_Alt   = colSums(geno == 2, na.rm = TRUE),
+    Het       = colSums(geno == 1, na.rm = TRUE),
+    Category  = label
+  )
+  
+  # Assign Subspecies groups
+  df <- df %>%
+    mutate(Subspecies = case_when(
+      str_detect(SampleID, "94$|85$|86$") ~ "Addra",
+      str_detect(SampleID, "87$|88$")     ~ "Mhorr",
+      TRUE                                ~ "Unknown"
+    ))
+  
+  return(df)
+}
+
+all_metrics <- map2_df(files, names(files), get_genotype_metrics)
+
+# 5. Plotting Function: Large Font for Molecular Ecology Resources
+create_plot <- function(df, y_var, y_label, letter, cat_name) {
+  
+  plot_color <- ifelse(cat_name == "Missense", "#4C9A2A", "#F28E2B")
+  
+  p <- ggplot(df %>% filter(Category == cat_name), 
+              aes(x = reorder(SampleID, !!sym(y_var)), y = !!sym(y_var))) +
+    geom_col(fill = plot_color, color = "black", width = 0.7, alpha = 0.8) +
+    geom_point(size = 3.5, color = "black") + 
+    facet_grid(. ~ Subspecies, scales = "free_x", space = "free_x") + 
+    theme_bw() + 
+    labs(title = paste0(letter, "   ", cat_name), y = y_label, x = "") +
+    theme(
+      # Axis Titles (Heterozygotes, etc.) - Large and Bold
+      axis.title.y = element_text(size = 18, face = "bold", margin = margin(r = 15), color = "black"),
+      axis.title.x = element_blank(),
+      
+      # Axis Values (Sample names and Numbers) - High Legibility
+      axis.text.y = element_text(size = 14, color = "black"),
+      axis.text.x = element_text(angle = 45, hjust = 1, size = 14, color = "black", face = "bold"),
+      
+      # Subspecies Headers (Addra/Mhorr)
+      strip.text = element_text(size = 18, face = "bold"),
+      strip.background = element_rect(fill = "grey95", color = "black", linewidth = 1),
+      
+      # Panel Lettering (A, B, C...)
+      plot.title = element_text(face = "bold", size = 22, hjust = 0),
+      
+      # Plot Layout Adjustments
+      panel.grid.minor = element_blank(),
+      panel.grid.major.x = element_blank(),
+      panel.border = element_rect(linewidth = 1, color = "black"),
+      panel.spacing = unit(1.5, "lines"),
+      plot.margin = margin(15, 15, 15, 15)
+    )
+  
+  return(p)
+}
+
+# 6. Generate the 6 Specific Panels
+pA <- create_plot(all_metrics, "Het", "Heterozygotes", "A", "Missense")
+pB <- create_plot(all_metrics, "Het", "Heterozygotes", "B", "LoF")
+pC <- create_plot(all_metrics, "Hom_Alt", "Derived Homozygotes", "C", "Missense")
+pD <- create_plot(all_metrics, "Hom_Alt", "Derived Homozygotes", "D", "LoF")
+pE <- create_plot(all_metrics, "Total_Alt", "Total Derived Alleles", "E", "Missense")
+pF <- create_plot(all_metrics, "Total_Alt", "Total Derived Alleles", "F", "LoF")
+
+# 7. Join and Save the Final Combined Comparison
+combined_comparison <- (pA + pB) / (pC + pD) / (pE + pF)
+
+# Final high-resolution export
+ggsave("Dama_Gazelle_MER_HighRes_Final.jpg", 
+       plot = combined_comparison, 
+       width = 12, 
+       height = 16, 
+       dpi = 600)
+
+ggsave("Dama_Gazelle_MER_HighRes_Final.pdf", 
+       plot = combined_comparison, 
+       width = 12, 
+       height = 16)
+
+print("Figures with increased font sizes saved successfully.")
+```
