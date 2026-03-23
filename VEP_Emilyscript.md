@@ -155,7 +155,7 @@ awk '{print $1}' ancestral_alleles.txt > ancestral_positions.txt
 # 2. Run the polarization
 ./plink --vcf temp_dama.vcf \
 --extract ancestral_positions.txt \
---ref-allele force ancestral_alleles.txt 2 1 \
+--a2-allele ancestral_alleles.txt 2 1 \
 --recode vcf \
 --allow-extra-chr \
 --out temp_dama_polarized
