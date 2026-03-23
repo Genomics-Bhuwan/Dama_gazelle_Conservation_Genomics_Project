@@ -48,3 +48,45 @@ java -Xmx30g -jar "$PICARD_JAR" MergeSamFiles \
 
 echo "Merge Complete. Output file: $OUT_DIR/gazelle_outgroup_merged.bam"
 ```
+
+#### Step 2. Consensus generation for Dama gazelle outgroups.
+
+```bash
+#!/bin/bash -l
+#SBATCH --job-name=ANGSD_Dama
+#SBATCH --time=54:00:00
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=14
+#SBATCH --mem=64G
+#SBATCH --partition=batch
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=bistbs@miamioh.edu
+#SBATCH --output=/home/bistbs/Dama_gazelle_VEP/Merging_Outgroups/angsd_%j.out
+#SBATCH --error=/home/bistbs/Dama_gazelle_VEP/Merging_Outgroups/angsd_%j.err
+
+# 1. Load the ANGSD module (तपाईंको सिस्टममा भएको मोड्युल लोड गर्ने)
+module load angsd
+
+# 2. Define Input and Output
+# Your merged outgroup BAM file
+INPUT_BAM="/home/bistbs/Dama_gazelle_VEP/Merging_Outgroups/gazelle_outgroup_merged.bam"
+# Where the ancestral fasta will be saved
+OUT_PREFIX="/home/bistbs/Dama_gazelle_VEP/Merging_Outgroups/gazelle_outgroup_consensus"
+
+echo "Starting ANGSD Consensus Generation for Dama Gazelle Outgroups..."
+
+# 3. Run ANGSD
+# -i: Input BAM
+# -P: Number of threads (CPUs to use)
+# -doFasta 2: Generates a consensus sequence (The 'Ancestral' map)
+# -doCounts 1: Counts the bases at each site (Needed for doFasta)
+angsd \
+    -i "$INPUT_BAM" \
+    -P 12 \
+    -doFasta 2 \
+    -doCounts 1 \
+    -out "$OUT_PREFIX"
+
+echo "Process Complete. Your ancestral file is: ${OUT_PREFIX}.fa.gz"
+```
