@@ -92,17 +92,26 @@ echo "Done. Results in Pairwise_SFS/${ID_A}_${ID_B}.real.sfs"
 #### Step 3. Converting the .sfs to .mi.sfs files.
 ```bash
 #!/bin/bash -l
-#SBATCH --job-name=MiSTI_Convert_Hardcoded
-#SBATCH --time=04:00:00
+#SBATCH --job-name=MiSTI_Convert_Gazelle
+#SBATCH --time=40:00:00
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=12
-#SBATCH --mem=40G
+#SBATCH --mem=50G
 #SBATCH --partition=batch
 #SBATCH --array=0-5
-#SBATCH --output=/home/bistbs/Dama_gazelle_MiSTI_divergence/Step2_ANGSD/logs/misti_convert_%A_%a.log
+#SBATCH --mail-user=bistbs@miamioh.edu
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --output=/home/bistbs/Dama_gazelle_MiSTI_divergence/Step2_ANGSD/SFS/sfs_to_mi_sfs/logs/misti_convert_%A_%a.log
+#SBATCH --error=/home/bistbs/Dama_gazelle_MiSTI_divergence/Step2_ANGSD/SFS/sfs_to_mi_sfs/logs/misti_convert_%A_%a.err
 
 # ----------------------------
-# 1. HARDCODED PAIRS (Same as Step 1)
+# 1. PRE-FLIGHT CHECK
+# ----------------------------
+# Ensure the log directory exists before the script does heavy lifting
+mkdir -p /home/bistbs/Dama_gazelle_MiSTI_divergence/Step2_ANGSD/SFS/sfs_to_mi_sfs/logs
+
+# ----------------------------
+# 2. THE 6 PAIRS
 # ----------------------------
 PAIRS=(
 "SRR17129394 SRR17134087"
@@ -114,74 +123,56 @@ PAIRS=(
 )
 
 # ----------------------------
-# 2. PATHS & SETUP
+# 3. PATHS & SETUP
 # ----------------------------
-BASE_DIR="/home/bistbs/Dama_gazelle_MiSTI_divergence/Step2_ANGSD"
-SFS_DIR="${BASE_DIR}/Pairwise_SFS"
-CONVERTER="${BASE_DIR}/MiSTI/utils/ANGSDSFS.py"
+SFS_DIR="/home/bistbs/Dama_gazelle_MiSTI_divergence/Step2_ANGSD/SFS"
+OUT_DIR="/home/bistbs/Dama_gazelle_MiSTI_divergence/Step2_ANGSD/SFS/sfs_to_mi_sfs"
+CONVERTER="/home/bistbs/Dama_gazelle_MiSTI_divergence/Step2_ANGSD/MiSTI/utils/ANGSDSFS.py"
 
-# Select the pair based on the Task ID (0-5)
+mkdir -p $OUT_DIR
+
 CURRENT_PAIR=${PAIRS[$SLURM_ARRAY_TASK_ID]}
 ID1=$(echo $CURRENT_PAIR | awk '{print $1}')
 ID2=$(echo $CURRENT_PAIR | awk '{print $2}')
 
-cd $SFS_DIR
-
 # ----------------------------
-# 3. CONVERSION
+# 4. CONVERSION
 # ----------------------------
-# Filename from Step 1 was: ID1_ID2.real.sfs
-INPUT_SFS="${ID1}_${ID2}.real.sfs"
+INPUT_SFS="${SFS_DIR}/${ID1}_${ID2}.sfs"
 
-echo "------------------------------------------------------"
-echo "Job Array ID: ${SLURM_ARRAY_TASK_ID}"
-echo "Converting SFS for Pair: $ID1 and $ID2"
-echo "Input File: $INPUT_SFS"
-echo "------------------------------------------------------"
+echo "Processing Job Array ID: ${SLURM_ARRAY_TASK_ID}"
+echo "Input: ${INPUT_SFS}"
 
 if [ -f "$INPUT_SFS" ]; then
-    # Run the python converter
-    # Argument 1: The raw SFS file
-    # Argument 2: Name of Individual 1 (Matches PSMC filename)
-    # Argument 3: Name of Individual 2 (Matches PSMC filename)
-    python $CONVERTER $INPUT_SFS $ID1 $ID2 > ${ID1}_${ID2}.mi.sfs
-    echo "Successfully created ${ID1}_${ID2}.mi.sfs"
+    # Using python3 is usually safer on clusters
+    python3 $CONVERTER $INPUT_SFS $ID1 $ID2 > ${OUT_DIR}/${ID1}_${ID2}.mi.sfs
+    echo "SUCCESS: Created ${OUT_DIR}/${ID1}_${ID2}.mi.sfs"
 else
-    echo "ERROR: Input file $INPUT_SFS not found in $SFS_DIR"
+    echo "ERROR: File $INPUT_SFS not found!"
     exit 1
 fi
-
-echo "Done!"
 ```
 
 #### Step 4. Calculate the Timescale (calc_time.py)
 ```bash
 #!/bin/bash -l
-#SBATCH --job-name=Dama_Step2_Prep
-#SBATCH --time=04:00:00
+#SBATCH --job-name=MiSTI_Timescale_Gazelle
+#SBATCH --time=01:00:00
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
-#SBATCH --mem=8G
-#SBATCH --partition=batch
-#SBATCH --array=1-6
-#SBATCH --output=/home/bistbs/Dama_gazelle_MiSTI_divergence/Step2_ANGSD/logs/prep_%A_%a.log
-
-# ----------------------------
-# 4. Calculate Timescale (The Step You Asked For)
-# ----------------------------
-#!/bin/bash -l
-#SBATCH --job-name=MiSTI_Timescale
-#SBATCH --time=02:00:00
-#SBATCH --ntasks=1
-#SBATCH --cpus-per-task=1
-#SBATCH --mem=8G
+#SBATCH --mem=4G
 #SBATCH --partition=batch
 #SBATCH --array=0-5
-#SBATCH --output=/home/bistbs/Dama_gazelle_MiSTI_divergence/Step2_ANGSD/logs/timescale_%A_%a.log
+#SBATCH --output=/home/bistbs/Dama_gazelle_MiSTI_divergence/Step2_ANGSD/SFS/sfs_to_mi_sfs/Timescale_calculation/logs/timescale_%A_%a.log
+#SBATCH --error=/home/bistbs/Dama_gazelle_MiSTI_divergence/Step2_ANGSD/SFS/sfs_to_mi_sfs/Timescale_calculation/logs/timescale_%A_%a.err
 
-# ----------------------------
-# 1. HARDCODED PAIRS (Matches your 6 specific comparisons)
-# ----------------------------
+# 1. PATHS
+BASE="/home/bistbs/Dama_gazelle_MiSTI_divergence/Step2_ANGSD"
+PSMC_DIR="${BASE}/Real_SFS/PSMC_files"
+WORKDIR="${BASE}/SFS/sfs_to_mi_sfs/Timescale_calculation"
+MISTI_UTILS="${BASE}/MiSTI/utils"
+
+# 2. DEFINE PAIRS
 PAIRS=(
 "SRR17129394 SRR17134087"
 "SRR17129394 SRR17134088"
@@ -191,41 +182,20 @@ PAIRS=(
 "SRR17134086 SRR17134088"
 )
 
-# ----------------------------
-# 2. FULL PATHS
-# ----------------------------
-BASE="/home/bistbs/Dama_gazelle_MiSTI_divergence/Step2_ANGSD"
-PSMC_DIR="${BASE}/Real_SFS/PSMC_files"
-SFS_DIR="${BASE}/Pairwise_SFS"
-CALC_PY="${BASE}/MiSTI/utils/calc_time.py"
-UNITS="${BASE}/MiSTI/misti/setunits.txt"
-
-# Select the pair
 CURRENT_PAIR=${PAIRS[$SLURM_ARRAY_TASK_ID]}
 ID1=$(echo $CURRENT_PAIR | awk '{print $1}')
 ID2=$(echo $CURRENT_PAIR | awk '{print $2}')
 
-echo "------------------------------------------------------"
-echo "Calculating Timescale for: $ID1 vs $ID2"
-echo "PSMC 1: ${PSMC_DIR}/${ID1}.psmc"
-echo "PSMC 2: ${PSMC_DIR}/${ID2}.psmc"
-echo "------------------------------------------------------"
+# 3. EXECUTION
+# We MUST be in utils for the script to find the modified migrationIO.py correctly
+cd $MISTI_UTILS
 
-# ----------------------------
-# 3. RUN CALC_TIME.PY
-# ----------------------------
-# This generates the text file mapping steps to years
-python $CALC_PY --funits $UNITS \
-    ${PSMC_DIR}/${ID1}.psmc \
-    ${PSMC_DIR}/${ID2}.psmc \
-    > ${SFS_DIR}/timescale.${ID1}.${ID2}.txt
+echo "Processing $ID1 vs $ID2 with Gazelle Defaults"
 
-if [ $? -eq 0 ]; then
-    echo "Successfully generated timescale.${ID1}.${ID2}.txt"
-else
-    echo "ERROR: Calculation failed for $ID1 and $ID2"
-    exit 1
-fi
+# Running without --funits to ensure it relies on the hardcoded defaults
+python3 calc_time.py "${PSMC_DIR}/${ID1}.psmc" "${PSMC_DIR}/${ID2}.psmc" > "${WORKDIR}/timescale.${ID1}_${ID2}.txt"
+
+echo "Done. Results in ${WORKDIR}/timescale.${ID1}_${ID2}.txt"
 ```
 #### Step 5. Generating the Migration Bands
 - Before running MiSTI, I need to tell when migration could have happened.
