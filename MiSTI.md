@@ -357,3 +357,88 @@ done
 ```bash
 grep "llh =" final_results_SRR17129394_SRR17134087.log
 ```
+
+- OR
+```bash
+echo "Pair,Time,LLH" > dama_misti_data.csv
+for file in final_results_SRR17129394_SRR17134087.log \
+            final_results_SRR17129394_SRR17134088.log \
+            final_results_SRR17134085_SRR17134087.log; do
+    pair=$(echo $file | sed 's/final_results_//;s/.log//')
+    # This specifically looks for the values after 'time =' and 'llh ='
+    grep "llh =" "$file" | sed 's/=/ /g' | awk -v p="$pair" '{print p "," $6 "," $NF}' >> dama_misti_data.csv
+done
+```
+
+#### Step 9. Visualization for the MiSTI plot
+```bash
+library(ggplot2)
+library(dplyr)
+library(scales)
+library(patchwork)
+
+# 1. Load Data
+df <- read.csv("F:/Collaborative_Projects/Dama_Gazelle_Project/MiSTI/dama_misti_data.csv")
+df$Time <- as.numeric(as.character(df$Time))
+df$LLH <- as.numeric(as.character(df$LLH))
+
+# 2. Extract Precise Peaks (0-100k window)
+get_unified_peak <- function(sub_df) {
+  fit <- loess(LLH ~ Time, data = sub_df, span = 0.4)
+  grid <- data.frame(Time = seq(0, 100000, length.out = 5000))
+  grid$pred <- predict(fit, grid)
+  return(data.frame(Peak_time = grid$Time[which.max(grid$pred)]))
+}
+
+peaks_df <- df %>% filter(Time <= 100000) %>% group_by(Pair) %>% do(get_unified_peak(.))
+
+win_min <- min(peaks_df$Peak_time)
+win_max <- max(peaks_df$Peak_time)
+
+# 3. Main Plot: Optimized for Maximum Visibility
+p_main <- ggplot(df %>% filter(Time <= 150000), aes(x = Time, y = LLH, color = Pair)) +
+  annotate("rect", xmin = win_min, xmax = win_max, 
+           ymin = -Inf, ymax = Inf, fill = "gray85", alpha = 0.5) + 
+  stat_smooth(method = "loess", span = 0.4, se = FALSE, linewidth = 1.8) +
+  scale_x_continuous(labels = label_comma(), limits = c(0, 150000), 
+                     expand = expansion(mult = c(0.02, 0.05))) +
+  scale_y_continuous(labels = label_scientific(), 
+                     expand = expansion(mult = c(0.05, 0.1))) +
+  theme_bw() +
+  theme(panel.grid = element_blank(),
+        axis.text.x = element_text(size = 18, color = "black", face = "bold"),
+        axis.text.y = element_text(size = 18, color = "black", face = "bold"),
+        axis.title = element_text(size = 20, face = "bold"),
+        panel.border = element_rect(colour = "black", fill=NA, linewidth=3),
+        # --- Bolder Legend ---
+        legend.position = c(0.82, 0.58), 
+        legend.background = element_blank(),
+        legend.key = element_blank(),
+        legend.title = element_text(size = 16, face = "bold"), # Much bigger
+        legend.text = element_text(size = 14, face = "bold"),  # Much bigger
+        legend.key.width = unit(1.5, "cm")) +                 # Longer legend lines
+  labs(x = "Time (Years Ago)", y = "LHH", color = "Sample Pairs") +
+  guides(color = guide_legend(ncol = 1, override.aes = list(linewidth = 3))) # Thicker lines in legend
+
+# 4. Refined Inset (Bold & Clear)
+p_inset <- ggplot(peaks_df, aes(x = Peak_time/1000, y = 1)) +
+  geom_boxplot(width = 0.4, fill = "white", color = "black", outlier.shape = NA, linewidth = 2) +
+  geom_jitter(aes(color = Pair), height = 0.1, size = 5, alpha = 0.9, show.legend = FALSE) +
+  scale_x_continuous(limits = c(30, 70), breaks = seq(30, 70, 10)) +
+  theme_classic() +
+  labs(title = "Divergence time (kya)") +
+  theme(axis.title = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.text.x = element_text(size = 16, color = "black", face = "bold"),
+        plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+        plot.background = element_rect(color = "black", linewidth = 3))
+
+# 5. Final Assembly
+final_plot <- p_main + inset_element(p_inset, left = 0.4, bottom = 0.05, right = 0.98, top = 0.42)
+
+# 6. Save
+ggsave("Dama_Divergence_Final_Ultra_Bold.jpg", plot = final_plot, 
+       width = 14, height = 10, dpi = 600, device = "jpeg")
+
+```
