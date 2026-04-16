@@ -48,6 +48,9 @@ vcftools --gzvcf all_samples_allsites_genotyped.vcf.gz \
 #### Step 3. Get the names of the samples of Addra and Mhorr
 - Make a file and seperate them.
 - Calcualte the pi dxy fst among these six pair of population using below code or revise it if needed.
+  ---
+Specifically, the dXY estimator can be used to estimate the absolute divergence between populations, along with Fst. I suggest we test the pairwise differences between each of the 3 addra and 2 mhorr gazelles (6x pairwise comparisons) as well as within each subspecies (between the 3 Addra and between the two Mhorr gazelles).
+  ---
 
 
 #### Step 4. Rather than running pixy on whole data file one at a time,
