@@ -6,7 +6,12 @@
 - Use VCFtools with the snpden function(Danecek et al., 2011).
 - Vcf as input file and a table with the snp count for reach region interval.
 
+```bash
+- I have five samples. What I need to do is split of the combined vcf to per sample vcf.
+- Sometime, if a command is ran witout reporting errors, it doesnot guarantee that the output is correct. In that case, check the output manually and calcualte some metrics for input and output. You might get a clue to what went wrong. 
+- To be sure, I calculated the numbers of different genotupes before split, after it and after extraction of heterozygotes sites. The number match ideally.
 
+```
 
 #### From Beginning from the last time
 - Make vcf bialleic after all the hard and soft filtering
