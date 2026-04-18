@@ -7,260 +7,131 @@
 - Vcf as input file and a table with the snp count for reach region interval.
 
 
-##### Code
-- Get only autosomes. Remove unaligned scaffolds and cytotypes.
-- Input .vcf
-- The reason I am keeping the window of 50kB is cause the variant size for my samples is too small in large windows.
-- Therefore, I tried with the bare minimum and was able to get it with the code given below.
 
-```bash
-# --- 1. CONFIGURATION ---
-VCF="Dama_gazelle_biallelic_snps_autosomes.vcf"
-WINDOW=50000     
-SAMPLES=("SRR17129394" "SRR17134085" "SRR17134086" "SRR17134087" "SRR17134088")
-
-echo "Starting Heterozygosity Density Analysis..."
-echo "Input VCF: $VCF"
-echo "Window Size: $WINDOW bp"
-
-# --- 2. INDIVIDUAL PROCESSING LOOP ---
-for sample in "${SAMPLES[@]}"
-do
-    echo "------------------------------------------"
-    echo "Processing $sample ..."
-    
-    # Extract only Heterozygous sites for the specific sample
-    bcftools view -s "$sample" -g het -c1 "$VCF" -Oz -o "${sample}_HET.vcf.gz"
-    
-    # Index the new VCF (required for many downstream tools)
-    bcftools index "${sample}_HET.vcf.gz"
-
-    # Calculate SNP density in windows
-    vcftools --gzvcf "${sample}_HET.vcf.gz" --SNPdensity "$WINDOW" --out "${sample}_density"
-done
-
-# --- 3. FINAL VERIFICATION & SUMMARY ---
-echo ""
-echo "--- FINAL VERIFICATION: HETEROZYGOUS SITE COUNTS ---"
-printf "%-15s | %-15s\n" "Sample" "Total Het Sites"
-echo "------------------------------------------"
-
-for s in "${SAMPLES[@]}"
-do
-    # Sum the 3rd column of the .snpden file (SNP count per window)
-    COUNT=$(awk 'NR>1 {sum+=$3} END {print sum}' "${s}_density.snpden")
-    printf "%-15s | %-15s\n" "$s" "$COUNT"
-done
-
-# --- 4. DATA AGGREGATION (Optional but recommended) ---
-# Creates a single file with an added column for the Sample ID
-echo "Collating results into 'all_samples_density.txt'..."
-echo -e "CHROM\tBIN_START\tSNP_COUNT\tVAR_PRI_MI\tSAMPLE" > all_samples_density.txt
-for s in "${SAMPLES[@]}"
-do
-    awk -v sam="$s" 'NR>1 {print $0 "\t" sam}' "${s}_density.snpden" >> all_samples_density.txt
-done
-
-echo "Done."
-
-```
-
-##### Visualization of SNP density plot using painted chromosomes.
-
-```bash
-library(ggplot2)
-library(dplyr)
-library(readr)
-
-# Input file (CSV)
-INPUT_FILE <- "F:/Collaborative_Projects/Dama_Gazelle_Project/Heterozygosity/Heterozygosity.csv"
-
-# Read CSV
-data <- read_csv(INPUT_FILE, show_col_types = FALSE)
-
-# Explicit species mapping
-data <- data %>%
-  mutate(
-    Species = case_when(
-      Sample %in% c("SRR17129394", "SRR17134085", "SRR17134086") ~ "Addra gazelle",
-      Sample %in% c("SRR17134087", "SRR17134088") ~ "Mohrr gazelle",
-      TRUE ~ "Unknown"
-    )
-  )
-
-# Sort by heterozygosity
-data <- data %>% arrange(Heterozygosity)
-
-# Preserve sorted x-axis order
-data$Sample <- factor(data$Sample, levels = data$Sample)
-
-# Plot with species color labels
-plot <- ggplot(data, aes(x = Sample, y = Heterozygosity, color = Species)) +
-  geom_point(size = 3) +
-  theme_bw(base_size = 14) +
-  theme(
-    axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
-    panel.grid.major.x = element_blank()
-  ) +
-  labs(
-    x = "Sample",
-    y = "Genome-wide heterozygosity",
-    title = "Individual Heterozygosity Across Samples"
-  ) +
-  scale_color_manual(
-    values = c(
-      "Addra gazelle" = "skyblue",
-      "Mohrr gazelle" = "orange",
-      "Unknown" = "grey"
-    )
-  )
-
-# Save plot
-ggsave("heterozygosity_plot_labeled.jpeg", plot, width = 12, height = 6, dpi = 300)
-# Save plot as PDF
-ggsave("heterozygosity_plot_labeled.pdf", plot, width = 12, height = 6)
-
-
-```
-#####################################################################################
-######################################################################################
-#######################################################################################
-# SNP density plot using MACE
-#### I have a biallelic filtered vcf file. I seperated each sample by only geting heterozygous sites as shown below. The indexed all the five vcf files. 
-#### Then, I am running the MACE on each of the files. 
-#### Step 1. Get only heterozygous VCF only using bcftools
-```bash
-/scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden/Dama_gazelle_biallelic_snps_autosomes.vcf
-
-bcftools view -g het -v snps \
-  Dama_gazelle_biallelic_snps_autosomes.vcf \
-  -Oz -o Dama_gazelle_het_snps.vcf.gz
-
-bcftools index Dama_gazelle_het_snps.vcf.gz
-```
-##### Step 2. Extract the Unique Scaffold IDs or the Chromosome number from the vcf file.
-```bash
-bcftools query -f '%CHROM\n' Dama_gazelle_het_snps.vcf.gz | sort | uniq > whitelist.txt
-```
-
-##### Step 3. Create the syn file. 
-```bash
-cd /scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden
-awk '{print $0 "\tChr"$0}' whitelist.txt > syn.txt
-```
-- This will produce syn.txt like this:
----
-1	Chr1
-2	Chr2
-3	Chr3
-4	Chr4
-5	Chr5
-6	Chr6
-7	Chr7
-8	Chr8
-9	Chr9
-10	Chr10
-11	Chr11
-12	Chr12
-13	Chr13
-14	Chr14
-15	Chr15
-16	Chr16
-17	Chr17
----
-##### Step 4. Ordering the list
-- This is a text file listing the scaffold names in the order you want them to be plotted.
-- would be one per line.
-```bash
-cd /scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden
-
-# Create orderlist in numeric order using the syn file
-sort -k2V syn.txt | awk '{print $2}' > orderlist.txt
-```
-##### Step 5. Create a scaffold length file. 
-- It provides the length of each scaffold in the reference genome essential for plotting heterozygosity densities along the genome.
-- Since, MACE plots the heterozygosity along the scaffolds.
-- Without the actual lengths, MACE cannot scale the x-axis correctly for each scaffold.
-- It wouldnot know where one scaffold ends and the next begins.
-```bash
-cd /scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden
-
-# Extract scaffold lengths
-cut -f1,2 /scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Dama_gazelle_hifiasm-ULONT_primary.fasta.fai > len.txt
-```
-
-##### Step 6. Running the MACE from its script.https://github.com/mahajrod/mace
-- Donwload MACE into the respective folder where you want to plot the heterozygosity density plot.
--  Since, the chromosomes were in the 1 2 3 ..17, therefore, in every file for indiviudal vcf for each sample I am renaming them to chr 1 chr2 and so on for each file such as len.txt, syn.txt, orderlist.txt and so forth.
-
-```bash
-cd /scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden/MACE/scripts
-conda create -n mace39_py39_clean python=3.9
-conda activate mace39_py39_clean
-conda install pandas matplotlib numpy scipy
-pip install RouToolPa
-```
--  Run the Python script for SRR17129394
--  This will get you png or svg files as your output.
-
-```bash
-PYTHONPATH=/scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden_Final/MACE:/scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden_Final/RouToolPa \
-python /scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden_Final/MACE/scripts/draw_variant_window_densities.py \
-  -i /scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden_Final/SRR17129394_het_only_chr.vcf.gz \
-  -o /scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden_Final/SRR17129394_density_100kb \
-  -n /scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden_Final/len_chr.txt \
-  --scaffold_white_list /scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden_Final/whitelist_chr.txt \
-  --scaffold_ordered_list /scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden_Final/orderlist_chr.txt \
-  --figure_height_per_scaffold 0.8 \
-  --figure_width 16 \
-  --title 'SRR17129394 – Heterozygous SNP density (100 kb sliding windows)' \
-  --output_formats png,svg \
-  --window_size 100000 \
-  --window_step 10000 \
-  --density_multiplier 1000 \
-  --rounded \
-  --hide_track_label
-
-
-```
-#### I am doing loop for SRR17134085 SRR17134086 SRR17134087 SRR17134088
-
-```bash
-# Directory paths
-VCF_DIR=/scratch/bistbs/Population_Genomic_Analysis/Heterozygosity/SNPden/Sergei_SNPden_Final
-OUT_DIR=$VCF_DIR
-
-# List of your four samples
-SAMPLES=("SRR17134085" "SRR17134086" "SRR17134087" "SRR17134088")
-
-# Loop over each sample
-for SAMPLE in "${SAMPLES[@]}"; do
-    VCF=$VCF_DIR/${SAMPLE}_het_only_chr.vcf.gz
-
-    echo "Processing $SAMPLE..."
-
-    PYTHONPATH=$VCF_DIR/MACE:$VCF_DIR/RouToolPa \
-    python $VCF_DIR/MACE/scripts/draw_variant_window_densities.py \
-      -i $VCF \
-      -o $OUT_DIR/${SAMPLE}_density_100kb \
-      -n $VCF_DIR/len_chr.txt \
-      --scaffold_white_list $VCF_DIR/whitelist_chr.txt \
-      --scaffold_ordered_list $VCF_DIR/orderlist_chr.txt \
-      --figure_height_per_scaffold 0.8 \
-      --figure_width 16 \
-      --title "${SAMPLE} – Heterozygous SNP density (100 kb sliding windows)" \
-      --output_formats png,svg \
-      --window_size 100000 \
-      --window_step 10000 \
-      --density_multiplier 1000 \
-      --rounded \
-      --hide_track_label
-done
-
-```
+#### From Beginning from the last time
+- Make vcf bialleic after all the hard and soft filtering
+- Only keeping the 1-17 autosomes.
+- 
 
 
 #############################################################################################################
 #############################################################
 ##### I am doing from beginning for the Dama one last time as suggested by Sergei
+```bash
+#!/usr/bin/env bash
+# This script assumes that draw_variant_window_densities.py (MACE script) is installed globally. 
 
+# DP1800 filter is set incorrectly and should be inverted. FILTER column in vcf file should contain a lable of the applied filter only if variant have failed to path the filter. Other filters (usual GATK) seems to be OK. 
+# So good variants should contain "DP1800" only. 
+
+#bcftools filter -i 'FILTER="DP1800"' -O z Dama_gazelle_biallelic_snps_autosomes.vcf.gz > Dama_gazelle_biallelic_snps_autosomes.filtered.vcf.gz;
+
+mkdir -p  split_samples; 
+for SAMPLE in `bcftools query -l Dama_gazelle_biallelic_snps_autosomes.filtered.vcf.gz`;
+    do
+    echo "Handling ${SAMPLE}..."
+    mkdir -p split_samples/${SAMPLE}
+    # count all genotypes from the filtered file for all samples
+    bcftools view -s ${SAMPLE} -O v Dama_gazelle_biallelic_snps_autosomes.filtered.vcf.gz | grep -v "^#" | cut -f 10 | cut -f 1 -d : | sort  | uniq -c > Dama_gazelle_biallelic_snps_autosomes.filtered.${SAMPLE}.all.genotype.test;
+    # get per-sample files without reference-like (0/0 and 0|0) and uncalled (./.) sites
+    bcftools view -s ${SAMPLE} -c 1 -O z Dama_gazelle_biallelic_snps_autosomes.filtered.vcf.gz > split_samples/${SAMPLE}/Dama_gazelle_biallelic_snps_autosomes.filtered.${SAMPLE}.vcf.gz
+    # extract heterozygous positions only
+    bcftools filter -i "GT='het'" -O z split_samples/${SAMPLE}/Dama_gazelle_biallelic_snps_autosomes.filtered.${SAMPLE}.vcf.gz > split_samples/${SAMPLE}/Dama_gazelle_biallelic_snps_autosomes.filtered.${SAMPLE}.hetero.vcf.gz
+
+	for FILE in split_samples/${SAMPLE}/*.vcf.gz; 
+		do 
+		zcat ${FILE} | grep -v "^#" | cut -f 10 | cut -f 1 -d : | sort  | uniq -c > ${FILE}.genotype.test; 
+	    done
+
+	draw_variant_window_densities.py -i split_samples/${SAMPLE}/Dama_gazelle_biallelic_snps_autosomes.filtered.${SAMPLE}.hetero.vcf.gz  \
+	                                 -o split_samples/${SAMPLE}/Dama_gazelle_biallelic_snps_autosomes.filtered.${SAMPLE}.hetero.w1000k_s100k \
+	                                 -w 1000000 \
+	                                 -s 100000 \
+	                                 --title "Heterozygous SNP densities (${SAMPLE})" \
+	                                 -a Dama_gazelle.chr.whitelist  \
+	                                 -z Dama_gazelle.chr.orderlist \
+	                                 --scaffold_syn_file Dama_gazelle.chr.syn  \
+	                                 --syn_file_key_column 0 \
+	                                 --syn_file_value_column 1 \
+	                                 --density_thresholds 0,0.1,0.5,0.75,1.0,1.25,1.5,2.0,2.5 \
+	                                 --hide_track_label \
+	                                 --rounded;
+
+	draw_variant_window_densities.py -i split_samples/${SAMPLE}/Dama_gazelle_biallelic_snps_autosomes.filtered.${SAMPLE}.hetero.vcf.gz  \
+	                                 -o split_samples/${SAMPLE}/Dama_gazelle_biallelic_snps_autosomes.filtered.${SAMPLE}.hetero.w100k_s10k \
+	                                 -w 100000 \
+	                                 -s 10000 \
+	                                 --title "Heterozygous SNP densities (${SAMPLE})" \
+	                                 -a Dama_gazelle.chr.whitelist  \
+	                                 -z Dama_gazelle.chr.orderlist \
+	                                 --scaffold_syn_file Dama_gazelle.chr.syn  \
+	                                 --syn_file_key_column 0 \
+	                                 --syn_file_value_column 1 \
+	                                 --density_thresholds 0,0.1,0.5,0.75,1.0,1.25,1.5,2.0,2.5 \
+	                                 --hide_track_label \
+	                                 --rounded;
+	done
+
+```
+
+#### Step 2. 
+- Make a file named "Dama_gazelle.chr.orderlist" and keep below name in this file
+  ```bash
+chr1
+chr2
+chr3
+chr4
+chr5
+chr6
+chr7
+chr8
+chr9
+chr10
+chr11
+chr12
+chr13
+chr14
+chr15
+chr16
+chr17
+```
+- Dama_gazelle.chr.syn
+```bash
+1	chr1
+2	chr2
+3	chr3
+4	chr4
+5	chr5
+6	chr6
+7	chr7
+8	chr8
+9	chr9
+10	chr10
+11	chr11
+12	chr12
+13	chr13
+14	chr14
+15	chr15
+16	chr16
+17	chr17
+```
+- Dama_gazelle.chr.whitelist
+```bash
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+```
