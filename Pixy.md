@@ -37,11 +37,12 @@ gatk --java-options "-Xmx90g" GenotypeGVCFs \
 
 #### Step 2. Go for variant filtration using vcf-tools
 ```bash
-vcftools --gzvcf all_samples_allsites_genotyped.vcf.gz \
+vcftools --gzvcf /shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Pixy/all_samples_allsites_genotyped.vcf.gz \
   --remove-indels \
   --max-missing 0.8 \
   --min-meanDP 10 \
   --max-meanDP 100 \
+  --minQ 30 \
   --recode --stdout | gzip -c > filtered_allsites.vcf.gz
 ```
 
