@@ -76,3 +76,16 @@ pixy \
 --n_cores 4 \
 --output_prefix dama_pixy
 ```
+
+
+
+#################################################################################################################################
+
+#### Klaus recommended me to find out the outlier loci in the Dxy and correspond those loci or SNPs with the genes associated with them
+```bash
+- Identifying the genes in Dxy outlier regions to find out which genes are in those spikes on chromosomes 6 7 14 and 15.
+- We need the GFF/GTF annotation file from our dama gazelle reference genome.
+- Workflow:
+- Filter outliers: We take the pxy_dxy.txt file and pull the top 1% or specific threshold of windows.
+- Overlap with Annotation using a tool called bedtools intersect to see which gene names in the GFF file overlap with your high Dxy window coordinates. 
+```
