@@ -54,19 +54,25 @@ Specifically, the dXY estimator can be used to estimate the absolute divergence 
   ---
 
 
-#### Step 4. Rather than running pixy on whole data file one at a time,
-- Run it based on chromosomes. 
+#### Step 4. Run Pixy and Dxy
+- Run it based on chromosomes.
+ #### Step 4.a Make the populations.txt
+```bash
+SRR17129394	Addra
+SRR17134085	Addra
+SRR17134086	Addra
+SRR17134087	Mhorr
+SRR17134088	Mhorr
+```
+#### Step 4.b. Run the pixy
 
 ```bash
-pixy --stats pi dxy fst \
-
-  -vcf chr1_filtered.vcf.gz \
-
-  --populations individual_pops.txt \
-
-  --window_size 50000 \
-
-  --n_cores 4 \
-
-  --output_prefix chr1_results
+pixy \
+--vcf /shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Pixy/VCF_filtration/filtered_all_sites.vcf.gz \
+--populations populations.txt \
+--stats pi dxy fst \
+--chromosomes '1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17' \
+--window_size 10000 \
+--n_cores 4 \
+--output_prefix dama_pixy
 ```
