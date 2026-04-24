@@ -89,3 +89,97 @@ pixy \
 - Filter outliers: We take the pxy_dxy.txt file and pull the top 1% or specific threshold of windows.
 - Overlap with Annotation using a tool called bedtools intersect to see which gene names in the GFF file overlap with your high Dxy window coordinates. 
 ```
+```bash
+# ============================================================
+# STEP 1: EXTRACT DXY OUTLIERS FOR GENE ANNOTATION
+# ============================================================
+
+# 1. Load required libraries
+library(dplyr)
+
+# 2. Define the file path (using the path you provided)
+# Note: In R, use forward slashes / even on Windows
+input_file <- "F:/Collaborative_Projects/Dama_Gazelle_Project/Pixy/dama_pixy_dxy.txt"
+output_bed <- "F:/Collaborative_Projects/Dama_Gazelle_Project/Pixy/dxy_outliers.bed"
+
+# 3. Load the data
+# We use check.names=F in case there are odd characters in headers
+dxy_data <- read.table(input_file, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+
+# 4. Filter out windows with NA values
+# Pixy produces NAs where there are no sites to compare
+dxy_clean <- dxy_data %>%
+  filter(!is.na(avg_dxy))
+
+# 5. Calculate the Outlier Threshold
+# We take the top 1% of the data. 
+# Based on your plot, these will capture those high spikes on Chr 6, 7, 14, 15.
+threshold_value <- quantile(dxy_clean$avg_dxy, 0.99)
+
+# 6. Extract the outliers
+dxy_outliers <- dxy_clean %>%
+  filter(avg_dxy >= threshold_value) %>%
+  arrange(desc(avg_dxy)) # Sort by highest Dxy first
+
+# 7. Format for BED file (Chrom, Start, End)
+# BED format is 0-based for the start position, but Pixy is 1-based.
+# To be safe for bedtools, we subtract 1 from window_pos_1.
+bed_output <- dxy_outliers %>%
+  mutate(start_0 = window_pos_1 - 1) %>%
+  select(chromosome, start_0, window_pos_2)
+
+# 8. Save the BED file
+write.table(bed_output, 
+            file = output_bed, 
+            sep = "\t", 
+            quote = FALSE, 
+            row.names = FALSE, 
+            col.names = FALSE)
+
+# 9. Summary Report
+cat("--- Dxy Outlier Extraction Summary ---\n")
+cat("Total windows analyzed: ", nrow(dxy_clean), "\n")
+cat("Outlier Threshold (99th percentile): ", threshold_value, "\n")
+cat("Number of outlier windows found: ", nrow(dxy_outliers), "\n")
+cat("Outliers saved to: ", output_bed, "\n\n")
+
+# Print count per chromosome to verify those spikes
+cat("Outlier count per chromosome:\n")
+print(table(dxy_outliers$chromosome))
+```
+
+#### Intersection of the outliers vs. Annotation file of .gff/gtf files
+```bash
+# 1. Move to the directory
+cd /shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Pixy/Gene_Ontology/
+
+# 2. Load bedtools (Check your cluster's specific name, often 'bedtools' or 'bedtools2')
+module load bedtools
+
+# 3. Run the intersection
+# -a: Your outlier windows
+# -b: Your genome annotation
+# -wa: Keep the info from your BED file (Chr, Start, End)
+# -wb: Append the info from the GFF file (Gene names, types, etc.)
+bedtools intersect \
+-a dxy_outliers.bed \
+-b Addra_complete.genomic.gff \
+-wa -wb > dxy_outlier_genes_full_info.txt
+
+
+# 3.List the name of the genes
+# This pulls the 'gene=' field from the GFF portion of the output
+grep "gene=" dxy_outlier_genes_full_info.txt | \
+awk -F'gene=' '{print $2}' | \
+cut -d';' -f1 | \
+sort | \
+uniq > final_candidate_genes.txt
+
+# 4. Annotate the genes using gene Ontology using ShinyGo
+
+```
+
+
+
+
+####
