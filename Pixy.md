@@ -182,4 +182,105 @@ uniq > final_candidate_genes.txt
 
 
 
-####
+
+
+
+######################################################################################################################################################
+######################################################################################################################################################
+##### Running the pixy to estimte the Dxy and Fst between the Dama gazelles and Grant's gazelle. 
+##### It will provide a baseline between two well-differentiated species to compare the Dxy and Fst values between these species versus between Addra and Mhorr gazelle.
+
+#### Step 1. a Call for genotypes for variants sites as well as non-variants sites.
+```bash
+#!/bin/bash -l
+#SBATCH --time=85:00:00
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=24
+#SBATCH --mem=90G
+#SBATCH --partition=batch
+#SBATCH --job-name=AllSites
+#SBATCH --output=allsites_%j.out
+#SBATCH --error=allsites_%j.err
+#SBATCH --mail-type=BEGIN,END
+#SBATCH --mail-user=bistbs@miamioh.edu
+
+# Note: %j will automatically insert the unique Job ID into the filename
+
+# Move to your current working directory
+cd /shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Pixy/Klaus_Pxy_recommendation
+
+module load gatk-4.1.2.0 
+
+# Define paths
+REFERENCE="/shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/ABBA_BABA/Dama_gazelle_hifiasm-ULONT_primary.fasta"
+INPUT_GVCF="Joint_Genotyping_combined.g.vcf.gz"
+OUTPUT_VCF="dama_baseline_allsites.vcf.gz"
+
+# Run GATK GenotypeGVCFs
+# Including non-variant sites as requested by your collaborator
+gatk --java-options "-Xmx90g" GenotypeGVCFs \
+  -R $REFERENCE \
+  -V $INPUT_GVCF \
+  -O $OUTPUT_VCF \
+  --include-non-variant-sites true
+```
+#### Step 2. Use vcf-tools for removing the ambigious calls.
+```bash
+#!/bin/bash
+#SBATCH --job-name=vcf_filter
+#SBATCH --output=vcf_filter_%j.out
+#SBATCH --error=vcf_filter_%j.err
+#SBATCH --time=70:00:00
+#SBATCH --cpus-per-task=24
+#SBATCH --mem=50G
+#SBATCH --partition=batch
+
+# Load required module
+module load vcf-tools
+
+# Define input and output
+INPUT_VCF="/shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Pixy/Klaus_Pxy_recommendation/Remove_one_sample/dama_baseline_filtered.vcf.gz"
+OUTPUT_VCF="filtered_allsites.vcf.gz"
+
+# Run filtering
+vcftools --gzvcf $INPUT_VCF \
+  --remove-indels \
+  --max-missing 0.8 \
+  --min-meanDP 10 \
+  --max-meanDP 100 \
+  --minQ 30 \
+  --recode --stdout | gzip -c > $OUTPUT_VCF
+
+echo "Filtering complete: $OUTPUT_VCF"
+```
+#### Step 3. Get the names of the samples of Addra, Mhorr and Grant's gazelle
+- Make a file and seperate them.
+- Calcualte the pi dxy fst among these six pair of population using below code or revise it if needed.
+- Specifically, the dXY estimator can be used to estimate the absolute divergence between populations, along with Fst.
+- I suggest we test the pairwise differences between each of the 3 addra and 2 mhorr gazelles (6x pairwise comparisons) as well as within each subspecies (between the 3 Addra and between the two Mhorr gazelles along with Grant's gazelle).
+  
+#### Step 4. Run Pixy and Dxy
+- Run it based on chromosomes(I am running with 1-17 autosomes only).
+ #### Step 4.a Make the  individual populations.txt for individual pariwise comparions.
+```bash
+SRR17129394	Addra1
+SRR17134085	Addra2
+SRR17134086	Addra3
+SRR17134087	Mhorr1
+SRR17134088	Mhorr2
+SRR6878810  Grant's
+```
+#### Step 4.b. Run the pixy
+
+```bash
+pixy \
+--vcf /shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Pixy/VCF_filtration/filtered_all_sites.vcf.gz \
+--populations indiv_populations.txt \
+--stats pi dxy fst \
+--chromosomes '1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17' \
+--window_size 10000 \
+--n_cores 20 \
+--output_prefix dama_pixy
+```
+
