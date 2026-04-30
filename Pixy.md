@@ -270,17 +270,22 @@ SRR17134086	Addra3
 SRR17134087	Mhorr1
 SRR17134088	Mhorr2
 SRR6878810  Grant's
+SRR6894844	Thompson's
+
 ```
 #### Step 4.b. Run the pixy
 
 ```bash
 pixy \
---vcf /shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Pixy/VCF_filtration/filtered_all_sites.vcf.gz \
+mkdir pixy_results
+
+--vcf dama_pixy_filtered.vcf.gz \
 --populations indiv_populations.txt \
 --stats pi dxy fst \
 --chromosomes '1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17' \
 --window_size 10000 \
 --n_cores 20 \
---output_prefix dama_pixy
+--output_folder ./pixy_results \
+--output_prefix dama
 ```
 
