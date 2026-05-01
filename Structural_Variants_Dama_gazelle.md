@@ -142,3 +142,74 @@ singularity exec --bind /shared:/shared $DELLY_IMG bcftools view dama_merged.bcf
 - 0/0: Homozygous Reference (No SV).
 - 0/1: Heterozygous SV.
 - 1/1: Homozygous Alternative SV.
+- USE IGV OR WALLY for genome visualtion for the SV: https://github.com/tobiasrausch/wally
+
+
+
+##################################################################################################################################
+#####  Step 7. WHAMg for structural variants calling##############################################################################
+##################################################################################################################################
+- Link to whamg pipeline: https://github.com/zeeev/wham
+
+#### Step 7 a. Installation of the whamg
+```bash
+git clone --recursive  https://github.com/zeeev/wham.git; cd wham; make
+```
+
+#### Step 7 b. Runnig whamg
+```bash
+# 1. Define paths
+REF="/shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Structural_Variants_SaVOR/Dama_gazelle_hifiasm-ULONT_primary.fasta"
+OUT_DIR="/shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Structural_Variants/WHAM"
+EXCLUDE_FILE="$OUT_DIR/exclude.txt"
+
+# 2. Format the exclusion list (converts newlines to commas)
+# This command takes the file, replaces newlines with commas, and removes the trailing comma.
+EXCLUDE_LIST=$(tr '\n' ',' < "$EXCLUDE_FILE" | sed 's/,$//')
+
+# 3. Define BAM files (comma-separated)
+BAMS="/shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Structural_Variants_SaVOR/svArcher_Standalone/results/Dama_Gazelle/bams/SRR17129394_mapped_sorted_RG_rmdup.bam,\
+/shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Structural_Variants_SaVOR/svArcher_Standalone/results/Dama_Gazelle/bams/SRR17134085_mapped_sorted_RG_rmdup.bam,\
+/shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Structural_Variants_SaVOR/svArcher_Standalone/results/Dama_Gazelle/bams/SRR17134086_mapped_sorted_RG_rmdup.bam,\
+/shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Structural_Variants_SaVOR/svArcher_Standalone/results/Dama_Gazelle/bams/SRR17134087_mapped_sorted_RG_rmdup.bam,\
+/shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Structural_Variants_SaVOR/svArcher_Standalone/results/Dama_Gazelle/bams/SRR17134088_mapped_sorted_RG_rmdup.bam"
+
+# 4. Run whamg
+# -e: our newly formatted comma-separated exclusion list
+# -a: reference genome
+# -f: the list of BAMs
+# -x: using 8 CPUs
+# -z: force sampling (useful for de novo assemblies with many contigs)
+whamg -e "$EXCLUDE_LIST" -a "$REF" -f "$BAMS" -x 8 -z \
+    > "$OUT_DIR/Dama_Gazelle_joint_calls.vcf" \
+    2> "$OUT_DIR/Dama_Gazelle_run.err"
+ ```
+- It is recommended that I look at the most interesting SVs in the genome browser like IGV(Integrative Genomics Viewer).
+- What to look for: Look at your BAM files and the whamg vcf file. I want to see the clear cliff in coverage or a cluster of colored reads(discordant pairs) at the excat spots whamg made the call.
+
+#### 7 C. Filtration of the noise or the artifacts
+```bash
+# 1. Define your file paths
+INPUT_VCF="/shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Structural_Variants/WHAM/Dama_Gazelle_joint_calls.vcf"
+FINAL_VCF="/shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Structural_Variants/WHAM/Dama_Gazelle_clean_final.vcf"
+
+# 2. Run the combined filter
+# EXPLANATION OF LOGIC:
+# ABS(SVLEN)>=50       -> Keep only variants 50bp or larger (Standard SV definition).
+# ABS(SVLEN)<=2000000  -> Remove variants larger than 2Mb (Usually assembly artifacts).
+# INFO/A>=5            -> Total supporting reads across all 5 samples must be at least 5.
+# INFO/CW[4]<0.2       -> The 5th value in the CW field (BND) must be less than 20%. 
+#                         This removes false positives caused by repetitive sequences.
+
+bcftools filter -i 'ABS(SVLEN)>=50 && ABS(SVLEN)<=2000000 && INFO/A>=5 && INFO/CW[4]<0.2' \
+    $INPUT_VCF \
+    -O v -o $FINAL_VCF
+
+# 3. Quick Stats Comparison
+echo "------------------------------------------------"
+echo "Filtering Complete!"
+echo "Raw Variants:      $(grep -v "^#" $INPUT_VCF | wc -l)"
+echo "Filtered Variants: $(grep -v "^#" $FINAL_VCF | wc -l)"
+echo "------------------------------------------------"
+```
+   
