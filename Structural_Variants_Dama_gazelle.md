@@ -136,4 +136,9 @@ singularity exec --bind /shared:/shared $DELLY_IMG bcftools view dama_merged.bcf
 - sites.bcf: master list of SVs found across the cohort of 5.
 - *.geno.bcf: Individual files containing the presence/absence of SVs.
   
-
+#### Step 6 e.: Final filtration
+- Use bcftools and only keep the varaints that pass the quality. Rest eliminate.
+- After filtration, look at the genotype field in the vcf file and see
+- 0/0: Homozygous Reference (No SV).
+- 0/1: Heterozygous SV.
+- 1/1: Homozygous Alternative SV.
