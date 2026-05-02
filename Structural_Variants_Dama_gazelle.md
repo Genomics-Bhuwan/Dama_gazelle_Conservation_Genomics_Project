@@ -31,6 +31,13 @@ chmod +x smoove
 # Optional: Run duphold to add depth annotations (DHFFC)
 # Note: You would usually add -d to the initial 'call' to do this automatically
 # If you didn't, you can run it now:
+- Install the duphold for running.
+---
+cd /shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/smoove
+
+wget https://github.com/brentp/duphold/releases/download/v0.2.1/duphold
+chmod +x duphold
+```
 
 #### Step 3 a. Annotation included
 ```bash
@@ -43,7 +50,7 @@ chmod +x smoove
 
 #### Step 3 b. Run annotate with a GFF file for the Dama gazelle.
 ```bash
-./smoove annotate --gff your_gazelle.gff3.gz Dama_Gazelle_Annotated.vcf.gz | bgzip -c > Dama_Gazelle_Final.vcf.gz
+./smoove annotate --gff Addra_complete.genomic.gff Dama_Gazelle_Final_Annotated.vcf.gz | bgzip -c > Dama_Gazelle_Final.vcf.gz
 ```
 
 #### Step 4. Variant filtration for Smoove for high-quality genotypes and real depth changes using LUMPY
@@ -53,16 +60,11 @@ chmod +x smoove
 - These are stringently requested by the smoove pipeline.
 ```bash
 bcftools view -i 'MSHQ > 3 && (SVTYPE == "DEL" && DHFFC < 0.7 || SVTYPE == "DUP" && DHFFC > 1.3 || SVTYPE == "INV")' \
-    Dama_Gazelle_Annotated.vcf.gz | \
-bcftools view -i 'QUAL >= 100' -O z -o Dama_Gazelle_Smoove_Clean.vcf.gz
+Dama_Gazelle_Final.vcf.gz -O z -o Dama_Gazelle_Smoove_Final_Filtered_.vcf.gz
 
-# Always index after filtering
-tabix -p vcf Dama_Gazelle_Smoove_Clean.vcf.gz
 ```
 
-
-
-#### Step 5. Running Manta and Delly for structural variant calling
+#### Step 5. Running Delly for structural variant calling
 - DELLY- https://github.com/dellytools/delly
 - singularity pull delly.sif docker://dellytools/delly:latest    : Use this for installing the delly.
 
