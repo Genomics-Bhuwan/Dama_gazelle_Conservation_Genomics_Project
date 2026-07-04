@@ -50,7 +50,8 @@ vcftools --gzvcf /shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Pixy/all_sam
 - Make a file and seperate them.
 - Calcualte the pi dxy fst among these six pair of population using below code or revise it if needed.
   ---
-Specifically, the dXY estimator can be used to estimate the absolute divergence between populations, along with Fst. I suggest we test the pairwise differences between each of the 3 addra and 2 mhorr gazelles (6x pairwise comparisons) as well as within each subspecies (between the 3 Addra and between the two Mhorr gazelles).
+- Specifically, the dXY estimator can be used to estimate the absolute divergence between populations, along with Fst.
+-  I suggest we test the pairwise differences between each of the 3 addra and 2 mhorr gazelles (6x pairwise comparisons) as well as within each subspecies (between the 3 Addra and between the two Mhorr gazelles).
   ---
 
 
