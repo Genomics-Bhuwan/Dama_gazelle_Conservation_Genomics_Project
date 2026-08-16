@@ -424,3 +424,284 @@ echo ""
 echo "End: $(date)"
 echo "============================================================"
 ```
+############################################################
+########## Hard filteration#################################
+############################################################
+```bash
+#!/bin/bash
+#SBATCH --job-name=Hard_filter_Dama
+#SBATCH --output=/anvil/projects/x-bio260092/Dama_Gazelle/Dama_Gazelle_Variant_Analysis/logs/SNP_filter_%A.out
+#SBATCH --error=/anvil/projects/x-bio260092/Dama_Gazelle/Dama_Gazelle_Variant_Analysis/logs/SNP_filter_%A.err
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=32
+#SBATCH --mem=105G
+#SBATCH --time=54:00:00
+#SBATCH --partition=shared
+#SBATCH --account=bio260092
+#SBATCH --mail-user=bistbs@miamioh.edu
+#SBATCH --mail-type=BEGIN,END,FAIL
+
+set -euo pipefail
+
+module purge
+module load gcc/11.2.0
+module load samtools/1.12
+module load gatk/4.1.8.1
+
+BASE="/anvil/projects/x-bio260092/Dama_Gazelle"
+ANALYSIS="${BASE}/Dama_Gazelle_Variant_Analysis"
+
+REF="${ANALYSIS}/reference/Dama_gazelle_hifiasm-ULONT_primary.fasta"
+
+INPUT="${ANALYSIS}/03_Combined_Raw_VCF/dama_gazelle.chr1-17.raw.vcf.gz"
+
+OUTDIR="${ANALYSIS}/04_SNP_Filtering"
+
+mkdir -p "${OUTDIR}"
+mkdir -p "${ANALYSIS}/logs"
+
+SNP_RAW="${OUTDIR}/dama_gazelle.SNPs.raw.vcf.gz"
+SNP_FILTERED="${OUTDIR}/dama_gazelle.SNPs.site_filtered.vcf.gz"
+SNP_CLEAN="${OUTDIR}/dama_gazelle.SNPs.clean.vcf.gz"
+
+echo "============================================================"
+echo "DAMA GAZELLE SNP SITE FILTERING"
+echo "============================================================"
+echo "Job ID: ${SLURM_JOB_ID}"
+echo "Start: $(date)"
+echo "============================================================"
+
+echo "Reference:"
+ls -lh "${REF}"
+
+echo "Input VCF:"
+ls -lh "${INPUT}"
+ls -lh "${INPUT}.tbi"
+
+# ------------------------------------------------------------
+# STEP 1: Select SNPs
+# ------------------------------------------------------------
+
+echo ""
+echo "============================================================"
+echo "STEP 1: SELECTING SNPs"
+echo "============================================================"
+
+gatk SelectVariants \
+    -R "${REF}" \
+    -V "${INPUT}" \
+    --select-type-to-include SNP \
+    -O "${SNP_RAW}"
+
+gatk IndexFeatureFile \
+    -I "${SNP_RAW}"
+
+echo ""
+echo "Number of raw SNPs:"
+gatk CountVariants -V "${SNP_RAW}"
+
+# ------------------------------------------------------------
+# STEP 2: GATK SNP HARD FILTERING
+# ------------------------------------------------------------
+
+echo ""
+echo "============================================================"
+echo "STEP 2: GATK SNP HARD FILTERING"
+echo "============================================================"
+
+gatk VariantFiltration \
+    -R "${REF}" \
+    -V "${SNP_RAW}" \
+    -O "${SNP_FILTERED}" \
+    --filter-expression "QD < 2.0 || FS > 60.0 || MQ < 40.0 || SOR > 3.0 || MQRankSum < -12.5 || ReadPosRankSum < -8.0" \
+    --filter-name "SNP_HARD_FILTER"
+
+gatk IndexFeatureFile \
+    -I "${SNP_FILTERED}"
+
+echo ""
+echo "SNPs remaining after filtering:"
+gatk CountVariants -V "${SNP_FILTERED}"
+
+# ------------------------------------------------------------
+# STEP 3: REMOVE FILTERED VARIANT SITES
+# ------------------------------------------------------------
+
+echo ""
+echo "============================================================"
+echo "STEP 3: REMOVING FILTERED SNP SITES"
+echo "============================================================"
+
+gatk SelectVariants \
+    -R "${REF}" \
+    -V "${SNP_FILTERED}" \
+    --exclude-filtered \
+    -O "${SNP_CLEAN}"
+
+gatk IndexFeatureFile \
+    -I "${SNP_CLEAN}"
+
+echo ""
+echo "Final count after site-level filtering:"
+gatk CountVariants -V "${SNP_CLEAN}"
+
+echo ""
+echo "============================================================"
+echo "SITE-LEVEL SNP FILTERING COMPLETE"
+echo "============================================================"
+echo "Output:"
+echo "${SNP_CLEAN}"
+echo ""
+echo "End: $(date)"
+echo "============================================================"
+
+```
+###############################################################
+#### Depth Filtering###########################################
+#################################################################
+```bash
+#!/bin/bash
+
+# ============================================================
+# Dama Gazelle SNP Filtering
+# Genotype-level depth filtering
+#
+# Input:
+#   dama_gazelle.SNPs.clean.vcf.gz
+#
+# Samples:
+#   SRR17129394
+#   SRR17134085
+#   SRR17134086
+#   SRR17134087
+#   SRR17134088
+#
+# DP thresholds:
+#   Lower bound: DP >= 5
+#   Upper bound: 2 x individual mean depth
+# ============================================================
+
+module load bcftools/1.14
+
+# ------------------------------------------------------------
+# Individual-specific upper DP thresholds
+# ------------------------------------------------------------
+# SRR17129394: mean depth = 31.4235; 2x = 62.847
+# SRR17134085: mean depth = 29.1425; 2x = 58.285
+# SRR17134086: mean depth = 34.6011; 2x = 69.202
+# SRR17134087: mean depth = 26.9165; 2x = 53.833
+# SRR17134088: mean depth = 31.4441; 2x = 62.888
+
+# ------------------------------------------------------------
+# Apply genotype-level DP filtering
+# Genotypes outside the individual-specific range are
+# converted to missing (./.).
+# ------------------------------------------------------------
+
+bcftools view -s SRR17129394 -Ob \
+    -o s1.bcf \
+    dama_gazelle.SNPs.clean.vcf.gz
+
+bcftools +setGT s1.bcf -Ob \
+    -o s1.dp.bcf \
+    -- -t q -n . \
+    -i 'FMT/DP<5 || FMT/DP>62.847'
+
+
+bcftools view -s SRR17134085 -Ob \
+    -o s2.bcf \
+    dama_gazelle.SNPs.clean.vcf.gz
+
+bcftools +setGT s2.bcf -Ob \
+    -o s2.dp.bcf \
+    -- -t q -n . \
+    -i 'FMT/DP<5 || FMT/DP>58.285'
+
+
+bcftools view -s SRR17134086 -Ob \
+    -o s3.bcf \
+    dama_gazelle.SNPs.clean.vcf.gz
+
+bcftools +setGT s3.bcf -Ob \
+    -o s3.dp.bcf \
+    -- -t q -n . \
+    -i 'FMT/DP<5 || FMT/DP>69.202'
+
+
+bcftools view -s SRR17134087 -Ob \
+    -o s4.bcf \
+    dama_gazelle.SNPs.clean.vcf.gz
+
+bcftools +setGT s4.bcf -Ob \
+    -o s4.dp.bcf \
+    -- -t q -n . \
+    -i 'FMT/DP<5 || FMT/DP>53.833'
+
+
+bcftools view -s SRR17134088 -Ob \
+    -o s5.bcf \
+    dama_gazelle.SNPs.clean.vcf.gz
+
+bcftools +setGT s5.bcf -Ob \
+    -o s5.dp.bcf \
+    -- -t q -n . \
+    -i 'FMT/DP<5 || FMT/DP>62.888'
+
+
+# ------------------------------------------------------------
+# Index individual BCF files
+# ------------------------------------------------------------
+
+for f in s1.dp.bcf s2.dp.bcf s3.dp.bcf s4.dp.bcf s5.dp.bcf
+do
+    bcftools index -f "$f"
+done
+
+
+# ------------------------------------------------------------
+# Merge the five individually filtered samples
+# ------------------------------------------------------------
+
+bcftools merge \
+    s1.dp.bcf \
+    s2.dp.bcf \
+    s3.dp.bcf \
+    s4.dp.bcf \
+    s5.dp.bcf \
+    -Oz \
+    -o dama_gazelle.SNPs.DP_filtered.vcf.gz
+
+
+# Index final DP-filtered VCF
+
+bcftools index -t dama_gazelle.SNPs.DP_filtered.vcf.gz
+```
+#####################################################################
+#### Retain sites with genotype calls in at least 4 of 5 individuals.
+#####################################################################
+```bash
+#!/bin/bash
+
+# ============================================================
+# Dama Gazelle SNP Filtering
+# Missingness filter
+#
+# Retain sites with genotype calls in at least 4 of 5
+# individuals.
+#
+# Equivalent to:
+#   F_MISSING <= 0.20
+# ============================================================
+
+module load bcftools/1.14
+
+bcftools view \
+    -i 'F_MISSING<=0.2' \
+    dama_gazelle.SNPs.DP_filtered.vcf.gz \
+    -Oz \
+    -o dama_gazelle.SNPs.final.vcf.gz
+
+bcftools index -t dama_gazelle.SNPs.final.vcf.gz
+```
+
