@@ -108,9 +108,7 @@ ${JAVA_EXEC} -jar ${SNPSIFT_JAR} filter "ANN[*].EFFECT has 'intergenic_region'" 
   ${INPUT_VCF} \
   > ${OUTPUT_DIR}/Dama_gazelle_intergenic_sites.vcf
 
-# -----------------------------------------------------------------
-# Verification Block
-# -----------------------------------------------------------------
+##Verification code
 echo "---------------------------------------------------"
 echo "Filtering Complete! Total variant counts extracted:"
 echo "---------------------------------------------------"
