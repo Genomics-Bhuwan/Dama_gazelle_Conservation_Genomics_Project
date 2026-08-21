@@ -102,7 +102,7 @@ ${JAVA_EXEC} -jar ${SNPSIFT_JAR} filter "(ANN[*].EFFECT has 'transcript_ablation
   ${INPUT_VCF} \
   > ${OUTPUT_DIR}/Dama_gazelle_lof_sites.vcf
 
-# 5. Filter for Intergenic Variants
+# 5. Filter for Intergenic Variants.
 echo "Extracting Intergenic variants..."
 ${JAVA_EXEC} -jar ${SNPSIFT_JAR} filter "ANN[*].EFFECT has 'intergenic_region'" \
   ${INPUT_VCF} \
