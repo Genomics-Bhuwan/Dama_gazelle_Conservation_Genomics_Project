@@ -108,13 +108,4 @@ ${JAVA_EXEC} -jar ${SNPSIFT_JAR} filter "ANN[*].EFFECT has 'intergenic_region'" 
   ${INPUT_VCF} \
   > ${OUTPUT_DIR}/Dama_gazelle_intergenic_sites.vcf
 
-##Verification code
-echo "---------------------------------------------------"
-echo "Filtering Complete! Total variant counts extracted:"
-echo "---------------------------------------------------"
-echo -n "Missense Sites:   " && grep -v "^#" ${OUTPUT_DIR}/Dama_gazelle_missense_sites.vcf | wc -l
-echo -n "Synonymous Sites: " && grep -v "^#" ${OUTPUT_DIR}/Dama_gazelle_synonymous_sites.vcf | wc -l
-echo -n "LoF/Splicing:     " && grep -v "^#" ${OUTPUT_DIR}/Dama_gazelle_lof_sites.vcf | wc -l
-echo -n "Intergenic Sites: " && grep -v "^#" ${OUTPUT_DIR}/Dama_gazelle_intergenic_sites.vcf | wc -l
-echo "---------------------------------------------------"
 ```
