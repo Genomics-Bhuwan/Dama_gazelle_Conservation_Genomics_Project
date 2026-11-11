@@ -168,77 +168,268 @@ fi
 
 echo "SAF estimation completed."
 
-# --------------------------------------------------------
-# 6B. ESTIMATE FOLDED SITE FREQUENCY SPECTRUM
-# --------------------------------------------------------
-echo "Step 2: Estimating folded SFS for ${SAMPLE}..."
+#!/bin/bash -l
+#SBATCH --job-name=Dama_SFS_Theta
+#SBATCH --array=0-4
+#SBATCH --time=80:00:00
+#SBATCH --cpus-per-task=15
+#SBATCH --mem=100G
+#SBATCH --partition=batch
+#SBATCH --output=Dama_SFS_Theta_%A_%a.log
+#SBATCH --error=Dama_SFS_Theta_%A_%a.err
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=bistbs@miamioh.edu
 
-realSFS \
-    "${PREFIX}.saf.idx" \
-    -P "${THREADS}" \
-    -fold 1 \
-    > "${PREFIX}.folded.sfs"
+set -euo pipefail
 
-if [[ ! -s "${PREFIX}.folded.sfs" ]]; then
-    echo "ERROR: SFS missing for $SAMPLE"
+# ============================================================
+# 1. LOAD SOFTWARE MODULES
+# ============================================================
+
+module purge
+module load gcc-6.3.0
+module load angsd
+
+echo "Loaded modules:"
+module list
+
+# ANGSD installation paths
+ANGSD_DIR="/software/ngsTools/1.0.2/ngsTools/ANGSD/angsd"
+ANGSD_MISC="${ANGSD_DIR}/misc"
+
+REAL_SFS="${ANGSD_MISC}/realSFS"
+THETA_STAT="${ANGSD_MISC}/thetaStat"
+
+# Add misc directory to PATH
+export PATH="${ANGSD_MISC}:${PATH}"
+
+# Verify executables
+if [[ ! -x "$REAL_SFS" ]]; then
+    echo "ERROR: realSFS not found"
     exit 1
 fi
 
-echo "Folded SFS completed."
-
-# --------------------------------------------------------
-# 6C. ESTIMATE THETA STATISTICS
-# --------------------------------------------------------
-echo "Step 3: Estimating theta statistics for ${SAMPLE}..."
-
-realSFS saf2theta \
-    "${PREFIX}.saf.idx" \
-    -sfs "${PREFIX}.folded.sfs" \
-    -fold 1 \
-    -outname "${PREFIX}"
-
-if [[ ! -s "${PREFIX}.thetas.idx" ]]; then
-    echo "ERROR: Theta index missing for $SAMPLE"
+if [[ ! -x "$THETA_STAT" ]]; then
+    echo "ERROR: thetaStat not found"
     exit 1
 fi
 
-echo "Theta estimation completed."
-
-# --------------------------------------------------------
-# 6D. GENOME-WIDE THETA STATISTICS
-# --------------------------------------------------------
-echo "Step 4: Genome-wide theta statistics for ${SAMPLE}..."
-
-thetaStat do_stat \
-    "${PREFIX}.thetas.idx"
-
-# --------------------------------------------------------
-# 6E. SLIDING WINDOW ANALYSIS
-# --------------------------------------------------------
-echo "Step 5: Sliding window analysis for ${SAMPLE}..."
-
-thetaStat do_stat \
-    "${PREFIX}.thetas.idx" \
-    -win 50000 \
-    -step 10000 \
-    -outnames "${PREFIX}.50kb_10kb.theta"
-
-# --------------------------------------------------------
-# 6F. EXTRACT PER-SITE THETA VALUES
-# --------------------------------------------------------
-echo "Step 6: Extracting per-site theta values for ${SAMPLE}..."
-
-thetaStat print \
-    "${PREFIX}.thetas.idx" \
-    2>/dev/null \
-    > "${PREFIX}.per_site_theta.txt"
+echo "realSFS: $REAL_SFS"
+echo "thetaStat: $THETA_STAT"
 
 # ============================================================
-# 7. FINAL TASK REPORT
+# 2. DEFINE DIRECTORIES
+# ============================================================
+
+BASE_DIR="/home/bistbs/downsampled_10X"
+OUTPUT_DIR="${BASE_DIR}/ANGSD"
+
+cd "$OUTPUT_DIR"
+
+THREADS="${SLURM_CPUS_PER_TASK:-15}"
+
+# ============================================================
+# 3. DEFINE FIVE SAMPLES
+# ============================================================
+
+SAMPLES=(
+    "SRR17129394_10X"
+    "SRR17134085_10X"
+    "SRR17134086_10X"
+    "SRR17134087_10X"
+    "SRR17134088_10X"
+)
+
+TASK_ID="${SLURM_ARRAY_TASK_ID:?SLURM_ARRAY_TASK_ID is required}"
+
+if (( TASK_ID < 0 || TASK_ID >= ${#SAMPLES[@]} )); then
+    echo "ERROR: Invalid array task ID: $TASK_ID"
+    exit 1
+fi
+
+SAMPLE="${SAMPLES[$TASK_ID]}"
+
+SAMPLE_DIR="${OUTPUT_DIR}/${SAMPLE}"
+PREFIX="${SAMPLE_DIR}/${SAMPLE}"
+
+echo "================================================"
+echo "SAMPLE: ${SAMPLE}"
+echo "ARRAY TASK: ${TASK_ID}"
+echo "THREADS: ${THREADS}"
+echo "STARTED: $(date)"
+echo "================================================"
+
+mkdir -p "$SAMPLE_DIR"
+
+# ============================================================
+# 4. CHECK EXISTING SAF FILES
+# ============================================================
+
+SAF_IDX="${PREFIX}.saf.idx"
+SAF_GZ="${PREFIX}.saf.gz"
+SAF_POS="${PREFIX}.saf.pos.gz"
+
+for FILE in "$SAF_IDX" "$SAF_GZ" "$SAF_POS"; do
+
+    if [[ ! -s "$FILE" ]]; then
+        echo "ERROR: Missing or empty SAF file: $FILE"
+        exit 1
+    fi
+
+done
+
+echo "All SAF input files are present."
+
+# ============================================================
+# 5. ESTIMATE FOLDED SITE FREQUENCY SPECTRUM
+# ============================================================
+
+SFS="${PREFIX}.folded.sfs"
+SFS_TMP="${SFS}.tmp"
+
+echo "================================================"
+echo "STEP 1: FOLDED SFS"
+echo "================================================"
+
+if [[ -s "$SFS" ]]; then
+
+    echo "Existing folded SFS found. Skipping estimation."
+
+else
+
+    rm -f "$SFS_TMP"
+
+    "$REAL_SFS" \
+        "$SAF_IDX" \
+        -cores "$THREADS" \
+        -fold 1 \
+        > "$SFS_TMP"
+
+    if [[ ! -s "$SFS_TMP" ]]; then
+        echo "ERROR: Folded SFS estimation failed."
+        exit 1
+    fi
+
+    mv "$SFS_TMP" "$SFS"
+
+    echo "Folded SFS completed."
+
+fi
+
+# ============================================================
+# 6. ESTIMATE THETA VALUES
+# ============================================================
+
+THETAS_GZ="${PREFIX}.thetas.gz"
+THETAS_IDX="${PREFIX}.thetas.idx"
+
+echo "================================================"
+echo "STEP 2: SAF TO THETA"
+echo "================================================"
+
+if [[ -s "$THETAS_GZ" && -s "$THETAS_IDX" ]]; then
+
+    echo "Existing theta files found. Skipping calculation."
+
+else
+
+    # Remove incomplete outputs before restarting
+    rm -f "$THETAS_GZ" "$THETAS_IDX"
+
+    "$REAL_SFS" saf2theta \
+        "$SAF_IDX" \
+        -sfs "$SFS" \
+        -fold 1 \
+        -outname "$PREFIX"
+
+    if [[ ! -s "$THETAS_GZ" || ! -s "$THETAS_IDX" ]]; then
+        echo "ERROR: Theta estimation failed."
+        exit 1
+    fi
+
+    echo "Theta estimation completed."
+
+fi
+
+# ============================================================
+# 7. GENOME-WIDE THETA STATISTICS
+# ============================================================
+
+THETA_STATS="${THETAS_IDX}.pestPG"
+
+echo "================================================"
+echo "STEP 3: GENOME-WIDE THETA STATISTICS"
+echo "================================================"
+
+if [[ -s "$THETA_STATS" ]]; then
+
+    echo "Existing genome-wide statistics found. Skipping."
+
+else
+
+    "$THETA_STAT" do_stat "$THETAS_IDX"
+
+    if [[ ! -s "$THETA_STATS" ]]; then
+        echo "ERROR: Genome-wide theta statistics missing."
+        exit 1
+    fi
+
+    echo "Genome-wide theta statistics completed."
+
+fi
+
+# ============================================================
+# 8. SLIDING WINDOW THETA ANALYSIS
+# ============================================================
+
+WINDOW_PREFIX="${PREFIX}.50kb_10kb"
+WINDOW_STATS="${WINDOW_PREFIX}.pestPG"
+
+echo "================================================"
+echo "STEP 4: SLIDING WINDOW ANALYSIS"
+echo "Window size: 50000 bp"
+echo "Step size: 10000 bp"
+echo "================================================"
+
+if [[ -s "$WINDOW_STATS" ]]; then
+
+    echo "Existing sliding-window statistics found. Skipping."
+
+else
+
+    "$THETA_STAT" do_stat \
+        "$THETAS_IDX" \
+        -win 50000 \
+        -step 10000 \
+        -outnames "$WINDOW_PREFIX"
+
+    if [[ ! -s "$WINDOW_STATS" ]]; then
+        echo "ERROR: Sliding-window output missing."
+        exit 1
+    fi
+
+    echo "Sliding-window analysis completed."
+
+fi
+
+# ============================================================
+# 9. FINAL REPORT
 # ============================================================
 
 echo "================================================"
-echo "ANGSD ANALYSIS COMPLETED FOR SAMPLE: ${SAMPLE}"
-echo "Finished: $(date)"
+echo "ANALYSIS COMPLETED"
+echo "SAMPLE: ${SAMPLE}"
+echo "FINISHED: $(date)"
 echo "================================================"
+
+echo "Generated outputs:"
+
+ls -lh \
+    "$SFS" \
+    "$THETAS_GZ" \
+    "$THETAS_IDX" \
+    "$THETA_STATS" \
+    "$WINDOW_STATS"
+
+echo "ALL DONE: ${SAMPLE}"
 ```
