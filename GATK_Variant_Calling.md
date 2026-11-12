@@ -76,7 +76,7 @@ samples=$(samtools view -H $BAM | grep '^@RG' | awk '{for(i=1;i<=NF;i++) if($i ~
 # Run HaplotypeCaller for each sample in parallel
 # -------------------------------
 for sample in $samples; do
-  echo "🚀 Launching HaplotypeCaller for: $sample"
+  echo " Launching HaplotypeCaller for: $sample"
 
   gatk --java-options "-Xmx16g" HaplotypeCaller \
       -R $REFERENCE \
@@ -92,7 +92,7 @@ done
 # Wait for all background processes to complete
 wait
 
-echo "✅ All parallel HaplotypeCaller jobs finished successfully."
+echo " All parallel HaplotypeCaller jobs finished successfully."
 ```
 
 #### Step 2. Combine Gentopyes.Joint Genotyping
@@ -135,7 +135,7 @@ gatk --java-options "-Xmx120G" CombineGVCFs \
 # -------------------------------
 # Completion message
 # -------------------------------
-echo "✅ CombineGVCFs job finished successfully at $(date)"
+echo " CombineGVCFs job finished successfully at $(date)"
 
 ```
 
@@ -227,4 +227,106 @@ vcftools \
 
 ```
 
+
+
+#########################################################################################################################
+#### Variant calling for downsampled 10X depth for 5 individuals of Dama gazelle + Grant's gazelle and Thompson's gazelle
+##########################################################################################################################
+```bash
+#!/bin/bash -l
+#SBATCH --job-name=HaplotypeCaller_10X
+#SBATCH --time=80:00:00
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=16
+#SBATCH --mem=90G
+#SBATCH --partition=batch
+#SBATCH --array=0-4
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=bistbs@miamioh.edu
+#SBATCH --output=logs/HaplotypeCaller_%A_%a.out
+#SBATCH --error=logs/HaplotypeCaller_%A_%a.err
+
+# -------------------------------
+# Load modules
+# -------------------------------
+module load gatk-4.1.2.0
+module load samtools-1.22.1
+
+# -------------------------------
+# Input/output paths
+# -------------------------------
+DATA_DIR=/home/bistbs/downsampled_10X
+REFERENCE=${DATA_DIR}/Dama_gazelle_hifiasm-ULONT_primary.fasta
+GVCF_DIR=${DATA_DIR}/GVCFs
+
+mkdir -p $GVCF_DIR
+
+# -------------------------------
+# Map array index (0-4) to BAM file
+# -------------------------------
+BAMS=(${DATA_DIR}/*_10X.bam)
+CURRENT_BAM=${BAMS[$SLURM_ARRAY_TASK_ID]}
+PREFIX=$(basename "$CURRENT_BAM" .bam)
+
+echo " [Task $SLURM_ARRAY_TASK_ID] Running HaplotypeCaller for: $PREFIX"
+
+# -------------------------------
+# Run HaplotypeCaller
+# -------------------------------
+gatk --java-options "-Xmx70g" HaplotypeCaller \
+    -R $REFERENCE \
+    -I $CURRENT_BAM \
+    -O ${GVCF_DIR}/${PREFIX}.g.vcf.gz \
+    -ERC GVCF \
+    --native-pair-hmm-threads 8
+
+echo " [Task $SLURM_ARRAY_TASK_ID] Finished: $PREFIX"
+```
+
+#### Combine genotypes for the seven samples 
+```bash
+#!/bin/bash -l
+#SBATCH --job-name=CombineGVCFs_10X
+#SBATCH --time=70:00:00
+#SBATCH --cpus-per-task=20
+#SBATCH --mem=100G
+#SBATCH --partition=batch
+#SBATCH --output=logs/CombineGVCFs_%A.out
+#SBATCH --error=logs/CombineGVCFs_%A.err
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=bistbs@miamioh.edu
+
+# -------------------------------
+# Load modules
+# -------------------------------
+module load gatk-4.1.2.0
+
+# -------------------------------
+# Define paths
+# -------------------------------
+DATA_DIR=/home/bistbs/downsampled_10X
+REF=${DATA_DIR}/Dama_gazelle_hifiasm-ULONT_primary.fasta
+GVCF_DIR=${DATA_DIR}/GVCFs
+OUTDIR=${DATA_DIR}/Combined_GVCF
+
+mkdir -p ${OUTDIR}
+
+# -------------------------------
+# Combine per-sample GVCFs
+# -------------------------------
+gatk --java-options "-Xmx120G" CombineGVCFs \
+   -R ${REF} \
+   --variant ${GVCF_DIR}/SRR17129394_10X.g.vcf.gz \
+   --variant ${GVCF_DIR}/SRR17134085_10X.g.vcf.gz \
+   --variant ${GVCF_DIR}/SRR17134086_10X.g.vcf.gz \
+   --variant ${GVCF_DIR}/SRR17134087_10X.g.vcf.gz \
+   --variant ${GVCF_DIR}/SRR17134088_10X.g.vcf.gz \
+   -O ${OUTDIR}/all_samples_10X_combined.g.vcf.gz
+
+# -------------------------------
+# Completion message
+# -------------------------------
+echo "CombineGVCFs job finished successfully at $(date)"
+```
 
