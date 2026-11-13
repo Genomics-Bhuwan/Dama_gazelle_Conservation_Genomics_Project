@@ -1,6 +1,6 @@
-## Mark and Remove Duplicates
+#### Mark and Remove Duplicates
 
-## This script marks and removes the PCR duplicates from the merged BAM file.
+#### This script marks and removes the PCR duplicates from the merged BAM file.
 ----
 ```bash
 #!/bin/bash -l
