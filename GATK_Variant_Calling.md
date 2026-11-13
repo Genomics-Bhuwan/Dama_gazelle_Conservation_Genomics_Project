@@ -1,6 +1,6 @@
-# The Genome Analysis Toolkit (GATK) 
+#### The Genome Analysis Toolkit (GATK) 
 ---
-The GATK (Genome Analysis Toolkit) is one of the most used programs for genotype calling in sequencing data in model and non model organisms. 
+- The GATK (Genome Analysis Toolkit) is one of the most used programs for genotype calling in sequencing data in model and non model organisms. 
 Designed to analyze human genetic data and all its pipelines are optimized for the current purpose.
 ---
 
@@ -35,8 +35,8 @@ This tutorial demonstrates a complete workflow for variant calling using GATK. T
 samtools view -H all_samples_merged_rmdup.bam | grep '^@RG' | awk '{for(i=1;i<=NF;i++) if($i ~ /^SM:/) print $i}' | sed 's/SM://'
 ```
 
-### Run the batch script 
-### Run all samples in parallel (fast and efficient)
+#### Run the batch script 
+#### Run all samples in parallel (fast and efficient)
 #### I would have run GenomicsdbImport rather than this if I had more than 20 samples or higher number of chromosomes in my dataset to optimize the resources and time.
 ```bash
 #!/bin/bash -l
