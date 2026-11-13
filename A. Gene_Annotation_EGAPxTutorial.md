@@ -57,8 +57,8 @@ python3 ui/egapx.py input_Dama.yaml \
   -w /scratch/bistbs_new/Genome_Annotation/workdir
 ```
 ---
-## Step 5. Preparing the workflow. Most important step. Fixing the slurm.org file. I used the aptainer container, not the Singularity.
-## I am using aptainer which is pretty easy. Based on what you have such as singularity or docker you may want to use. But aptainer worked for me.
+#### Step 5. Preparing the workflow. Most important step. Fixing the slurm.org file. I used the aptainer container, not the Singularity.
+#### I am using aptainer which is pretty easy. Based on what you have such as singularity or docker you may want to use. But aptainer worked for me.
 1.Change directory to working directory
 
 ```{batch}
