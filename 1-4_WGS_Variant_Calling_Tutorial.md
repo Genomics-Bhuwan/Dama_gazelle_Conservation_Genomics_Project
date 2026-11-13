@@ -1,4 +1,4 @@
-# Dama Gazelle Whole-Genome Resequencing (WGS) Variant Calling Pipeline Tutorial
+#### Dama Gazelle Whole-Genome Resequencing (WGS) Variant Calling Pipeline Tutorial
 
 **Author:** Bhuwan Singh Bist
 
@@ -18,13 +18,13 @@ This tutorial demonstrates a complete workflow for WGS variant calling in the Da
 
 ---
 
-# Dama Gazelle WGS Variant Calling Pipeline
+#### Dama Gazelle WGS Variant Calling Pipeline
 
 This tutorial demonstrates the workflow for whole-genome sequencing (WGS) variant calling in the Dama gazelle. Each step includes the commands in a copyable code block.
 
 ---
 
-## 1. Quality control using FastQC
+#### 1. Quality control using FastQC
 
 ```bash
 #!/bin/bash -l
@@ -47,7 +47,7 @@ cd $INDIR
 fastqc *_1.fastq *_2.fastq -o $OUTDIR -t $THREADS
 ```
 
-## 2. Adapter trimming with Trim Galore
+#### 2. Adapter trimming with Trim Galore
 
 ```bash
 module load trimgalore-0.6.7
@@ -67,7 +67,7 @@ for R1 in *_1.fastq; do
 done
 ```
 
-## 3a. Index the reference
+#### 3a. Index the reference
 
 ```bash
 cd /shared/jezkovt_bistbs_shared/Dama_Gazelle_Project/Dama_gazelle_sequences/dama_fastq/3_Indexing/
@@ -82,7 +82,7 @@ samtools faidx $REFERENCE
 bwa index $REFERENCE
 ```
 
-## 3b. Align reads and process BAMs
+#### 3b. Align reads and process BAMs
 
 ```bash
 # Change directory to where the T2T reference is stored.
@@ -108,7 +108,7 @@ samtools faidx $REFERENCE
 # Index with BWA (for mapping)
 bwa index $REFERENCE
 ```
-## 3C. Align reads and process BAMs using BWA-MEM
+#### 3C. Align reads and process BAMs using BWA-MEM
 
 ```bash
 # Change directory to where the T2T reference is stored.
@@ -147,7 +147,7 @@ for R1 in $INPUT_DIR/*_1_val_1.fq; do
         | samtools view -bF 4 - > $OUTPUT_DIR/${BASE}_mapped.bam
 done
 ```    
-## 3d. Sort the mapped SAM files
+#### 3d. Sort the mapped SAM files
 ```bash
 #!/bin/bash -l
 #SBATCH --job-name=Sort_SAM
@@ -193,10 +193,10 @@ base=$(basename "$this_bam" .bam)
 TASK_TMP="${SCRATCH}/job_${SLURM_ARRAY_JOB_ID}_task_${SLURM_ARRAY_TASK_ID}"
 mkdir -p "$TASK_TMP"
 
-echo "📂 Processing BAM: $this_bam"
-echo "🏷 Output BAM: ${OUTPUT_DIR}/${base}_sorted.bam"
-echo "🖥 Host: $HOSTNAME"
-echo "🗂 TMP_DIR: $TASK_TMP"
+echo " Processing BAM: $this_bam"
+echo " Output BAM: ${OUTPUT_DIR}/${base}_sorted.bam"
+echo " Host: $HOSTNAME"
+echo " TMP_DIR: $TASK_TMP"
 
 # Run Picard SortSam
 java -Xmx120g -jar "$PICARD_JAR" SortSam \
@@ -209,15 +209,15 @@ java -Xmx120g -jar "$PICARD_JAR" SortSam \
 
 # Check success
 if [ $? -eq 0 ]; then
-    echo "✅ Finished sorting ${base}.bam"
+    echo " Finished sorting ${base}.bam"
 else
-    echo "❌ Error sorting ${base}.bam"
+    echo " Error sorting ${base}.bam"
     exit 1
 fi
 
 ```
 
-## 4. Add or Replace Groups
+#### 4. Add or Replace Groups
 
 ```bash
 #!/bin/bash -l
@@ -251,7 +251,7 @@ this_bam=${bam_list[$((SLURM_ARRAY_TASK_ID-1))]}
 
 # Safety check
 if [ ! -f "$this_bam" ]; then
-    echo "❌ No BAM file found for SLURM_ARRAY_TASK_ID=${SLURM_ARRAY_TASK_ID}"
+    echo " No BAM file found for SLURM_ARRAY_TASK_ID=${SLURM_ARRAY_TASK_ID}"
     exit 1
 fi
 
@@ -263,8 +263,8 @@ RGSM=$(echo "$base" | cut -d'_' -f1)
 RGID=$(echo "$base" | cut -d'_' -f1)
 RGPU="${RGSM}_unit1"
 
-echo "📂 Processing: $this_bam"
-echo "🧬 RGID=$RGID, RGPU=$RGPU, RGSM=$RGSM"
+echo " Processing: $this_bam"
+echo " RGID=$RGID, RGPU=$RGPU, RGSM=$RGSM"
 
 # Run Picard AddOrReplaceReadGroups
 java -Xmx12g -jar "$PICARD_JAR" AddOrReplaceReadGroups \
@@ -279,6 +279,6 @@ java -Xmx12g -jar "$PICARD_JAR" AddOrReplaceReadGroups \
     VALIDATION_STRINGENCY=SILENT \
     TMP_DIR="$SCRATCH"
 
-echo "✅ Finished adding read groups to ${base}.bam"
+echo " Finished adding read groups to ${base}.bam"
 ```
 ---
