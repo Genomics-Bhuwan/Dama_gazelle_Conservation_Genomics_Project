@@ -1,4 +1,4 @@
-####Reference genome assembly indexing and creating the .dict file.
+#### Reference genome assembly indexing and creating the .dict file.
 ```bash
 #!/bin/bash
 #SBATCH --job-name=Dama_Reference_Index
