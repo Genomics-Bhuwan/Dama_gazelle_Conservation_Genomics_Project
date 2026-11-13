@@ -113,7 +113,7 @@ tabix -p gff /scratch/bistbs/Population_Genomic_Analysis/VEP/Gene_Ontology/Mhorr
 /scratch/bistbs/Population_Genomic_Analysis/VEP/Dama_gazelle_biallelic_snps_autosomes.vcf
 ```
 
-### 2. Run the variant predictor
+#### 2. Run the variant predictor
 - This code should be placed in a script and run as a job.
 - It took around ~30 min for the full genome using 8 cores.
 - For this test chromosome it only took a couple of minutes. 
@@ -134,7 +134,7 @@ singularity exec vep.sif vep \
 
 ##### Analyze the output
 
-### 1. Familiarize yourself with the output
+#### 1. Familiarize yourself with the output
 - If VEP worked, it will produce two or three output files: vep_rail.txt, vep_rail.txt_summary.html and possibly vep_rail.txt_warnings.txt. 
 - The first file contains the raw output.
 - The second file contains a neat summary suitable to open in a web browser (if the hydra cluster doesn't support opening this file, one option is to save the file locally on your laptop).
@@ -211,7 +211,7 @@ vcftools --vcf Dama_gazelle_biallelic_snps_autosomes.vcf  --positions moderate_i
 vcftools --vcf Dama_gazelle_biallelic_snps_autosomes.vcf  --positions high_impact.pos.txt --recode --out Dama_gazelle_high_impact
 ```
 
-### 3. Analyze the alleles
+#### 3. Analyze the alleles
 - Before we start investigating genetic load, there is one important thing we need to think about: _Which_ of the two alleles in a site is the deleterious one??
 - Vep doesn't provide us with this information.
 - We know that a mutation in a certain position causes a non-synonymous variation, and that this could be harmful.
