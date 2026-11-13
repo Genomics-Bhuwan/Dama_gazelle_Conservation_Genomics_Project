@@ -1,4 +1,4 @@
-# Synteny analysis for Dama gazelle(Addra gazelle & Mohrr gazelle)
+#### Synteny analysis for Dama gazelle(Addra gazelle & Mohrr gazelle)
 
 **Author:** Bhuwan Singh Bist
 
@@ -9,7 +9,7 @@
 
 ---
 
-# Dama Gazelle(Addra vs Mohrr gazelle sub-species) WGS synteny analysis
+#### Dama Gazelle(Addra vs Mohrr gazelle sub-species) WGS synteny analysis
 
 This tutorial demonstrates the workflow for whole-genome sequencing (WGS) synteny analysis in the Dama gazelle. Each step includes the commands in a copyable code block.
 
@@ -28,7 +28,7 @@ a) See these are the proteins fasta file generated from genome annotation using 
 b) We also need two .gff file one for each sub-species generated from genome annotation using EGAPx for both sub-species.
 
 a. .GFF file for both species
-The gff file of each species has alot of heading and data. MCScanX needs only four columns: Scafold, GeneID, Start and End. Since, the .gff file consits of many headers. Remove them for both sub-species.
+- The gff file of each species has alot of heading and data. MCScanX needs only four columns: Scafold, GeneID, Start and End. Since, the .gff file consits of many headers. Remove them for both sub-species.
 
 ```bash
 i. For Addra:
@@ -46,7 +46,7 @@ awk -F'\t' 'BEGIN{OFS="\t"} $3=="gene"{
 }' Mohrr_complete.genomic.gff > Mohrr_genes_minimal.gff
 ```
 
-### Step 3. Copy these four files to the MCScanX folder.
+#### Step 3. Copy these four files to the MCScanX folder.
 ```bash
 cp /scratch/bistbs/Synteny_Analysis/InterProScan_Annotation/Addra_complete.proteins.faa .
 cp /scratch/bistbs/Synteny_Analysis/InterProScan_Annotation/Mohrr_complete.proteins.faa .
@@ -54,23 +54,23 @@ cp /scratch/bistbs/Synteny_Analysis/GFF_editing_for_Synteny/Addra_genes_minimal.
 cp /scratch/bistbs/Synteny_Analysis/GFF_editing_for_Synteny/Mohrr_genes_minimal.gff .
 ```
 
-### Step 4. Combine your files
-# Why combine the two files ?
-## MCScanX is designed to detect the synteny(collinear blocks) between or within genomes. But, it only takes one pair of files as input.
+#### Step 4. Combine your files
+#### Why combine the two files ?
+#### MCScanX is designed to detect the synteny(collinear blocks) between or within genomes. But, it only takes one pair of files as input.
 a. A single .gff file(gene locations).
 b. A single .blast file(protein similarities).
-## So, if you want to compare two species(Addra and Mohrr), MCScanX must "see" both genomes together in a single combined dataset, else it cannot find matches between them.
+#### So, if you want to compare two species(Addra and Mohrr), MCScanX must "see" both genomes together in a single combined dataset, else it cannot find matches between them.
 
 ```bash
 cat Addra_complete.proteins.faa Mohrr_complete.proteins.faa > Addra_Mohrr_combined.faa
 cat Addra_genes_minimal.gff Mohrr_genes_minimal.gff > Addra_Mohrr.gff
 ```
 
-### Step 5. Run BLASTP all-vs-all
+#### Step 5. Run BLASTP all-vs-all
 #### MCScanX cannot directly compare DNA or genomes rather it compares genes based on protein similarity or homology. 
-### To find out the synteny(shared gene order), MCScanX first needs to know:
-### a. Which genes in Addra have similar copies(homologs) in Mohrr -or even within Addra itself?
-### It takes every protein from both sub-species and compares it against all others. 
+#### To find out the synteny(shared gene order), MCScanX first needs to know:
+#### a. Which genes in Addra have similar copies(homologs) in Mohrr -or even within Addra itself?
+#### It takes every protein from both sub-species and compares it against all others. 
 
 ```bash
 makeblastdb -in Addra_Mohrr_combined.faa -dbtype prot -out Addra_Mohrr_db
@@ -84,7 +84,7 @@ blastp -query Addra_Mohrr_combined.faa \
        -out Addra_Mohrr.blast
 ```
 
-### Step 5. Run MCSCanX.
+#### Step 5. Run MCSCanX.
 ```bash
 ./MCScanX Addra_Mohrr
 ```
@@ -178,30 +178,22 @@ Input: gene families + gene type
 Output: p-values of enrichment of duplicate origins
 ```
 
-
-
-
-
-
-
-#########################################################################################################################
-#########################################################################################################################
-## Gene Annotation Using "UniProt or SwissProt) for both sub-species.
+#### Gene Annotation Using "UniProt or SwissProt) for both sub-species.
 #########################################################################################################################
 Step 1. Module load
 module load blast-2.13.0+
 which blastp
 which makeblastdb
 
-## Step 2. Download Swiss Prot Database. Download in the working directory.
+#### Step 2. Download Swiss Prot Database. Download in the working directory.
 wget ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.fasta.gz
 gunzip uniprot_sprot.fasta.gz
 
-# Make BLAST database
+#### Make BLAST database
 makeblastdb -in uniprot_sprot.fasta -dbtype prot -out swissprot_db
 
-## Step 3. Run Blast for both sub-species.
-# Addra gazelle
+#### Step 3. Run Blast for both sub-species.
+#### Addra gazelle
 ```bash
 #!/bin/bash -l
 # Submit with: sbatch slurm_Addra.sh
@@ -241,7 +233,7 @@ blastp -query $ADDRA_PROT \
        -num_threads 10
 
 ```
-# Mohrr gazelle
+#### Mohrr gazelle
 ```bash
 #!/bin/bash -l
 # Submit with: sbatch slurm_Mohrr.sh
@@ -280,19 +272,15 @@ blastp -query $MOHRR_PROT \
        -num_threads 10
 ```
 
-#########################################################################################################################
-#########################################################################################################################
-## Gene Annotation Using "TrEMBL) for both sub-species.
-#########################################################################################################################
-
-## Download the TrEMBL database
+##### Gene Annotation Using "TrEMBL) for both sub-species.
+#### Download the TrEMBL database
 wget ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_trembl.fasta.gz
 gunzip uniprot_trembl.fasta.gz
 
-## Make blast database using TrEMBL
+#### Make blast database using TrEMBL
 makeblastdb -in uniprot_trembl.fasta -dbtype prot -out trembl_db
 
-## Run BLASTP for Addra gazelle
+#### Run BLASTP for Addra gazelle
 ```bash
 blastp -query Addra_complete.proteins.faa \
        -db trembl_db \
@@ -302,7 +290,7 @@ blastp -query Addra_complete.proteins.faa \
        -max_target_seqs 5 \
        -num_threads 24
 ```
- ## Run BLASTP for Mohrr gazelle.
+ #### Run BLASTP for Mohrr gazelle.
 ```bash
 blastp -query Mohrr_complete.proteins.faa \
        -db trembl_db \
@@ -312,19 +300,14 @@ blastp -query Mohrr_complete.proteins.faa \
        -max_target_seqs 5 \
        -num_threads 24
 ```
- 
 
-
-#########################################################################################################################
-#########################################################################################################################
-## Gene Annotation Using "InterProScan for both sub-species.
-#########################################################################################################################
+#### Gene Annotation Using "InterProScan for both sub-species.
 ##### It is a database integrating the predictive information about proteins function from a number of partner resources proving overview of the families that a protein belongs to and the domains and sites it contains. 
 ##### If you have a protein fasta file and want to functionally characterize can use this software to run the scanning algorithms from the InterPro database.
 ##### Since, our protein sequences data is in fasta from and the matches  are then calcualted against all of the required member databases signatures and the results are then output in variety of format. 
 
 
-## Step 1. Download InterProScan
+#### Step 1. Download InterProScan
 ```bash
 cd /scratch/bistbs/Synteny_Analysis/InterProScan_Annotation
 wget ftp://ftp.ebi.ac.uk/pub/software/unix/iprscan/5/5.50-84.0/interproscan-5.50-84.0-64-bit.tar.gz
@@ -332,7 +315,7 @@ wget ftp://ftp.ebi.ac.uk/pub/software/unix/iprscan/5/5.50-84.0/interproscan-5.50
 tar -zxvf interproscan-5.50-84.0-64-bit.tar.gz
 ```
 
-## Step 2. Change the directory
+#### Step 2. Change the directory
 ```bash
 cd interproscan-5.50-84.0
 module load hmmer-3.3.2
@@ -340,7 +323,7 @@ cd /scratch/bistbs/Synteny_Analysis/InterProScan_Annotation/interproscan-5.50-84
 hmmpress panther.hmm
 ```
 
-## Step 3. Run the interproscan for Addra
+#### Step 3. Run the interproscan for Addra
 ```bash
 module load java-20
 
@@ -359,7 +342,7 @@ mkdir -p $(dirname $FINAL_OUTPUT)
 cd $SPLIT_DIR
 
 # -------------------------------
-# 1️⃣ Split the FASTA into chunks
+# 1️. Split the FASTA into chunks
 # -------------------------------
 awk -v prefix="Addra_chunk_" -v chunk_size=5000 '
 BEGIN {n_seq=0; file_index=1;}
@@ -373,10 +356,10 @@ BEGIN {n_seq=0; file_index=1;}
 { print >> out }
 ' $INPUT
 
-echo "✅ Splitting complete! Files are in $SPLIT_DIR"
+echo " Splitting complete! Files are in $SPLIT_DIR"
 
 # -------------------------------
-# 2️⃣ Run InterProScan on each chunk sequentially
+#  Run InterProScan on each chunk sequentially
 # -------------------------------
 for chunk in $SPLIT_DIR/Addra_chunk_*.faa
 do
@@ -391,18 +374,18 @@ do
                              -cpu 12 \
                              -o $IPR_OUT_DIR/${BASENAME}_interproscan.out
 
-    echo "✅ Done: $BASENAME"
+    echo " Done: $BASENAME"
 done
 ```
 # -------------------------------
-# 3️⃣ Combine all chunk outputs into a single file
+#  Combine all chunk outputs into a single file
 # -------------------------------
 echo "Combining all chunk outputs into $FINAL_OUTPUT ..."
 cat $IPR_OUT_DIR/*_interproscan.out > $FINAL_OUTPUT
-echo "✅ Combined InterProScan output created at $FINAL_OUTPUT"
+echo " Combined InterProScan output created at $FINAL_OUTPUT"
 ```
 
- ## Run the interproscan for Mohrr gazelle
+ #### Run the interproscan for Mohrr gazelle
 ```bash 
 #!/bin/bash -l
 # Submit with: sbatch slurm_Mohrr.sh
@@ -438,16 +421,7 @@ $IPR_DIR/interproscan.sh -i $MOHRR_PROT \
                          -o $MOHRR_OUT/Mohrr_interproscan.out
 
 ```
-
-
-
-
-
-
-###################################################################################
-###################################################################################
 #### Genome Annotation Summary for both species using .gff file as input
-###################################################################################
 # 1. Addra gazelle
 ```bash
    grep -v "^#" Addra_complete.genomic.gff | awk '{print $3}' | sort | uniq -c
@@ -457,13 +431,7 @@ $IPR_DIR/interproscan.sh -i $MOHRR_PROT \
    ```bash
 grep -v "^#" Mohrr_complete.genomic.gff | awk '{print $3}' | sort | uniq -c
 ```
-
-
-###################################################################################
-###################################################################################
 #### Gene Annotation Summary Statistics using multiple databases
-###################################################################################
-
 ## Step 1. Number of Predicted Genes
 ```bash
 # Addra
@@ -473,8 +441,8 @@ grep -v "^#" Addra_complete.genomic.gff | awk '$3=="gene"{count++} END{print cou
 grep -v "^#" Mohrr_complete.genomic.gff | awk '$3=="gene"{count++} END{print count}'
 ```
 
-## Step 2. Median Gene Length
-## Calculate lengths of all genes and then get the median:
+#### Step 2. Median Gene Length
+#### Calculate lengths of all genes and then get the median:
 ```bash
 # Addra
 awk '$3=="gene"{print $5-$4+1}' Addra_complete.genomic.gff | sort -n | awk '{a[NR]=$1} END{if(NR%2){print a[(NR+1)/2]}else{print (a[NR/2]+a[NR/2+1])/2}}'
@@ -482,7 +450,7 @@ awk '$3=="gene"{print $5-$4+1}' Addra_complete.genomic.gff | sort -n | awk '{a[N
 # Mohrr
 awk '$3=="gene"{print $5-$4+1}' Mohrr_complete.genomic.gff | sort -n | awk '{a[NR]=$1} END{if(NR%2){print a[(NR+1)/2]}else{print (a[NR/2]+a[NR/2+1])/2}}'
 ```
-## Step 3. InterProScan Functional Annotation
+#### Step 3. InterProScan Functional Annotation
 Count the proteins annotated and with at least one GO term:
 ```bash
 # Addra
@@ -493,7 +461,7 @@ awk -F"\t" '$5!=""{print $1}' Addra_output/Addra_interproscan.out | sort -u | wc
 awk -F"\t" '{print $1}' Mohrr_output/Mohrr_interproscan.out | sort -u | wc -l
 awk -F"\t" '$5!=""{print $1}' Mohrr_output/Mohrr_interproscan.out | sort -u | wc -l
 ```
-## Step 4. Swiss-Prot Annotation
+#### Step 4. Swiss-Prot Annotation
 Count proteins with at least one Swiss-Prot hit:
 ```bash
 # Addra
@@ -503,7 +471,6 @@ cut -f1 Addra_output/Addra_vs_swissprot.tsv | sort -u | wc -l
 cut -f1 Mohrr_output/Mohrr_vs_swissprot.tsv | sort -u | wc -l
 ```
 
-##############################################################################
 ############### KEGG PATHWAY FUNCTIONAL ANNOTATION############################
 ```bash
 ## Step 1: Go the the link of KAAS given below.
