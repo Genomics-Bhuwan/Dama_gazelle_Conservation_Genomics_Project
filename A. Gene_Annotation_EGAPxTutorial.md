@@ -1,14 +1,14 @@
 ---
 #### Gene Annotation and Prediction for the Ruminant T2T Genome Assembly of Dama Gazelle using RNAseq Data using EGAPx.
 ---
-## Prerequisites
+#### Prerequisites
 
 ```bash
 a. Download Python 3.9+ version
 b. Load Singularity or Docker (this example uses Singularity v3.7.1)
 ```
 
-### Load Singularity
+##### Load Singularity
 
 ```bash
 module load singularity-3.7.1
@@ -16,7 +16,7 @@ module load singularity-3.7.1
 
 ---
 
-## Step 1: Change to Working Directory
+#### Step 1: Change to Working Directory
 
 ```bash
 cd /scratch/bistbs_new/Genome_Annotation
@@ -37,7 +37,7 @@ pip install -r requirements.txt
 
 ---
 
-## Step 3: Prepare Your Input YAML (`input_Dama.yaml`)
+#### Step 3: Prepare Your Input YAML (`input_Dama.yaml`)
 
 ```yaml
 genome: /scratch/bistbs_new/Genome_Annotation/Dama_gazelle_hifiasm-ULONT_primary.fasta.gz
@@ -49,7 +49,7 @@ locus_tag_prefix: damaga
 
 ---
 
-## Step 4: Run EGAPx (Local Execution or Batch Script)
+#### Step 4: Run EGAPx (Local Execution or Batch Script)
 
 ```bash
 python3 ui/egapx.py input_Dama.yaml \
@@ -109,7 +109,7 @@ process {
 
 ---
 
-## Step 6: Re-Run with SLURM (After config file is created)
+#### Step 6: Re-Run with SLURM (After config file is created)
 
 ```bash
 python3 ui/egapx.py input_Dama.yaml \
@@ -120,7 +120,7 @@ python3 ui/egapx.py input_Dama.yaml \
 
 ---
 
-## Step 7: Output Files
+#### Step 7: Output Files
 
 - **dama_output/complete.genomic.gff** → Annotated genome
 - **dama_output/proteins/** → Predicted proteins
@@ -129,13 +129,13 @@ python3 ui/egapx.py input_Dama.yaml \
 
 ---
 
-## Explanation of Output Flags
+#### Explanation of Output Flags
 
 - `-o dama_output` : Output folder
 - `-w .../workdir` : Working directory for temporary files
 
 
-### Some fun coding for the outputs
+#### Some fun coding for the outputs
 ```bash
 GFF=/scratch/bistbs/Addra_Genome_Annotation/Addra_complete.genomic.gff
 
@@ -171,7 +171,7 @@ echo "V_gene_segments:"
 grep -v "^#" $GFF | grep -P "\tV_gene_segment\t" | wc -l
 ```
 
-## For Mohrr gazelle
+#### For Mohrr gazelle
 ```bash
 GFF=/scratch/bistbs/Mohrr_Genome_Annotation/dama_output/Mohrr_complete.genomic.gff
 
